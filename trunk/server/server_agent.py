@@ -1,10 +1,10 @@
-from agent import Agent, AgentMessage
+from common import agent
 import random
 import time
 
-class ServerAgent(Agent):
+class ServerAgent(agent.Agent):
 	def __init__(self, type):
-		Agent.__init__(self)
+		agent.Agent.__init__(self)
 		self.type = type
 		self.id = -1 
 		self.server = None
@@ -86,7 +86,7 @@ class FollowAgentN(ServerAgent):
 		self.sendMsg("follow", "Update", "%i" % self.value)		
 
 	def live(self):
-		Agent.live(self)
+		agent.Agent.live(self)
 		if self.objective == None: return
 		if self.objective < self.value:
 			self.update ( self.value - 1 )
