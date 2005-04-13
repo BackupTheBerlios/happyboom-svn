@@ -55,10 +55,10 @@ class NetworkServerClient:
 		
 class NetworkServerWaitClients:
 	def __init__(self, server, port):
-		self.PORT = port # Arbitrary non-privileged server
+		self.PORT = port
 		self.server = server
 		self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		self.HOST = socket.gethostname() 
+		self.HOST = ''
 
 	def run_thread(self, max_connexion=4):
 		try:
