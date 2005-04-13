@@ -19,7 +19,7 @@ def parseArgs(val):
 	
 	try:
 		short = "h:dv"
-		long = ["debug", "host", "help", "verbose"]
+		long = ["debug", "host=", "help", "verbose"]
 		opts, args = getopt.getopt(sys.argv[1:], short, long)
 	except getopt.GetoptError:
 		usage()

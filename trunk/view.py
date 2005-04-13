@@ -22,6 +22,7 @@ class View:
 		self.on_recv_message = None
 		self.verbose = False
 		self.debug = False
+		self.max_fps = 50
 
 	def registerAgent(self, id, agent):
 		agent.id = id
@@ -106,7 +107,7 @@ def parseArgs(val):
 	import getopt
 	try:
 		short = "h:dv"
-		long = ["debug", "host", "help", "verbose"]
+		long = ["debug", "host=", "help", "verbose"]
 		opts, args = getopt.getopt(sys.argv[1:], short, long)
 	except getopt.GetoptError:
 		usage()
@@ -146,6 +147,7 @@ def main():
 		# Main loop
 		while view.loop==True:
 			view.live()
+			#view.max_fps = 50
 			time.sleep(0.30)
 	except KeyboardInterrupt:
 		print "Program interrupted."
