@@ -1,8 +1,10 @@
+#!/usr/bin/python
 from common import io
 import time
 import socket
 from common import mailing_list
 from view import *
+import sys
 
 class View:
 	instance = None
@@ -23,9 +25,9 @@ class View:
 		print "****"
 		agent.start()
 
-	def start(self):
+	def start(self, host, port):
 		self.io = io.ClientIO()
-		self.io.start(12430)
+		self.io.start(host, port)
 		self.registerAgent(0, AgentManager() )
 
 	def str2msg(self, str):
@@ -78,7 +80,12 @@ class View:
 def main():
 	view = View()
 	try:
-		view.start()
+		if 1<len(sys.argv):
+			host = sys.argv[1]
+		else:
+			host = socket.gethostname()
+		port = 12430
+		view.start(host, port)
 	except socket.error:
 		print "Connexion to server %s:%s failed !" % (view.io.host, view.io.port)
 		return

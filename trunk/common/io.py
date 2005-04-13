@@ -7,8 +7,8 @@ class ClientIO:
 		self.on_write = None
 		self.on_read = None
 
-	def start(self, port):
-		self.client = net_client.NetworkClient(port)
+	def start(self, host, port):
+		self.client = net_client.NetworkClient(host, port)
 		self.client.connect()
 		
 	def send(self, data):

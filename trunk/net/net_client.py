@@ -2,8 +2,8 @@ from socket import *
 import common
 
 class NetworkClient:
-	def __init__(self, port=4000):
-		self.HOST = 'localhost'
+	def __init__(self, host, port):
+		self.HOST = host
 		self.PORT = port
 		print "Connect to %s:%s." % (self.HOST, self.PORT)
 		self.s = socket(AF_INET, SOCK_STREAM)

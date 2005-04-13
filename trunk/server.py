@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import time
 import random
 from net import net_server

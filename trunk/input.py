@@ -1,3 +1,4 @@
+#!/usr/bin/python
 from common import io
 import socket
 
@@ -11,13 +12,19 @@ def main():
 	global io
 	io = io.ClientIO()
 	try:
-		io.start(12431)
+		host = socket.gethostname()
+		io.start(host, 12431)
 	except socket.error:
 		print "Connexion to server failed."
 		return 
 	
 	ok = True
-	print "(enter \"quit\" to quit game, or \"close\" to quit input)"
+	print ""
+	print "Commands :"
+	print "* +     : increment controlable agent"
+	print "* -     : increment controlable agent"
+	print "* close : close input"
+	print "* quit  : quit game"
 	cmd=""
 	while (cmd != "quit") & (cmd != "close"):
 		cmd = raw_input("cmd ? ")
