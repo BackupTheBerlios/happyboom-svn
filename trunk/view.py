@@ -1,5 +1,6 @@
 #!/usr/bin/python
 VERSION="0.0.1"
+PROGRAM_FULL_NAME="HappyBoom console viewer"
 
 from common import io
 import time
@@ -22,7 +23,7 @@ class View:
 		self.on_recv_message = None
 		self.verbose = False
 		self.debug = False
-		self.max_fps = 50
+		self.max_fps = 25
 
 	def registerAgent(self, id, agent):
 		agent.id = id
@@ -77,7 +78,7 @@ class View:
 		if self.loop==False: return
 
 		if self.clear_screen: print "\33[2J\33[1;1H"
-		print "=== Cycle ==="
+		print "=== %s version %s ===" % (PROGRAM_FULL_NAME, VERSION)
 		for key in self.agents:	
 			agent = self.agents[key]
 			agent.draw()
@@ -94,20 +95,22 @@ class View:
 		self.io.stop()
 
 def usage():
-	print "HappyBoom viewer version %s" % (VERSION)
-	print "Usage: %s [-h <host>] [-v] [-d]" % (sys.argv[0])
+	print "%s version %s" % (PROGRAM_FULL_NAME, VERSION)
+	print "Usage: %s [-h,--host <host>] [-v,--verbose] [-d,--debug] [--fps MAX_FPS]" \
+		% (sys.argv[0])
 	print
 	print "Long arguments :"
 	print "\t--help      : Show this help"
 	print "\t--host HOST : Specify server address (IP or name)"
 	print "\t--debug     : Enable debug mode"
 	print "\t--verbose   : Enable verbose mode"
+	print "\t--fps       : Set maximum frame par second (fps)"
 
 def parseArgs(val):
 	import getopt
 	try:
 		short = "h:dv"
-		long = ["debug", "host=", "help", "verbose"]
+		long = ["debug", "host=", "help", "verbose","fps="]
 		opts, args = getopt.getopt(sys.argv[1:], short, long)
 	except getopt.GetoptError:
 		usage()
@@ -121,6 +124,11 @@ def parseArgs(val):
 			val["host"] = a
 		if o in ("-v", "--verbose"):
 			val["verbose"] = True
+		if o == "--fps":
+			a = int(a)
+			if a < 1: a=1
+			elif 100<a: a=100
+			val["max_fps"] = a
 		if o in ("-d", "--debug"):
 			val["debug"] = True
 	return val
@@ -130,6 +138,7 @@ def main():
 	val = {
 		"host": socket.gethostname(), \
 		"port": 12430, \
+		"max_fps": 50, \
 		"verbose": False, \
 		"debug": False}
 	arg = parseArgs(val)
@@ -139,6 +148,7 @@ def main():
 		try:
 			view.setDebugMode( arg["debug"] )
 			view.setVerbose( arg["verbose"] )
+			view.max_fps = arg["max_fps"]
 			view.start(arg["host"], arg["port"])
 		except socket.error:
 			print "Connexion to server %s:%s failed !" % (view.io.host, view.io.port)
@@ -147,8 +157,7 @@ def main():
 		# Main loop
 		while view.loop==True:
 			view.live()
-			#view.max_fps = 50
-			time.sleep(0.30)
+			time.sleep(1.0 / view.max_fps)
 	except KeyboardInterrupt:
 		print "Program interrupted."
 		pass

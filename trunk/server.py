@@ -48,7 +48,7 @@ class Server:
 		agent = GameStateAgent()
 		self.registerAgent( agent )
 		
-		agent = AgentN(1000, 10)
+		agent = AgentN(1000, 100)
 		self.registerAgent( agent )
 		
 		agent = FollowAgentN(agent)

@@ -129,7 +129,12 @@ class AgentManager(ViewAgent):
 
 	def draw(self):
 		diff = time.time() - self.time
-		print "Game : iteration=%u, time=%u sec" % (self.iteration, diff)
+		if 0 < diff:
+			fps = "%.1f" % (self.iteration / diff)
+		else:
+			fps = "?"
+		print "Game : iteration=%u, time=%u sec, fps=%s" \
+			% (self.iteration, diff, fps)
 
 	def live(self):
 		self.processMessages()
