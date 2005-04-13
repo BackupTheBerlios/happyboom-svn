@@ -82,7 +82,7 @@ class Server:
 		agent.start()
 
 	def sendMsg(self, role, type, arg=None):
-		msg = agent.AgentMessage(role, type, arg)
+		msg = AgentMessage(role, type, arg)
 		locals = self.mailing_list.getLocal(role)
 		for agent in locals:
 			agent.putMessage(msg)
@@ -96,7 +96,7 @@ class Server:
 		if self.cmd_handler.has_key(cmd):
 			for agent in self.cmd_handler[cmd]:
 				print "Send %s to agent %u." % (cmd, agent.id)
-				msg = agent.AgentMessage(agent.id, "Command", cmd)
+				msg = AgentMessage(agent.id, "Command", cmd)
 				agent.putMessage(msg)
 		
 	def processInputs(self):
