@@ -4,3 +4,11 @@ HappyBoom
 HappyBoom is a rewrite of Wormux game but with better conception :
 - inputs, server & "view" are well separated
 - it uses multi-agents system
+
+Try it !
+========
+
+Open three terminals, and run :
+python server.py
+python view.py
+python input.py
