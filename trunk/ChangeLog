@@ -1,0 +1,10 @@
+2005-04-13 : First release
+	o Network server support multiple clients (four by default)
+	o Server don't need to wait clients anymore
+	o Send messages to a role instead of "dest"
+	o Agent have to say that it wants to get messages of a given role
+	o In the server, agents communicates together. For the example, a
+	  "follow agent" is written. It hear "number" role, and update
+	  slowly (+/- 1) its value.
+	o Agent "AgentN" can be reused : messages integrate agent ID
+	o TODO : Server should support client disconnexion
