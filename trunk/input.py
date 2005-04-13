@@ -1,6 +1,7 @@
 #!/usr/bin/python
 from common import io
 import socket
+import sys
 
 cmd_ok = ("quit", "+", "-")
 
@@ -12,7 +13,11 @@ def main():
 	global io
 	io = io.ClientIO()
 	try:
-		host = socket.gethostname()
+		if 1<len(sys.argv):
+			host = sys.argv[1]
+		else:
+			host = socket.gethostname()
+		port = 12430
 		io.start(host, 12431)
 	except socket.error:
 		print "Connexion to server failed."
