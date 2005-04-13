@@ -9,12 +9,13 @@ class NetworkClient:
 		self.on_connect = None
 		self.on_disconnect = None
 		self.s = None
+		self.verbose = False
 
 	def connect(self, host, port):
-		print "Start client."
+		if self.verbose: print "Start client."
 		self.host = host
 		self.port = port
-		print "Connect to %s:%s." % (self.host, self.port)
+		if self.verbose: print "Connect to %s:%s." % (self.host, self.port)
 		self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.s.connect((self.host, self.port))
 		self.connected = True 
@@ -22,7 +23,7 @@ class NetworkClient:
 
 	def disconnect(self):
 		if not self.connected: return
-		print "Disconnect client."
+		if self.verbose: print "Disconnect client."
 		self.s.close()
 		self.connected = False
 		if self.on_disconnect != None: self.on_disconnect()

@@ -99,10 +99,11 @@ class AgentManager(ViewAgent):
 
 	def start(self):
 		ViewAgent.start(self)
-		agent = NetworkStatAgent()
-		self.server.registerAgent(1000, agent)
-		agent = DebugMsgAgent()
-		self.server.registerAgent(1001, agent)
+		if self.server.debug:
+			agent = NetworkStatAgent()
+			self.server.registerAgent(1000, agent)
+			agent = DebugMsgAgent()
+			self.server.registerAgent(1001, agent)
 		
 	def tryCreateAgent(self, id, type):
 		if type=="number": return ViewN()

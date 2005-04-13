@@ -13,7 +13,7 @@ class View:
 
 	def __init__(self):
 		View.instance = self
-		self.io = None
+		self.io = io.ClientIO()
 		self.n = None
 		self.agents = {}
 		self.loop = True
@@ -21,6 +21,7 @@ class View:
 		self.mailing_list = mailing_list.MailingList()
 		self.on_recv_message = None
 		self.verbose = False
+		self.debug = False
 
 	def registerAgent(self, id, agent):
 		agent.id = id
@@ -29,7 +30,6 @@ class View:
 		agent.start()
 
 	def start(self, host, port):
-		self.io = io.ClientIO()
 		self.io.client.on_disconnect = self.on_disconnect
 		self.io.start(host, port)
 		self.registerAgent(0, AgentManager() )
@@ -82,7 +82,11 @@ class View:
 			agent.draw()
 		
 	def setDebugMode(self, debug):
-		self.clear_screen = not debug
+		self.debug = debug
+
+	def setVerbose(self, verbose):
+		self.clear_screen = not verbose
+		self.io.setVerbose(verbose)
 
 	def stop(self):
 		self.io.send("quit")
@@ -90,18 +94,19 @@ class View:
 
 def usage():
 	print "HappyBoom viewer version %s" % (VERSION)
-	print "Usage: %s [-h <host>] [-d]" % (sys.argv[0])
+	print "Usage: %s [-h <host>] [-v] [-d]" % (sys.argv[0])
 	print
 	print "Long arguments :"
 	print "\t--help      : Show this help"
 	print "\t--host HOST : Specify server address (IP or name)"
 	print "\t--debug     : Enable debug mode"
+	print "\t--verbose   : Enable verbose mode"
 
 def parseArgs(val):
 	import getopt
 	try:
-		short = "h:d"
-		long = ["debug", "host", "help"]
+		short = "h:dv"
+		long = ["debug", "host", "help", "verbose"]
 		opts, args = getopt.getopt(sys.argv[1:], short, long)
 	except getopt.GetoptError:
 		usage()
@@ -113,19 +118,26 @@ def parseArgs(val):
 			sys.exit()
 		if o in ("-h", "--host"):
 			val["host"] = a
+		if o in ("-v", "--verbose"):
+			val["verbose"] = True
 		if o in ("-d", "--debug"):
 			val["debug"] = True
 	return val
 
 def main():
 	view = View()
-	val = {"host": socket.gethostname(), "port": 12430, "debug": False}
+	val = {
+		"host": socket.gethostname(), \
+		"port": 12430, \
+		"verbose": False, \
+		"debug": False}
 	arg = parseArgs(val)
 
 	try:
 		# Connexion
 		try:
 			view.setDebugMode( arg["debug"] )
+			view.setVerbose( arg["verbose"] )
 			view.start(arg["host"], arg["port"])
 		except socket.error:
 			print "Connexion to server %s:%s failed !" % (view.io.host, view.io.port)

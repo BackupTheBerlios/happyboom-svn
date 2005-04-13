@@ -8,6 +8,9 @@ class ClientIO:
 		self.on_read = None
 		self.client = net_client.NetworkClient()
 
+	def setVerbose(self, verbose):
+		self.client.verbose = verbose
+
 	def start(self, host, port):
 		self.client.connect(host, port)
 		
