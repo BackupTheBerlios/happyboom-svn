@@ -6,10 +6,10 @@ class ClientIO:
 		self.client = None
 		self.on_write = None
 		self.on_read = None
+		self.client = net_client.NetworkClient()
 
 	def start(self, host, port):
-		self.client = net_client.NetworkClient(host, port)
-		self.client.connect()
+		self.client.connect(host, port)
 		
 	def send(self, data):
 		self.client.send(data)
@@ -25,12 +25,12 @@ class ClientIO:
 		return lines
 		
 	def stop(self):
-		self.client.stop()
+		self.client.disconnect()
 
 	def getPort(self):
-		return self.client.PORT
+		return self.client.port
 	port = property(getPort,)
 
 	def getHost(self):
-		return self.client.HOST
+		return self.client.host
 	host = property(getHost,)

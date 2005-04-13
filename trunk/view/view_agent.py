@@ -26,7 +26,7 @@ class DebugMsgAgent(ViewAgent):
 		self.last_msg.append (msg)
 
 	def draw(self):
-		print "Messages (total=%u) :" % (self.total_msg)
+		print "Last messages (total=%u) :" % (self.total_msg)
 		for msg in self.last_msg:
 			print "* %s" % (msg.str())
 

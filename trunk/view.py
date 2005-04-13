@@ -1,4 +1,6 @@
 #!/usr/bin/python
+VERSION="0.0.1"
+
 from common import io
 import time
 import socket
@@ -15,20 +17,25 @@ class View:
 		self.n = None
 		self.agents = {}
 		self.loop = True
+		self.clear_screen = True
 		self.mailing_list = mailing_list.MailingList()
 		self.on_recv_message = None
+		self.verbose = False
 
 	def registerAgent(self, id, agent):
 		agent.id = id
 		agent.server = self
 		self.agents[id] = agent
-		print "****"
 		agent.start()
 
 	def start(self, host, port):
 		self.io = io.ClientIO()
+		self.io.client.on_disconnect = self.on_disconnect
 		self.io.start(host, port)
 		self.registerAgent(0, AgentManager() )
+
+	def on_disconnect(self):
+		self.loop = False
 
 	def str2msg(self, str):
 		import re
@@ -66,35 +73,70 @@ class View:
 	
 		lines = self.io.read()
 		if lines!=None: self.processMessages(lines)
+		if self.loop==False: return
 
-		print "\33[2J\33[1;1H"
+		if self.clear_screen: print "\33[2J\33[1;1H"
 		print "=== Cycle ==="
 		for key in self.agents:	
 			agent = self.agents[key]
 			agent.draw()
+		
+	def setDebugMode(self, debug):
+		self.clear_screen = not debug
 
 	def stop(self):
 		self.io.send("quit")
 		self.io.stop()
 
+def usage():
+	print "HappyBoom viewer version %s" % (VERSION)
+	print "Usage: %s [-h <host>] [-d]" % (sys.argv[0])
+	print
+	print "Long arguments :"
+	print "\t--help      : Show this help"
+	print "\t--host HOST : Specify server address (IP or name)"
+	print "\t--debug     : Enable debug mode"
+
+def parseArgs(val):
+	import getopt
+	try:
+		short = "h:d"
+		long = ["debug", "host", "help"]
+		opts, args = getopt.getopt(sys.argv[1:], short, long)
+	except getopt.GetoptError:
+		usage()
+		sys.exit(2)
+		
+	for o, a in opts:
+		if o == "--help":
+			usage()
+			sys.exit()
+		if o in ("-h", "--host"):
+			val["host"] = a
+		if o in ("-d", "--debug"):
+			val["debug"] = True
+	return val
+
 def main():
 	view = View()
+	val = {"host": socket.gethostname(), "port": 12430, "debug": False}
+	arg = parseArgs(val)
+
 	try:
-		if 1<len(sys.argv):
-			host = sys.argv[1]
-		else:
-			host = socket.gethostname()
-		port = 12430
-		view.start(host, port)
-	except socket.error:
-		print "Connexion to server %s:%s failed !" % (view.io.host, view.io.port)
-		return
-		
-	try:
+		# Connexion
+		try:
+			view.setDebugMode( arg["debug"] )
+			view.start(arg["host"], arg["port"])
+		except socket.error:
+			print "Connexion to server %s:%s failed !" % (view.io.host, view.io.port)
+			return
+	
+		# Main loop
 		while view.loop==True:
 			view.live()
-			time.sleep(0.050)
+			time.sleep(0.30)
 	except KeyboardInterrupt:
+		print "Program interrupted."
 		pass
 	view.stop()
 	print "View closed."
