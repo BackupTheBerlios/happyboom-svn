@@ -20,8 +20,6 @@ class PingClient:
 		self.quit = True
 		if self.server.active:
 			os.kill(self.server.pid, signal.SIGINT)
-		else:
-			print "no os kill"
 
 	def run(self):
 		try:
