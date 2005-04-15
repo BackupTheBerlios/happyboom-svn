@@ -1,14 +1,21 @@
 import socket
 
-class NetworkServerClient:
+class NetworkServerClient(object):
 	def __init__(self, conn, addr):
 		self.conn = conn
 		self.addr = addr
 		self.net_server = None
 		self.connected = False
+		self.on_read = None
+		self.on_send = None
+		self.__name = None
 
-	def getAddrStr(self):
-		return "ip=%s, port=%u" % (self.addr[0], self.addr[1])
+	def getName(self):
+		if self.__name != None: return self.__name
+		return "{ip=%s port=%u}" % (self.addr[0], self.addr[1])
+	def setName(self, name):
+		self.__name = name
+	name = property(getName,setName)
 	
 	def connect(self, server):
 		self.net_server = server
@@ -25,27 +32,46 @@ class NetworkServerClient:
 		self.conn.setblocking(0)
 		try:
 	 		data = self.conn.recv(max_size) 
-		except socket.error, error:
-			if error[0] == 11: return None
+		except socket.error, err:
+			if err[0] == 11:
+				return None
+			# Broken pipe (32) or Connection reset by peer (104)
+			if err[0] in (32, 104,):
+				self.disconnect()
+				return None
 			raise
 		if len(data)==0:
-			print "Lost connexion with client!"
+			if self.net_server.debug:
+				print "Server %s lost connection with client %s !" \
+					% (self.net_server.name, self.name)
 			self.disconnect()
 			return None
+		if self.on_read != None: self.on_read(data)
 		return data
 
 	def read(self, max_size=1024):
 		if not self.connected: return None
 	 	data = self.conn.recv(max_size) 
-		if len(data)==0: return None
+		if len(data)==0:
+			if self.net_server.debug:
+				print "Server %s lost connection with client %s !" \
+					% (self.net_server.name, self.name)
+			self.disconnect()
+			return None
+		if self.on_read != None: self.on_read(data)
 		return data
 
 	def send(self, data):
 		if not self.connected: return
 		try:
 			self.conn.send(data)
-		except socket.error:
-			self.disconnect()
+		except socket.error, err:
+			# Broken pipe (32) or Connection reset by peer (104)
+			if err[0] in (32, 104,):
+				self.disconnect()
+				return
+			raise
+		if self.on_send != None: self.on_send(data)
 
 	def stop():
 		self.conn.close()

@@ -1,134 +1,99 @@
 #!/usr/bin/python
+VERSION="0.1.4"
 import time
 import random
-from net import net_server
-from server import *
-from common import mailing_list
+from server import hb_server
+import getopt
+import sys
 
-def syncNewClient(client):
-	Server.instance.registerNetMessage (client, "agent_manager")
-	Server.instance.registerNetMessage (client, "number")
-	Server.instance.registerNetMessage (client, "follow")
-	Server.instance.registerNetMessage (client, "game")
-	for agent in Server.instance.agents:
-		msg = Server.instance.createMsg("agent_manager", "Create", "%s:%u" % (agent.type, agent.id))
-		client.send (msg)
-		answer = client.read()
-		if answer == "yes": agent.sync()
-	client.send ( Server.instance.createMsg("game", "Start") )
+def usage(defval):
+	print "HappyBoom server version %s" % (VERSION)
+	print ""
+	print "Usage: %s [-v,--verbose] [-d,--debug] [-h,--help]" % (sys.argv[0])
+	print ""
+	print "Arguments :"
+	print "\t-h,--help         : Show this help"
+	print "\t-v,--verbose      : Activate verbose mode"
+	print "\t-d,--debug        : Activate debug mode"
+	print ""
+	print "Other arguments :"
+	print "\t--max-input NB    : Max input clients (default %u)" % (defval["max-input"])
+	print "\t--max-view NB     : Max view clients (default %u)" % (defval["max-view"])
+	print "\t--view-port PORT  : Port number for view clients (default %u)" % (defval["view-port"])
+	print "\t--input-port PORT : Port number for input clients (default %u)" % (defval["input-port"])
 
-class Server:
-	instance = None
+def parseArgs(val):
+	import getopt
+	def_val = val.copy()
 	
-	def __init__(self):
-		Server.instance = self
-		self.agents = []
-		self.__view_io = None
-		self.__input_io = None
-		self.mailing_list = mailing_list.MailingList()
-		self.net_mailing_list = {}
-		self.cmd_handler = {}
-		self.quit = False
-
-	def createMsg(self, role, type, arg=None):
-		if arg != None:
-			return "%s:%s:%s\n" % (role, type, arg)
-		else:
-			return "%s:%s\n" % (role, type)
-
-	def registerNetMessage(self, client, role):
-		self.mailing_list.registerNet(role, client)
-
-	def registerMessage(self, agent, role):
-		self.mailing_list.register(role, agent)
-
-	def createAgents(self):
-		self.agents = []
-	
-		agent = GameStateAgent()
-		self.registerAgent( agent )
+	try:
+		short = "hdv"
+		long = ["debug", "verbose", "help", \
+			"max-input=", "max-view=", \
+			"view-port=", "input-port="]
+		opts, args = getopt.getopt(sys.argv[1:], short, long)
+	except getopt.GetoptError:
+		usage(def_val)
+		sys.exit(2)
 		
-		agent = AgentN(1000, 100)
-		self.registerAgent( agent )
-		
-		agent = FollowAgentN(agent)
-		self.registerAgent( agent )
-
-		agent = ControlableAgentN(4000, 20)
-		self.registerAgent( agent )
-
-	def initIO(self):
-		self.__view_io = net_server.NetworkServer(12430)
-		self.__view_io.on_client_connect = syncNewClient
-		self.__view_io.start()
-
-		self.__input_io = net_server.NetworkServer(12431)
-		self.__input_io.start()
-
-	def start(self):
-		self.createAgents()
-		self.initIO()
-		print "Server started."
-
-	def connectAgent(self, cmd, agent):
-		if self.cmd_handler.has_key(cmd):
-			self.cmd_handler[cmd].append (agent)
-		else:
-			self.cmd_handler[cmd] = [agent]
-		
-	def registerAgent(self, agent):
-		agent.id = 1+len(self.agents)
-		agent.server = self
-		self.agents.append(agent)
-		agent.start()
-
-	def sendMsg(self, role, type, arg=None):
-		msg = AgentMessage(role, type, arg)
-		locals = self.mailing_list.getLocal(role)
-		for agent in locals:
-			agent.putMessage(msg)
-		
-		msg = self.createMsg(role, type, arg)
-		clients = self.mailing_list.getNet(role)
-		for client in clients: client.send(msg)
-		
-	def processCmd(self, cmd):
-		print "Received %s." % (cmd)
-		if self.cmd_handler.has_key(cmd):
-			for agent in self.cmd_handler[cmd]:
-				print "Send %s to agent %u." % (cmd, agent.id)
-				msg = AgentMessage(agent.id, "Command", cmd)
-				agent.putMessage(msg)
-		
-	def processInputs(self):
-		for input in self.__input_io.clients:
-			data = input.readNonBlocking()
-			if data != None:
-				cmds = data.split("\n")
-				for cmd in cmds:
-					if cmd == "quit": self.sendMsg ("command", "new", cmd)
-					if cmd == "+": self.sendMsg ("command", "new", cmd)
-					if cmd == "-": self.sendMsg ("command", "new", cmd)
-
-	def live(self):
-		self.processInputs()
-		for agent in self.agents:
-			agent.live()
-			if self.quit==True: break
-
-	def stop(self):
-		self.sendMsg("game", "Stop")
-		self.agents = {}				
+	for o, a in opts:
+		if o == "--help":
+			usage(def_val)
+			sys.exit()
+		if o == "--input-port":
+			a = int(a)
+			if a == val["view-port"]:
+				print "Sorry, input port should be different than view port!"
+			else:
+				val["input-port"] = a 			
+		if o == "--view-port":
+			a = int(a)
+			if a == val["input-port"]:
+				print "Sorry, view port should be different than input port!"
+			else:
+				val["view-port"] = a 
+		if o == "--max-input":
+			a = int(a)
+			if a < 1: 
+				a=1
+			elif 100 < a:
+				a = 100
+			val["max-input"] = a
+		if o == "--max-view":
+			a = int(a)
+			if a < 1: 
+				a=1
+			elif 100 < a:
+				a = 100
+			val["max-view"] = a
+		if o in ("-v", "--verbose"):
+			val["verbose"] = True
+		if o in ("-d", "--debug"):
+			val["debug"] = True
+	return val
 
 def main():
+	val = { \
+		"view-port": 12430, \
+		"input-port": 12431, \
+		"max-input": 4, \
+		"max-view": 4, \
+		"verbose": False,
+		"debug": False}
+	arg = parseArgs(val)
+	
+	server = hb_server.Server()
+	server.setVerbose(arg["verbose"])
+	server.setDebug(arg["debug"])
+
 	random.seed()
-	server = Server()
-	server.start()
+	server.start(arg)
 	try:
 		while server.quit==False:
 			server.live()
 			time.sleep(0.010)
 	except KeyboardInterrupt:
+		print "Program interrupted (CTRL+C)."
 		pass
 	server.stop()
 	print "Server quit."

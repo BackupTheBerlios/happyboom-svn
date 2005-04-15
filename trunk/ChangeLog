@@ -1,3 +1,18 @@
+2005-04-15
+	o Clients and server well support evil disconnection (eg. broken pipe)
+	o Add network stats (in/out bytes) in view module
+	o Add server stats (uptime, number of connections) and server network 
+	  stats (in/out bytes), which can be read by ServerStatAgent in view module
+	o Support command line options like max-fps, set host, set ports, 
+	  debug mode, etc.
+	o Server, view and input have verbose and debug mode (which active or not
+	  print functions)
+	o View register himself in server (for mailing list)
+	o Server ask view protocol version and name
+	o Add a chat agent :-D
+	o Input also need a name.
+	o Server can send text messages (eg. "Welcome to XXX client!")
+	
 2005-04-13 : First release
 	o Network server support multiple clients (four by default)
 	o Server don't need to wait clients anymore

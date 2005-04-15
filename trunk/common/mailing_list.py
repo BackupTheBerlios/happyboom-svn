@@ -5,6 +5,7 @@ class MailingList:
 		
 	def _register(self, list, role, value):
 		if list.has_key(role):
+			if value in list[role]: return
 			list[role].append (value)
 		else:
 			list[role] = [value]

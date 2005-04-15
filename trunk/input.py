@@ -1,34 +1,46 @@
 #!/usr/bin/python
-VERSION="0.0.1"
+VERSION="0.1.4"
 
-from common import io
-import socket
 import sys
+import time
+from input import hb_input
 
-def usage():
-	print "HappyBoom input - version %s" % (VERSION)
+def usage(defval):
+	print "HappyBoom input version %s" % (VERSION)
 	print ""
-	print "Usage: %s [-h <host>] [-dv]" % (sys.argv[0])
-	print "\t--help      : Show this help"
-	print "\t--host HOST : Specify server address (IP or name)"
-	print "\t--debug     : Enable debug mode"
-	print "\t--verbose   : Enable verbose mode"
+	print "Usage: %s [options] name" % (sys.argv[0])
+	print ""
+	print "Options :"
+	print "\t--help         : Show this help"
+	print "\t-h,--host HOST : Server name/ip (default %s)" % (defval["host"])
+	print "\t-p,--port PORT : Server port (default %u)" % (defval["port"])
+	print "\t-d,--debug     : Enable debug mode"
+	print "\t-v,--verbose   : Enable verbose mode"
 
 def parseArgs(val):
 	import getopt
 	
+	defval = val.copy()
 	try:
-		short = "h:dv"
-		long = ["debug", "host=", "help", "verbose"]
+		short = "h:p:dv"
+		long = ["debug", "port=", "host=", "help", "verbose"]
 		opts, args = getopt.getopt(sys.argv[1:], short, long)
 	except getopt.GetoptError:
-		usage()
+		usage(defval)
 		sys.exit(2)
-		
+	
+	if len(args)==0:
+		usage(defval)
+		sys.exit(2)
+	else:
+		val["name"] = args[0]	
+
 	for o, a in opts:
 		if o == "--help":
-			usage()
+			usage(defval)
 			sys.exit()
+		if o in ("-p", "--port"):
+			val["port"] = int(a)
 		if o in ("-h", "--host"):
 			val["host"] = a
 		if o in ("-v", "--verbose"):
@@ -45,52 +57,31 @@ def displayCommands():
 	print "* close : close input"
 	print "* quit  : quit game"
 
-class Input:
-	def __init__(self):
-		self.io = io.ClientIO()
-		self.cmd_ok = ("quit", "+", "-")
-
-	def setDebugMode(self, debug):
-		if debug: print "*** Debug mode ***"
-
-	def setVerbose(self, verbose):
-		self.io.setVerbose(verbose)
-
-	def processCmd(self, cmd):
-		if cmd in self.cmd_ok:
-			self.io.send(cmd+"\n")
-
-	def stop(self):
-		self.io.stop()
-
 def main():
-	val = { \
-		"host": socket.gethostname(), \
-		"port": 12431, \
-		"verbose": False, \
+	arg = { \
+		"host": "127.0.0.1",
+		"port": 12431,
+		"name": "no name",
+		"verbose": False,
 		"debug": False}
-	arg = parseArgs(val)
-	input = Input()
+	arg = parseArgs(arg)
+	input = hb_input.Input()
+	input.io.name = arg["name"]
+	input.setDebugMode (arg["debug"])
+	input.setVerbose (arg["verbose"])
 
 	try:
-		try:
-			input.setDebugMode (arg["debug"])
-			input.setVerbose (arg["verbose"])
-			input.io.start(arg["host"], arg["port"])
-		except socket.error:
-			print "Connexion to server %s failed." % (input.io.host)
-			return 
-		
-		displayCommands()
-		cmd=""
-		while (cmd != "quit") & (cmd != "close"):
-			cmd = raw_input("cmd ? ")
-			input.processCmd(cmd)
+		input.start(arg["host"], arg["port"])
+	
+		if input.quit == False:
+			displayCommands()
+			while input.quit == False:
+				input.live()
+				time.sleep(1)
 
 	except KeyboardInterrupt:
-		print "Program interrupted."
+		print "Program interrupted (CTRL+C)."
 		pass
 	input.stop()
-	print "Input closed."
 
 if __name__=="__main__": main()

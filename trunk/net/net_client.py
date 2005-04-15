@@ -1,48 +1,91 @@
 import socket
 import common
 
-class NetworkClient:
+class NetworkClient(object):
 	def __init__(self):
-		self.host = None
+		self.__host = None
 		self.port = None
 		self.connected = False
-		self.on_connect = None
-		self.on_disconnect = None
-		self.s = None
-		self.verbose = False
+		self.on_connect = None # No argument
+		self.on_disconnect = None # Have one arg : lost_connection
+		self.__socket = None
+		self.debug = False
+		self.__name = None
 
+	# Try to connect to host:port
+	# Return False if an error occurs, True else
 	def connect(self, host, port):
-		if self.verbose: print "Start client."
-		self.host = host
+		self.__host = host
 		self.port = port
-		if self.verbose: print "Connect to %s:%s." % (self.host, self.port)
-		self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		self.s.connect((self.host, self.port))
+		if self.debug: print "Connect to %s:%s." % (self.host, self.port)
+		try:
+			self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			self.__socket.connect((self.__host, self.port))
+		except socket.error, err:
+			if err[0] == 111:
+				return False
+			print err
+			raise
 		self.connected = True 
 		if self.on_connect != None: self.on_connect()
+		return True
 
-	def disconnect(self):
+	def disconnect(self, lost_connection=False):
 		if not self.connected: return
-		if self.verbose: print "Disconnect client."
-		self.s.close()
+		if self.debug: print "Disconnect client %s." % (self.name)
+		self.__socket.close()
 		self.connected = False
-		if self.on_disconnect != None: self.on_disconnect()
+		if self.on_disconnect != None: self.on_disconnect(lost_connection)
 		
 	def send(self, data):
 		if not self.connected: return
-		self.s.send(data)
+		try:
+			self.__socket.setblocking(1)
+			self.__socket.send(data)
+		except socket.error, err:
+			if err[0] in (32, 104):
+				if self.debug: print "Lost connection with server (too many connections ?) !"
+				self.disconnect(True)
+				return
 
-	def readNonBlocking(self, max_size=1024):
+	def readBlocking(self, max_size=1024):
 		if not self.connected:
 			return None
-		self.s.setblocking(0)
 		try:
-	 		data = self.s.recv(max_size) 
+			self.__socket.setblocking(1)
+	 		data = self.__socket.recv(max_size) 
 		except socket.error, error:
 			if error[0] == 11: return None
 			raise
 		if len(data)==0:
-			print "Lost connexion with server (or too many connexions ?) !"
-			self.disconnect()
+			if self.debug: print "Lost connection with server (too many connections ?) !"
+			self.disconnect(True)
 			return None
 		return data
+
+	def readNonBlocking(self, max_size=1024):
+		if not self.connected:
+			return None
+		try:
+			self.__socket.setblocking(0)
+	 		data = self.__socket.recv(max_size) 
+		except socket.error, error:
+			if error[0] == 11: return None
+			raise
+		if len(data)==0:
+			if self.debug: print "Lost connection with server (too many connections ?) !"
+			self.disconnect(True)
+			return None
+		return data
+
+	def getHost(self):
+		if self.__host=='': return "localhost"
+		return self.__host
+	host = property(getHost)
+
+	def getName(self):
+		if self.__name != None: return self.__name
+		return self.host
+	def setName(self, name):
+		self.__name = name
+	name = property(getName,setName)
