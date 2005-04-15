@@ -2,42 +2,70 @@ from common import io
 import socket
 import thread
 import time
+import string
+import sys
+import traceback
 
-class Reader:
-	def __init__(self):
-		self.on_input = None
-		self.use_readline = False
+class PingClient:
+	def __init__(self, server):
+		self.server = server 
+		self.next_ping = time.time()
+		self.ping_time = None
+		self.ping_pause = 1.0
+		self.ping_timeout = 2.0
 		self.quit = False
 
-	def kill(self):
+	def stop(self):
+		if self.quit: return
 		self.quit = True
-		#thread.exit()
-		pass
+		if self.server.active:
+			thread.interrupt_main()
 
-	def loop(self):
-		if self.use_readline: import readline
+	def run(self):
 		try:
-			while self.quit == False:
-				cmd = raw_input("cmd ? ")
-				if self.on_input != None: self.on_input(cmd)
-		except KeyboardInterrupt:
-			self.kill()
+			while 1:
+				self.one_loop()
+				if self.quit: break
+				time.sleep(0.100)
+		except Exception, msg:
+			print "PING CLIENT EXCEPTION:"
+			print msg
+			traceback.print_tb(sys.exc_info())
+			self.stop()
+
+	def one_loop(self):
+		if self.ping_time != None:
+			if self.ping_timeout < time.time() - self.ping_time:
+				print "Server don't answer :-P"
+				self.stop()
+				return
+				
+			pong = self.server.io.read(10)
+			if pong != None:
+				if self.server.debug:
+					diff = time.time() - self.ping_time
+					print "Responce to ping after %u ms: %s" \
+						% (int(diff * 1000), pong[0])
+				self.ping_time = None
+				self.next_ping = time.time() + self.ping_pause
+		else:
+			if self.next_ping < time.time():
+				if self.server.debug: print "Send ping."
+				self.ping_time = time.time()
+				self.server.sendCmd("Ping?")
 
 class Input:
 	def __init__(self):
 		self.io = io.ClientIO()
 		self.cmd_ok = ("quit", "+", "-")
-		self.reader = Reader()
+		self.ping = PingClient(self)
 		self.quit = False
 		self.active = True
 		self.debug = False
 		self.verbose = False
 		self.cmds = None
+		self.use_readline = False
 		self.__protocol_version = "0.1.4"
-		self.next_ping = time.time()
-		self.ping_time = None
-		self.ping_pause = 1.0
-		self.ping_timeout = 2.0
 
 	def readCmd(self, max_len=512):
 		if self.cmds != None:
@@ -101,9 +129,8 @@ class Input:
 			self.stop()
 			return
 
-		# Start reader thread
-		self.reader.on_input = self.processCmd
-		thread.start_new_thread( self.reader.loop, ())
+		# Start ping thread
+		thread.start_new_thread( self.ping.run, ())
 
 	def setDebugMode(self, debug):
 		self.io.setDebug(debug)
@@ -117,30 +144,19 @@ class Input:
 
 	def processCmd(self, cmd):
 		if cmd != "": self.sendCmd(cmd)
-		if (cmd == "quit") or (cmd == "close"):
-			self.stop()
 
 	def live(self):
-		if self.io.connected == False:
-			self.quit = True
-		if self.ping_time != None:
-			if self.ping_timeout < time.time() - self.ping_time:
-				self.stop()
-				return
-				
-			pong = self.io.read(10)
-			if pong != None:
-				if self.debug:
-					diff = time.time() - self.ping_time
-					print "Responce to ping after %u ms: %s" \
-						% (int(diff * 1000), pong[0])
-				self.ping_time = None
-				self.next_ping = time.time() + self.ping_pause
-		else:
-			if self.next_ping < time.time():
-				if self.debug: print "Send ping."
-				self.ping_time = time.time()
-				self.sendCmd("Ping?")
+		if self.use_readline: import readline
+		while self.quit == False:
+			cmd = sys.stdin.readline("cmd ? ")
+			print "After raw_input"
+			cmd = string.strip(cmd)
+			if cmd != "":
+				self.processCmd(cmd)
+			if self.io.connected == False:
+				self.quit = True
+			if (cmd == "quit") or (cmd == "close"):
+				self.quit = True
 
 	def on_disconnect(self, lost_connection):
 		if lost_connection == True: 
@@ -151,8 +167,8 @@ class Input:
 		if not self.active: return
 		self.active = False
 		self.quit = True
-		if self.reader != None:
-			self.reader.kill()
+		if self.ping != None:
+			self.ping.stop()
 		self.io.stop()
 		print "Input closed."
 

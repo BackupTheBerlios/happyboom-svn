@@ -255,7 +255,7 @@ class Server(object):
 					r = re.compile("^chat:(.*)$")
 					r = r.match(cmd)
 					if r != None:
-						print "message = %s" % cmd 
+						print "New chat message: %s" % (r.group(1))
 						self.sendMsg("chat_server", "new", r.group(1))
 					elif cmd == "quit": self.sendMsg ("command", "new", cmd)
 					elif cmd == "Ping?": input.send("Pong!\n")

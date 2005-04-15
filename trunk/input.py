@@ -16,7 +16,7 @@ def usage(defval):
 	print "\t-p,--port PORT : Server port (default %u)" % (defval["port"])
 	print "\t-d,--debug     : Enable debug mode"
 	print "\t-v,--verbose   : Enable verbose mode"
-	print "\t--readline     : Use readline (better input library)"
+	print "\t--no-readline  : Don't use readline (eg. library is missing)"
 
 def parseArgs(val):
 	import getopt
@@ -24,7 +24,7 @@ def parseArgs(val):
 	defval = val.copy()
 	try:
 		short = "h:p:dv"
-		long = ["debug", "port=", "host=", "help", "verbose", "readline"]
+		long = ["debug", "port=", "host=", "help", "verbose", "no-readline"]
 		opts, args = getopt.getopt(sys.argv[1:], short, long)
 	except getopt.GetoptError:
 		usage(defval)
@@ -44,8 +44,8 @@ def parseArgs(val):
 			val["verbose"] = True
 		if o in ("-d", "--debug"):
 			val["debug"] = True
-		if o == "--readline":
-			val["readline"] = True
+		if o == "--no-readline":
+			val["readline"] = False
 	return val
 
 def displayCommands():
@@ -63,15 +63,14 @@ def main():
 		"port": 12431,
 		"name": "no name",
 		"verbose": False,
-		"readline": False,
+		"readline": True,
 		"debug": False}
 	arg = parseArgs(arg)
 	input = hb_input.Input()
 	input.io.name = arg["name"]
 	input.setDebugMode (arg["debug"])
 	input.setVerbose (arg["verbose"])
-	print arg["readline"]
-	input.reader.use_readline = arg["readline"]
+	input.use_readline = arg["readline"]
 
 	try:
 		input.start(arg["host"], arg["port"])
@@ -80,10 +79,12 @@ def main():
 			displayCommands()
 			while input.quit == False:
 				input.live()
-				time.sleep(0.100)
 
 	except KeyboardInterrupt:
-		print "Program interrupted (CTRL+C)."
+		if input.ping.quit:
+			print "Lost connection with server (no ping answer)."
+		else:
+			print "Program interrupted (CTRL+C)."
 		pass
 	input.stop()
 
