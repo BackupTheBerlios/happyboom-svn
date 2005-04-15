@@ -3,8 +3,8 @@ import socket
 import thread
 import time
 import string
-import sys
-import traceback
+import os
+import signal
 
 class PingClient:
 	def __init__(self, server):
@@ -19,7 +19,9 @@ class PingClient:
 		if self.quit: return
 		self.quit = True
 		if self.server.active:
-			thread.interrupt_main()
+			os.kill(self.server.pid, signal.SIGINT)
+		else:
+			print "no os kill"
 
 	def run(self):
 		try:
@@ -30,7 +32,6 @@ class PingClient:
 		except Exception, msg:
 			print "PING CLIENT EXCEPTION:"
 			print msg
-			traceback.print_tb(sys.exc_info())
 			self.stop()
 
 	def one_loop(self):
@@ -57,6 +58,7 @@ class PingClient:
 class Input:
 	def __init__(self):
 		self.io = io.ClientIO()
+		self.pid = os.getpid()
 		self.cmd_ok = ("quit", "+", "-")
 		self.ping = PingClient(self)
 		self.quit = False
@@ -148,8 +150,7 @@ class Input:
 	def live(self):
 		if self.use_readline: import readline
 		while self.quit == False:
-			cmd = sys.stdin.readline("cmd ? ")
-			print "After raw_input"
+			cmd = raw_input("cmd ? ")
 			cmd = string.strip(cmd)
 			if cmd != "":
 				self.processCmd(cmd)
@@ -161,7 +162,7 @@ class Input:
 	def on_disconnect(self, lost_connection):
 		if lost_connection == True: 
 			print "Lost connection with server :-("
-		self.stop()
+		self.ping.stop()
 
 	def stop(self):
 		if not self.active: return
