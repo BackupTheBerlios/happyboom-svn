@@ -23,7 +23,7 @@ class View(object):
 		self.__protocol_version = "0.1.4"
 		self.name = "no name"
 		self.active = True
-		self.only_whatch_server = False
+		self.only_watch_server = False
 
 	def registerAgent(self, id, agent):
 		agent.id = id

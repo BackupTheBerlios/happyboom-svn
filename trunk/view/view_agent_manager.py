@@ -45,9 +45,9 @@ class AgentManager(ViewAgent):
 		
 	def tryCreateAgent(self, id, type):
 		if (type=="server_stat") and \
-		   (self.server.stats or self.server.only_whatch_server):
+		   (self.server.stats or self.server.only_watch_server):
 			return ViewServerStat()
-		if self.server.only_whatch_server: return None
+		if self.server.only_watch_server: return None
 		if type=="number": return ViewN()
 		if type=="chat_server": return ViewChat()
 		if type=="follow": return ViewFollowN()

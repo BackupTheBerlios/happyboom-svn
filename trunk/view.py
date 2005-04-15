@@ -13,14 +13,14 @@ def usage(defval):
 	print "Usage: %s [options] [yourname]" % (sys.argv[0])
 	print
 	print "Options :"
-	print "\t--help          : Show this help"
-	print "\t-h,--host HOST  : Server ip/name (default %s)" % (defval["host"])
-	print "\t-p,--port PORT  : Server port (default %u)" % (defval["port"])
-	print "\t--stats         : Display a lot of stats"
-	print "\t--whatch-server : Only display server stats"
-	print "\t-d,--debug      : Enable debug mode"
-	print "\t-v,--verbose    : Enable verbose mode"
-	print "\t--max-fps MAX   : Set maximum frame par second (fps)"
+	print "\t--help         : Show this help"
+	print "\t-h,--host HOST : Server ip/name (default %s)" % (defval["host"])
+	print "\t-p,--port PORT : Server port (default %u)" % (defval["port"])
+	print "\t--stats        : Display a lot of stats"
+	print "\t--watch-server : Only display server stats (set stat mode and max-fps=5)"
+	print "\t-d,--debug     : Enable debug mode"
+	print "\t-v,--verbose   : Enable verbose mode"
+	print "\t--max-fps MAX  : Set maximum frame par second (fps)"
 
 def parseArgs(val):
 	import getopt
@@ -30,7 +30,7 @@ def parseArgs(val):
 		short = "h:p:dv"
 		long = ["debug", "help", "verbose" \
 			"port=", "host=", "max-fps=", 
-			"stats", "whatch-server"]
+			"stats", "watch-server"]
 		opts, args = getopt.getopt(sys.argv[1:], short, long)
 	except getopt.GetoptError:
 		usage(defval)
@@ -55,8 +55,8 @@ def parseArgs(val):
 			if a < 1: a=1
 			elif 100<a: a=100
 			val["max_fps"] = a
-		if o == "--whatch-server":
-			val["whatch-server"] = True
+		if o == "--watch-server":
+			val["watch-server"] = True
 		if o in ("-d", "--debug",):
 			val["debug"] = True
 	return val
@@ -69,7 +69,7 @@ def main():
 		"stats": False, \
 		"verbose": False, \
 		"name": "no name", \
-		"whatch-server": False, \
+		"watch-server": False, \
 		"debug": False}
 	arg = parseArgs(val)
 	
@@ -77,8 +77,8 @@ def main():
 	view.name = val["name"]
 	view.setDebugMode( arg["debug"] )
 	view.setVerbose( arg["verbose"] )
-	view.only_whatch_server = arg["whatch-server"]
-	if view.only_whatch_server:
+	view.only_watch_server = arg["watch-server"]
+	if view.only_watch_server:
 		view.stats = False 
 		view.max_fps = 5 
 	else:
