@@ -11,12 +11,14 @@ class ViewN(ViewAgent):
 		arg = arg.split(",")
 		if self.id != int(arg[0]): return
 		self.value = int(arg[1])
+		self.draw(True)
 
 	def live(self):
 		self.processMessages()
 
-	def draw(self):
-		print "Number[%u]=%i" % (self.id, self.value)
+	def draw(self, force=False):
+		if not self.server.verbose or force:
+			print "Number[%u]=%i" % (self.id, self.value)
 
 class ViewFollowN(ViewN):
 	def __init__(self):

@@ -32,6 +32,8 @@ class View(object):
 		agent.start()
 
 	def start(self, host, port):
+		if self.verbose: print "Try to connect to server %s:%u." \
+			% (host, port)
 		self.io.on_connect = self.on_connect
 		self.io.on_disconnect = self.on_disconnect
 		self.io.start(host, port)

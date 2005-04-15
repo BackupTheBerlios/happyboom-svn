@@ -7,11 +7,10 @@
 	  debug mode, etc.
 	o Server, view and input have verbose and debug mode (which active or not
 	  print functions)
-	o View register himself in server (for mailing list)
-	o Server ask view protocol version and name
-	o Add a chat agent :-D
-	o Input also need a name.
+	o View register himself each role for each agent in server
+	o Server ask protocol version and name to view and input
 	o Server can send text messages (eg. "Welcome to XXX client!")
+	o Add a chat agent :-D
 	
 2005-04-13 : First release
 	o Network server support multiple clients (four by default)

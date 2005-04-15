@@ -49,7 +49,6 @@ class ChatAgent(server_agent.ServerAgent):
 			self.sendMsg("chat", "message", msg)
 
 	def newMessage(self, msg):
-		print "XXX"
 		if len(self.messages)==self.log_message: del self.messages[0]
 		self.messages.append(msg)
 		self.sendMsg("chat", "message", msg)

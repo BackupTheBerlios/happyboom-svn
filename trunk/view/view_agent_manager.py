@@ -35,6 +35,7 @@ class AgentManager(ViewAgent):
 		if self.max_messages == len(self.messages):
 			del self.messages[0]
 		self.messages.append(msg)
+		if self.server.verbose: print "Server message: ",msg
 
 	def askName(self, arg):
 		self.server.send(self.server.name)
@@ -81,11 +82,9 @@ class AgentManager(ViewAgent):
 			fps = "*" * (n) + "." * (4-n)
 		if not self.server.verbose:
 			print "View: time=%u sec, fps=%s" % (diff, fps)
-		for msg in self.messages:
-			print "Server message: %s" % (msg)
+			for msg in self.messages:
+				print "Server message: %s" % (msg)
 
 	def live(self):
 		self.processMessages()
 		self.iteration = self.iteration + 1
-
-

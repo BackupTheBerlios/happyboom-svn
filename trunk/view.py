@@ -10,7 +10,7 @@ from view import hb_view
 def usage(defval):
 	print "%s version %s" % (PROGRAM_FULL_NAME, VERSION)
 	print ""
-	print "Usage: %s [options] name" % (sys.argv[0])
+	print "Usage: %s [options] [yourname]" % (sys.argv[0])
 	print
 	print "Options :"
 	print "\t--help          : Show this help"
@@ -36,11 +36,7 @@ def parseArgs(val):
 		usage(defval)
 		sys.exit(2)
 
-	if len(args)==0:
-		usage(defval)
-		sys.exit(2)
-	else:
-		val["name"] = args[0]
+	if 0<len(args): val["name"] = args[0]
 		
 	for o, a in opts:
 		if o == "--help":

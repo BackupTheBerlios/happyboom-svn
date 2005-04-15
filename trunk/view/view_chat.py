@@ -10,9 +10,10 @@ class ViewChat(ViewAgent):
 	def onMessage(self, msg):
 		if len(self.messages)==self.log_message: del self.messages[0]
 		self.messages.append(msg)
+		if self.server.verbose: print "Chat: ",msg
 
 	def draw(self):
-		if len(self.messages) != 0:
+		if len(self.messages) != 0 and (not self.server.verbose):
 			print "Chat :"
 			for msg in self.messages:
 				print "* %s" % (msg)

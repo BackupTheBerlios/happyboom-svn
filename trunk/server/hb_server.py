@@ -248,13 +248,17 @@ class Server(object):
 				max_len = 80 
 				for cmd in cmds:	
 					import re
+					if len(cmd)==0: continue
 					if max_len<len(cmd): cmd=cmd[:max_len]
+					if self.verbose and cmd != "Ping":
+						print "Command from %s: %s" % (input.name, cmd)
 					r = re.compile("^chat:(.*)$")
 					r = r.match(cmd)
 					if r != None:
 						print "message = %s" % cmd 
 						self.sendMsg("chat_server", "new", r.group(1))
 					elif cmd == "quit": self.sendMsg ("command", "new", cmd)
+					elif cmd == "Ping?": input.send("Pong!\n")
 					elif cmd == "+": self.sendMsg ("command", "new", cmd)
 					elif cmd == "-": self.sendMsg ("command", "new", cmd)
 
