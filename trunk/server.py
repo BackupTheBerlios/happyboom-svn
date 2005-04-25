@@ -1,8 +1,8 @@
 #!/usr/bin/python
+# -*- coding: ISO-8859-1 -*-
 VERSION="0.1.4"
 import time
-import random
-from server import hb_server
+from console_server import *
 import getopt
 import sys
 
@@ -36,6 +36,10 @@ def parseArgs(val):
 		usage(def_val)
 		sys.exit(2)
 		
+	if 0<len(args):
+		usage(def_val)
+		sys.exit(2)
+	
 	for o, a in opts:
 		if o == "--help":
 			usage(def_val)
@@ -82,11 +86,10 @@ def main():
 		"debug": False}
 	arg = parseArgs(val)
 	
-	server = hb_server.Server()
+	server = ConsoleServer()
 	server.setVerbose(arg["verbose"])
 	server.setDebug(arg["debug"])
 
-	random.seed()
 	server.start(arg)
 	try:
 		while server.quit==False:

@@ -36,6 +36,22 @@ class NetworkServerWaiter(object):
 		self.__nb_clients = self.__nb_clients - 1
 		self.__nb_clients_sema.release()
 
+	def waitClient(self):
+		try:
+			(conn, addr) = self.__socket.accept()
+		except socket.error, err:
+			if err[0] == 11: # Resource temporarily unavailable
+				return None
+			raise
+		if self.__max_clients <= self.getNbClients():
+			if self.__server.debug:
+				print "Client %s refused on server %s (too many connection, %u/%u)." \
+					% (addr, self.__server.name, \
+					   self.getNbClients(), self.__max_clients)
+			conn.close()
+			return None
+		return NetworkServerClient(conn, addr)
+
 	def start(self, port, max_connection):
 		self.__max_clients = max_connection
 		self.__port = port
@@ -61,16 +77,8 @@ class NetworkServerWaiter(object):
 
 		while 1:
 			try:
-				(conn, addr) = self.__socket.accept()
-				if max_connection <= self.getNbClients():
-					if self.__server.debug:
-						print "Client %s refused on server %s (too many connection, %u/%u)." \
-							% (addr, self.__server.name, \
-							   self.getNbClients(), max_connection)
-					conn.close()
-					continue
-				client = NetworkServerClient(conn, addr) 
-				self.client_connect (client)
+				client = self.waitClient()
+				if client != None: self.client_connect (client)
 				client = None
 
 			except socket.error, error:

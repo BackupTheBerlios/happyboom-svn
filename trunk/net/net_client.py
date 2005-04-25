@@ -1,5 +1,6 @@
 import socket
 import common
+import time
 
 class NetworkClient(object):
 	def __init__(self):
@@ -39,14 +40,24 @@ class NetworkClient(object):
 		
 	def send(self, data):
 		if not self.connected: return
-		try:
-			self.__socket.setblocking(1)
-			self.__socket.send(data)
-		except socket.error, err:
-			if err[0] in (32, 104):
-				if self.debug: print "Lost connection with server (too many connections ?) !"
-				self.disconnect(True)
-				return
+		loop = True
+		while loop:
+			try:
+				self.__socket.setblocking(1)
+				self.__socket.send(data)
+				loop = False
+			except socket.error, err:
+				time.sleep(1.0)
+				if err[0] in (32, 104):
+					if self.debug: print "Lost connection with server (too many connections ?) !"
+					self.disconnect(True)
+					return
+				elif err[0] == 11:
+					time.sleep(0.100)
+					print "Continue"
+				else:
+					print "Other error", err
+					raise
 
 	def readBlocking(self, max_size=1024):
 		if not self.connected:

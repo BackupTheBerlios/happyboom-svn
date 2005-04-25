@@ -12,7 +12,7 @@ class AgentMessage:
 		else:
 			return "Message(role=%s, type=%s)" % (self.role, self.type)
 
-class Agent:
+class Agent(object):
 	def __init__(self):
 		self.mailbox = []
 		self.msg_handler = {}

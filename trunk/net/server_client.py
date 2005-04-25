@@ -1,4 +1,5 @@
 import socket
+import time
 
 class NetworkServerClient(object):
 	def __init__(self, conn, addr):
@@ -49,9 +50,25 @@ class NetworkServerClient(object):
 		if self.on_read != None: self.on_read(data)
 		return data
 
-	def read(self, max_size=1024):
+	def read(self, max_size=1024, timeout=3000):
 		if not self.connected: return None
-	 	data = self.conn.recv(max_size) 
+		loop = True 
+		start = time.time()
+		while loop:
+			try:
+	 			data = self.conn.recv(max_size) 
+				loop = False
+			except socket.error, err:
+				if err[0] == 11:
+					if timeout < (time.time() - start)*1000:
+						return None
+					time.sleep(0.001)
+				# Broken pipe (32) or Connection reset by peer (104)
+				elif err[0] in (32, 104,):
+					self.disconnect()
+					return None
+				else:
+					raise
 		if len(data)==0:
 			if self.net_server.debug:
 				print "Server %s lost connection with client %s !" \
@@ -70,7 +87,12 @@ class NetworkServerClient(object):
 			if err[0] in (32, 104,):
 				self.disconnect()
 				return
-			raise
+			elif err[0] == 11:
+				print "Continue"
+				raise
+			else:
+				print "Other error"
+				raise
 		if self.on_send != None: self.on_send(data)
 
 	def stop():
