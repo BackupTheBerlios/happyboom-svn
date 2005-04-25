@@ -1,20 +1,21 @@
 from net import net_server
 from server_agent import *
 from stat import *
-from agents import *
 from common import mailing_list
 import string
 import time
 import thread
+import random
 
-class Server(object):
+class BaseServer(object):
 	instance = None
 	
 	def __init__(self):
-		Server.instance = self
+		BaseServer.instance = self
 		self.agents = []
 		self.__view_io = net_server.NetworkServer()
 		self.__input_io = net_server.NetworkServer()
+		self.__inputs = []
 		self.mailing_list = mailing_list.MailingList()
 		self.net_mailing_list = {}
 		self.cmd_handler = {}
@@ -26,6 +27,7 @@ class Server(object):
 		self.__input_protocol_version = "0.1.4"
 		self.__view_protocol_version = "0.1.4"
 		self.client_answer = {}
+		random.seed()
 
 	# Private are not private ??? :-P
 	def getInputIO(self):
@@ -34,7 +36,7 @@ class Server(object):
 		return self.__view_io
 
 	def disconnect_client_timeout(self, client, timeout):
-		msg = Server.instance.createMsg("game", "Stop")
+		msg = self.createMsg("game", "Stop")
 		client.send (msg)
 		t = time.time()
 		while client.connected:
@@ -63,26 +65,8 @@ class Server(object):
 
 	# Create all agents
 	def createAgents(self):
-		self.agents = []
+		pass
 	
-		agent = GameStateAgent()
-		self.registerAgent( agent )
-		
-		agent = AgentN(1000, 100)
-		self.registerAgent( agent )
-		
-#		agent = FollowAgentN(agent)
-#		self.registerAgent( agent )
-
-		agent = ChatAgent()
-		self.registerAgent( agent )
-
-		agent = ControlableAgentN(4000, 20)
-		self.registerAgent( agent )
-
-		agent = ServerStatAgent()
-		self.registerAgent( agent )
-
 	def initIO(self, max_view, view_port, max_input, input_port):
 		self.__view_io.name = "view server"
 		self.__view_io.on_client_connect = self.openView
@@ -121,8 +105,10 @@ class Server(object):
 		return answer
 		
 	def openView(self, client):
+		print "View %s try to connect ..." % (client.name)
+		
 		# Ask protocol version
-		client.send ( Server.instance.createMsg("agent_manager", "AskVersion") )
+		client.send ( self.createMsg("agent_manager", "AskVersion") )
 		answer = self.readClientAnswer(client, 16)
 		if answer != self.__view_protocol_version:
 			txt = "Sorry, you don't have same protocol version (%s VS %s)" \
@@ -132,31 +118,37 @@ class Server(object):
 			return
 		
 		# ask client name
-		client.send ( Server.instance.createMsg("agent_manager", "AskName") )
+		client.send ( self.createMsg("agent_manager", "AskName") )
 		name = self.readClientAnswer(client, 16)
-		if name != "": client.name = name
+		if name not in ("-", ""): client.name = name
 
-		Server.instance.registerNetMessage (client, "agent_manager")
-		Server.instance.registerNetMessage (client, "game")
-		for agent in Server.instance.agents:
-			msg = Server.instance.createMsg("agent_manager", "Create", "%s:%u" % (agent.type, agent.id))
+		self.registerNetMessage (client, "agent_manager")
+		self.registerNetMessage (client, "game")
+		for agent in self.agents:
+			msg = self.createMsg("agent_manager", "Create", "%s:%u" % (agent.type, agent.id))
 			client.send (msg)
 			answer = self.readClientAnswer(client, 3)
 			if answer == "yes": 
 				role = self.readClientAnswer(client, 50)
 				while role != ".":
-					Server.instance.registerNetMessage(client, role)
+					self.registerNetMessage(client, role)
 					role = self.readClientAnswer(client, 50)
 				agent.sync(client)
-		client.send ( Server.instance.createMsg("game", "Start") )
+		client.send ( self.createMsg("game", "Start") )
 			
 		txt = "Welcome to new (view) client : %s" % (client.name)
-		Server.instance.sendText(txt)
+		self.sendText(txt)
 		print "View %s connected." % (client.name)
 
 	def openInput(self, client):
+		print "Input %s try to connect ..." % (client.name)
+
 		client.send ("Version?")
 		answer = self.readClientAnswer(client, 16)
+		if answer == None:
+			if self.verbose: print "Client doesn't sent version"
+			client.disconnect()
+			return
 		if answer != self.__input_protocol_version:
 			txt = "Sorry, you don't have same protocol version (%s VS %s)" \
 				% (answer, self.__input_protocol_version)
@@ -168,22 +160,28 @@ class Server(object):
 		# ask client name
 		client.send ("Name?\n")
 		name = self.readClientAnswer(client, 16)
-		if name != "": client.name = name
+		if name == None:
+			if self.verbose: print "Client doesn't sent name"
+			client.disconnect()
+			return
+		if name not in ("-", ""): client.name = name
 		client.send ("OK\n")
 
+		self.__inputs.append (client)
 		print "Input %s connected." % (client.name)
 		txt = "Welcome to new (input) client : %s" % (client.name)
-		Server.instance.sendText(txt)
+		self.sendText(txt)
 
 	def closeInput(self, client):
+		self.__inputs.remove (client)
 		print "Input %s disconnected." % (client.name)
 		txt = "Client %s (input) leave us." % (client.name)
-		Server.instance.sendText(txt)
+		self.sendText(txt)
 
 	def closeView(self, client):
 		print "View %s disconnected." % (client.name)
 		txt = "Client %s (view) leave us." % (client.name)
-		Server.instance.sendText(txt)
+		self.sendText(txt)
 
 	def start(self, arg):
 		self.stat = ServerStat(self)
@@ -220,7 +218,7 @@ class Server(object):
 			msg = self.createMsg("agent_manager", "Text", txt)
 			client.send(msg)
 		else:
-			Server.instance.sendMsg("agent_manager", "Text", txt)
+			self.sendMsg("agent_manager", "Text", txt)
 
 	def sendMsg(self, role, type, arg=None):
 		msg = AgentMessage(role, type, arg)
@@ -239,9 +237,12 @@ class Server(object):
 				print "Send %s to agent %u." % (cmd, agent.id)
 				msg = AgentMessage(agent.id, "Command", cmd)
 				agent.putMessage(msg)
+
+	def processInputCmd(self, input, cmd):
+		pass
 		
 	def processInputs(self):
-		for input in self.__input_io.clients:
+		for input in self.__inputs:
 			data = input.readNonBlocking()
 			if data != None:
 				cmds = data.split("\n")
@@ -250,17 +251,7 @@ class Server(object):
 					import re
 					if len(cmd)==0: continue
 					if max_len<len(cmd): cmd=cmd[:max_len]
-					if self.verbose and cmd != "Ping":
-						print "Command from %s: %s" % (input.name, cmd)
-					r = re.compile("^chat:(.*)$")
-					r = r.match(cmd)
-					if r != None:
-						print "New chat message: %s" % (r.group(1))
-						self.sendMsg("chat_server", "new", r.group(1))
-					elif cmd == "quit": self.sendMsg ("command", "new", cmd)
-					elif cmd == "Ping?": input.send("Pong!\n")
-					elif cmd == "+": self.sendMsg ("command", "new", cmd)
-					elif cmd == "-": self.sendMsg ("command", "new", cmd)
+					self.processInputCmd (input, cmd)
 
 	def live(self):
 		if not self.__view_io.listening:

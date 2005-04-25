@@ -2,11 +2,11 @@ from common import io
 from view_agent_manager import *
 from common import mailing_list
 
-class View(object):
+class BaseView(object):
 	instance = None
 
 	def __init__(self):
-		View.instance = self
+		BaseView.instance = self
 		self.io = io.ClientIO()
 		self.n = None
 		self.agents = {}
@@ -34,10 +34,13 @@ class View(object):
 	def start(self, host, port):
 		if self.verbose: print "Try to connect to server %s:%u." \
 			% (host, port)
-		self.io.on_connect = self.on_connect
-		self.io.on_disconnect = self.on_disconnect
-		self.io.start(host, port)
-		self.registerAgent(0, AgentManager() )
+		try:
+			self.io.on_connect = self.on_connect
+			self.io.on_disconnect = self.on_disconnect
+			self.io.start(host, port)
+		except socket.error:
+			print "Connection to server %s:%s failed !" % (view.io.host, view.io.port)
+			self.loop = False
 
 	def on_connect(self):
 		if self.verbose: print "Connected to server."
@@ -70,11 +73,11 @@ class View(object):
 	def processMessages(self, lines):
 		for line in lines:
 			msg = self.str2msg(line)
-			if self.on_recv_message: self.on_recv_message (msg)
 			if msg != None: 
+				if self.debug: print "Received message: %s" %(msg.str())
+				if self.on_recv_message: self.on_recv_message (msg)
 				locals = self.mailing_list.getLocal(msg.role)
-				for agent in locals:
-					agent.putMessage(msg)
+				for agent in locals: agent.putMessage(msg)
 
 	def send(self, str):
 		self.io.send(str+"\n")
@@ -110,19 +113,17 @@ class View(object):
 		if lines!=None: self.processMessages(lines)
 
 		# Draw the screen
-		if self.clear_screen:
-			print "\33[2J\33[1;1H"
-			print "=== HappyBoom text viewer ==="
-		for key in self.agents:	
-			agent = self.agents[key]
-			agent.draw()
+		self.draw()
 		
-		# Sleep to minimize CPU consomation
+		# Sleep to limit CPU consomation
 		delay = time.time() - live_begin
 		frame_time = 1.0 / self.max_fps
 		if delay < frame_time:
 			delay = frame_time - delay
 			time.sleep(delay)
+			
+	def draw(self):
+		pass
 		
 	def setDebugMode(self, debug):
 		self.debug = debug

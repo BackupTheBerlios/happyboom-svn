@@ -1,4 +1,4 @@
-from view_agent import *
+from view import *
 
 class ViewChat(ViewAgent):
 	def __init__(self):

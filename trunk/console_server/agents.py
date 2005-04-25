@@ -1,6 +1,7 @@
 import random
 import time
-import server_agent
+from server import server_agent
+import agent
 
 class GameStateAgent(server_agent.ServerAgent):
 	def __init__(self):
@@ -94,7 +95,7 @@ class FollowAgentN(server_agent.ServerAgent):
 		self.sendMsg("follow", "Update", "%i" % self.value)		
 
 	def live(self):
-		Agent.live(self)
+		server_agent.ServerAgent.live(self)
 		if self.objective == None: return
 		if self.objective < self.value:
 			self.update ( self.value - 1 )

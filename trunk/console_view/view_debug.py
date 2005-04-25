@@ -1,4 +1,4 @@
-from view_agent import *
+from view import *
 
 class DebugMsgAgent(ViewAgent):
 	def __init__(self):

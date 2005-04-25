@@ -5,7 +5,7 @@ PROGRAM_FULL_NAME="HappyBoom console viewer"
 import time
 import socket
 import sys
-from view import hb_view
+from console_view import *
 
 def usage(defval):
 	print "%s version %s" % (PROGRAM_FULL_NAME, VERSION)
@@ -28,7 +28,7 @@ def parseArgs(val):
 	defval = val.copy()
 	try:
 		short = "h:p:dv"
-		long = ["debug", "help", "verbose" \
+		long = ["debug", "help", "verbose", \
 			"port=", "host=", "max-fps=", 
 			"stats", "watch-server"]
 		opts, args = getopt.getopt(sys.argv[1:], short, long)
@@ -68,13 +68,13 @@ def main():
 		"max_fps": 50, \
 		"stats": False, \
 		"verbose": False, \
-		"name": "no name", \
+		"name": "-", \
 		"watch-server": False, \
 		"debug": False}
 	arg = parseArgs(val)
 	
-	view = hb_view.View()
-	view.name = val["name"]
+	view = console_view.ConsoleView()
+	view.name = arg["name"]
 	view.setDebugMode( arg["debug"] )
 	view.setVerbose( arg["verbose"] )
 	view.only_watch_server = arg["watch-server"]
@@ -87,15 +87,10 @@ def main():
 
 	try:
 		# Try to connect to server
-		try:
-			view.start(arg["host"], arg["port"])
-		except socket.error:
-			print "Connection to server %s:%s failed !" % (view.io.host, view.io.port)
-			return
+		view.start(arg["host"], arg["port"])
 	
 		# Main loop
-		while view.loop==True:
-			view.live()
+		while view.loop==True: view.live()
 
 	except KeyboardInterrupt:
 		print "Program interrupted (CTRL+C)."

@@ -1,5 +1,5 @@
 import time
-from view_agent import *
+from view import *
 
 class NetworkStatAgent(ViewAgent):
 	def __init__(self):

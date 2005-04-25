@@ -3,7 +3,7 @@ VERSION="0.1.4"
 
 import sys
 import time
-from input import hb_input
+from console_input import *
 
 def usage(defval):
 	print "HappyBoom input version %s" % (VERSION)
@@ -61,13 +61,13 @@ def main():
 	arg = { \
 		"host": "127.0.0.1",
 		"port": 12431,
-		"name": "no name",
+		"name": "-",
 		"verbose": False,
 		"readline": True,
 		"debug": False}
 	arg = parseArgs(arg)
-	input = hb_input.Input()
-	input.io.name = arg["name"]
+	input = ConsoleInput()
+	input.name = arg["name"]
 	input.setDebugMode (arg["debug"])
 	input.setVerbose (arg["verbose"])
 	input.use_readline = arg["readline"]

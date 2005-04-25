@@ -41,23 +41,22 @@ class PingClient:
 				
 			pong = self.server.io.read(10)
 			if pong != None:
-				if self.server.debug:
-					diff = time.time() - self.ping_time
-					print "Responce to ping after %u ms: %s" \
-						% (int(diff * 1000), pong[0])
+				#if self.server.debug:
+			#		diff = time.time() - self.ping_time
+				#	print "Responce to ping after %u ms: %s" \
+				#		% (int(diff * 1000), pong[0])
 				self.ping_time = None
 				self.next_ping = time.time() + self.ping_pause
 		else:
 			if self.next_ping < time.time():
-				if self.server.debug: print "Send ping."
+#				if self.server.debug: print "Send ping."
 				self.ping_time = time.time()
 				self.server.sendCmd("Ping?")
 
-class Input:
+class BaseInput(object):
 	def __init__(self):
 		self.io = io.ClientIO()
 		self.pid = os.getpid()
-		self.cmd_ok = ("quit", "+", "-")
 		self.ping = PingClient(self)
 		self.quit = False
 		self.active = True
@@ -66,6 +65,7 @@ class Input:
 		self.cmds = None
 		self.use_readline = False
 		self.__protocol_version = "0.1.4"
+		self.name = "-"
 
 	def readCmd(self, max_len=512):
 		if self.cmds != None:
@@ -87,6 +87,7 @@ class Input:
 	def serverChallenge(self):
 		if self.verbose: 
 			print "Start server challenge (send version, send name, ...)."
+
 		cmd = self.readCmd(50)
 		if cmd != "Version?": 
 			if self.debug: print "Server answer: %s instead of Version?" % (cmd)
@@ -102,8 +103,9 @@ class Input:
 		if cmd != "Name?":
 			if self.debug: print "Server answer: %s instead of Name?" % (cmd)
 			return False
-		self.sendCmd(self.io.name)
+		self.sendCmd(self.name)
 
+		if self.debug: print "Challenge: Wait Name OK"
 		cmd = self.readCmd(10)
 		if cmd != "OK":
 			if self.debug: print "Server answer: %s instead of OK" % (cmd)

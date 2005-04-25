@@ -1,3 +1,8 @@
+2005-04-25
+	o Server client support socket error 11
+	o Split input, view and server into base and specific code (eg. hb_input ->
+	  base_input and console_input)
+
 2005-04-15
 	o Clients and server well support evil disconnection (eg. broken pipe)
 	o Add network stats (in/out bytes) in view module
