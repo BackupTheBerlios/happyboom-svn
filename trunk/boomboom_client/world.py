@@ -4,7 +4,6 @@ import random
 
 class Building:
 	def __init__(self, x, y, width, height):
-		print "Create Building %s" % ([x, y, width, height]) 
 		self.rect = pygame.Rect( [x, y, width, height] )
 		self.color = (\
 			random.randint(0,255), random.randint(0,255), \
@@ -22,7 +21,6 @@ class World(BoomBoomAgent):
 	def evtCreate(self, msg):
 		self.buildings = []
 		rects = msg.split(";")
-		print "Create World"
 		for rect in rects:
 			r = rect.split(",")
 			b = Building( int(r[0]), int(r[1]), int(r[2]), int(r[3]))

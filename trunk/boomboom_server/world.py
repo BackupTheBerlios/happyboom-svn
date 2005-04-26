@@ -21,7 +21,7 @@ class World(server_agent.ServerAgent):
 		self.buildings = []
 		building_hmin = 100
 		building_hmax = 350-100
-		building_wmin = 20
+		building_wmin = 40
 		building_wmax = 60
 		while building_wmin<width:
 			w = random.randint(building_wmin, building_wmax)

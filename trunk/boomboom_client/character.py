@@ -8,20 +8,10 @@ class CharacterAgent(BoomBoomAgent):
 		self.id = None
 		self.name = name
 		self.msg_handler["character"] = {"move": self.evtMove}
-		self.visual = None 
+		self.visual = VisualObject("boomboom_data/gorilla.png")
 
 	def start(self):
 		BoomBoomAgent.start(self)	
-		self.load(self.server.visual.db)
-
-	def load(self, db):
-#		if self.server.getActiveCharacter() == self:
-#			file = "ball.png"
-#		else:
-#			file = "alien.png"
-#		file = db[self.name]
-		file = "gorilla.png"
-		self.visual = VisualObject("boomboom_data/"+file)
 
 	def evtMove(self, arg):
 		arg = arg.split(",")
@@ -32,4 +22,5 @@ class CharacterAgent(BoomBoomAgent):
 		print "Move : %i,%i" % (self.x, self.y)
 
 	def draw(self, screen):
+		if self.x==None: return
 		self.visual.draw(screen)
