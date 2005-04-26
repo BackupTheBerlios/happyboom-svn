@@ -8,9 +8,13 @@ class BoomBoomVisual:
 		self.db = None
 		self.objects = []
 
-	def render(self):
+	def clear_screen(self):
 		for screen in self.screens: screen.surface.fill (screen.background_color)
-		for obj in self.objects: obj.mydraw(self.screens)
+
+	def render(self):
+		for obj in self.objects:
+			for screen in self.screens:
+				obj.draw(screen)
 		
 		for screen in self.screens[1:]:
 			x,y = screen.view_pos
@@ -28,13 +32,13 @@ class BoomBoomVisual:
 		pygame.display.flip()
 		
 	def init_screens_classic(self):
-		main = Window(400, 400)
-		main.background_color = (0, 0, 255)
+		main = Window(640, 350)
+		main.background_color = (0, 0, 168)
 		self.screens = [main]
 
 	def init_screens_fun(self):
 		# Main window
-		main = Window(400, 400)
+		main = Window(640, 350)
 		main.background_color = (0, 0, 255)
 		self.screens = [main]
 

@@ -20,7 +20,5 @@ class BoomBoomView(BaseView):
 		print "=== BoomBoom ==="
 		
 	def draw(self):
+		self.visual.clear_screen()
 		self.visual.render()
-		#for key in self.agents:	
-		#	agent = self.agents[key]
-	#		agent.draw()	

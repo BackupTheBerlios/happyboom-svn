@@ -1,6 +1,8 @@
 from view import *
 from character import *
 from game_state import *
+from sun import *
+from world import *
 
 class BoomBoomAgentManager(BaseAgentManager):
 	def __init__(self):
@@ -13,7 +15,8 @@ class BoomBoomAgentManager(BaseAgentManager):
 		self.max_messages = 5
 		
 	def gameStart(self, arg):
-		pass
+		agent = Sun()
+		self.server.registerAgent(1000, agent)
 
 	def gameStop(self, arg):
 		self.server.loop = False
@@ -30,6 +33,8 @@ class BoomBoomAgentManager(BaseAgentManager):
 	def tryCreateAgent(self, id, type):
 		if type=="game_state":
 			return GameStateAgent()
+		if type=="world":
+			return World()
 		if type=="character":
 			return CharacterAgent("foo")
 		return None

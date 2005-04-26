@@ -25,6 +25,9 @@ class BaseView(object):
 		self.active = True
 		self.only_watch_server = False
 
+	def getAgent(self, id):
+		return self.agents.get(id, None)
+
 	def registerAgent(self, id, agent):
 		agent.id = id
 		agent.server = self

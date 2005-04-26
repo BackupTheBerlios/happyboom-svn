@@ -1,5 +1,6 @@
 from server import base_server
 from bb_agents import *
+from world import *
 import re
 
 class BoomBoomServer(base_server.BaseServer):
@@ -11,12 +12,16 @@ class BoomBoomServer(base_server.BaseServer):
 		self.game_state = GameStateAgent()
 		self.registerAgent(self.game_state)
 
+		agent = World()
+		self.registerAgent(agent)
+
 		agent = CharacterAgent()
+		agent.x, agent.y = 100, 100
 		self.game_state.addCharacter(agent)
 		self.registerAgent(agent)
 
 		agent = CharacterAgent()
-		agent.x = 300
+		agent.x, agent.y = 500, 100
 		self.game_state.addCharacter(agent)
 		self.registerAgent(agent)
 
