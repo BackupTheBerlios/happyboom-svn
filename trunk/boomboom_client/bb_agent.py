@@ -42,8 +42,7 @@ class VisualObject(object):
 	y = property(getY,setY)
 		
 	def draw(self, screen):
-		pos = (self.__x-screen.view_pos[0], self.__y-screen.view_pos[1])
-		screen.surface.blit(self.surface, pos)
+		screen.blit(self.surface, (self.x, self.y))
 
 class BoomBoomAgent(ViewAgent):
 	def __init__(self):

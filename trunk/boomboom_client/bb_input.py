@@ -1,5 +1,6 @@
 from input import * 
 import pygame
+import time
 
 class BoomBoomInput(BaseInput):
 	def __init__(self, client):
@@ -10,7 +11,7 @@ class BoomBoomInput(BaseInput):
 		delta_angle = -30 
 		if event.type == pygame.KEYDOWN: 
 			# arrow keys: move character
-			if event.key == 9: self.sendCmd("next_character")
+			if event.key == 32: self.sendCmd("shoot")
 			elif event.key == 275: self.sendCmd("move_right")
 			elif event.key == 273: self.sendCmd("move_up") 
 			elif event.key == 274: self.sendCmd("move_down")
@@ -30,3 +31,4 @@ class BoomBoomInput(BaseInput):
 	def live(self):
 		for event in pygame.event.get():
 			if self.process_event(event)==False: self.quit = True
+		time.sleep(0.020)

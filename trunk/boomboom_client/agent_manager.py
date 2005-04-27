@@ -3,6 +3,8 @@ from character import *
 from game_state import *
 from sun import *
 from world import *
+from weapon import *
+from projectile import *
 
 class BoomBoomAgentManager(BaseAgentManager):
 	def __init__(self):
@@ -33,6 +35,10 @@ class BoomBoomAgentManager(BaseAgentManager):
 	def tryCreateAgent(self, id, type):
 		if type=="game_state":
 			return GameStateAgent()
+		if type=="projectile":
+			return Projectile()
+		if type=="weapon":
+			return Weapon()
 		if type=="world":
 			return World()
 		if type=="character":
