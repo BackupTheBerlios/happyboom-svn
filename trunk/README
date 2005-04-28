@@ -1,3 +1,24 @@
+BoomBoom
+========
+
+BoomBoom is a rewrite of old game "Gorilla" (a Quick Basic game written
+by Microsoft). It's just a test for the HappyBoom kernel. To play, first run
+a server :
+  python boomboom_server.py
+  
+And then a client :
+  python boomboom_client.py <yourname>
+
+You can play it over Internet by giving a host name to client :
+  python boomboom_client.py --host <host ip or address> <yourname>
+
+   Controls
+   --------
+   
+- Left/Right : Change force
+- Up/Down    : Change angle
+- Space      : Shoot
+
 HappyBoom
 =========
 
@@ -5,10 +26,10 @@ HappyBoom is a rewrite of Wormux game but with better conception :
 - inputs, server & "view" are well separated
 - it uses multi-agents system
 
-Try it !
-========
+Console
+=======
 
-Open three terminals, and run :
-python server.py
-python view.py
-python input.py
+It's a basic package of console tools. First it was a test for the kernel. But
+it should be compatible with new games. It can be used to display server stats
+for example :
+  python console_view.py --stats

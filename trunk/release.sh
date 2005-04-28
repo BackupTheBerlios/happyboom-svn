@@ -1,7 +1,7 @@
 #!/bin/sh
 PKG="happyboom"
-VERSION="0.1.3"
-FILES="ChangeLog README"
+VERSION="0.1.4"
+FILES="AUTHORS ChangeLog README"
 OUT="$PKG-$VERSION.tar.bz2"
 TMP_DIR="$PKG-$VERSION"
 
@@ -15,5 +15,8 @@ for i in $(find . -name "*.py" -o -name "*.sh"; echo $FILES); do
 	ln $PWD/$FILE $TMP_DIR/$FILE
 done
 
+echo "Creating archive $OUT .."
 tar --create  --bzip --dereference --file $OUT $TMP_DIR	
 rm -rf $TMP_DIR
+
+echo "Done."
