@@ -10,7 +10,6 @@ class NetworkServerClient(object):
 		self.on_read = None
 		self.on_send = None
 		self.__name = None
-		self.__send_buffer = None
 
 	def getName(self):
 		if self.__name != None: return self.__name

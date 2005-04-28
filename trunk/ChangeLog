@@ -1,3 +1,8 @@
+2005-04-28
+	o Fix network client : use buffer to keep unfinished lines, and support
+	  wrong host name error
+	o Fix pygame : use pygame.quit() 
+
 2005-04-25
 	o Server client support socket error 11
 	o Split input, view and server into base and specific code (eg. hb_input ->
