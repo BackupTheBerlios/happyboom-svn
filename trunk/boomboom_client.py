@@ -74,9 +74,9 @@ def main():
 	client.view.setVerbose( arg["verbose"] )
 	client.view.max_fps = arg["max_fps"]
 
-#	client.input.io.name = arg["name"]
-#	client.input.setDebugMode (arg["debug"])
-#	client.input.setVerbose (arg["verbose"])
+	client.input.name = arg["name"]
+	client.input.setDebugMode (arg["debug"])
+	client.input.setVerbose (arg["verbose"])
 
 	try:
 		# Try to connect to server
