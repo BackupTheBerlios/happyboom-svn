@@ -1,7 +1,7 @@
 #!/bin/sh
 PKG="happyboom"
 VERSION="0.1.4"
-FILES="AUTHORS ChangeLog README"
+FILES="AUTHORS ChangeLog README COPYING"
 OUT="$PKG-$VERSION.tar.bz2"
 TMP_DIR="$PKG-$VERSION"
 
