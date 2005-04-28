@@ -13,13 +13,19 @@ class NetworkServerWaiter(object):
 		self.__nb_clients_sema = threading.Semaphore()
 		self.__listening = False
 		self.__listening_sema = threading.Semaphore()
+		self.__running = False
+
+	def isRunning(self):
+		return self.__running
 
 	def run_thread(self, port, max_connection):
 		try:
+			self.__running = True
 			self.start(port, max_connection)
 		except Exception, msg:
 			print "NETWORK SERVER EXCEPTION!"
 			print "ERROR MSG: %s" % (msg)
+		self.__running = False 
 		
 	def client_connect(self, client):
 		if self.__server.debug:

@@ -254,10 +254,8 @@ class BaseServer(object):
 					self.processInputCmd (input, cmd)
 
 	def live(self):
-		if not self.__view_io.listening:
-			time.sleep (0.250)
-			if self.verbose: print "Wait view server initialisation ..."
-			return
+		self.__input_io.live()
+		self.__view_io.live()
 		if not self.__input_io.listening:
 			time.sleep (0.250)
 			if self.verbose: print "Wait input server initialisation ..."
@@ -265,6 +263,19 @@ class BaseServer(object):
 		if not self.started:
 			self.started = True
 			print "Server started (waiting for clients ;-))"
+		if not self.__input_io.isRunning():
+			print "Input server stopped."
+			self.stop()
+			return
+		if not self.__view_io.isRunning():
+			print "View server stopped."
+			self.stop()
+			return			
+		if not self.__view_io.listening:
+			time.sleep (0.250)
+			if self.verbose: print "Wait view server initialisation ..."
+			return
+			
 		self.processInputs()
 		for agent in self.agents:
 			agent.live()
@@ -273,3 +284,4 @@ class BaseServer(object):
 	def stop(self):
 		self.sendMsg("game", "Stop")
 		self.agents = {}				
+		self.quit = True

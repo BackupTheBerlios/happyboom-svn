@@ -46,10 +46,20 @@ class NetworkServer(object):
 		for client in self.clients:	client.send(data)
 		self.clients_sema.release()
 
+	def live(self):
+		self.clients_sema.acquire()
+		clients_copy = self.clients[:]
+		self.clients_sema.release()
+		for client in clients_copy:
+			client.live()
+
 	def stop(self):
 		self.clients_sema.aquire()
 		for client in clients: client.conn.close()
 		self.clients_sema.release()
+
+	def isRunning(self):
+		return self.waiter.isRunning()
 	
 	def getListening(self):
 		return self.waiter.listening

@@ -1,6 +1,47 @@
 import socket
 import time
 
+class ClientBuffer:
+	def __init__(self):
+		self.max_time = 0.010
+		self.max_size = 2
+		self.__time = time.time()
+		self.__reset()
+
+	def __reset(self):
+		self.__size = 0
+		self.__buffer = ""
+
+	def __shouldBeSend(self):
+		if self.max_size <= self.__size:
+			print "buffer full (size=%s)" % (self.__size):w
+			return True
+		diff = time.time() - self.__time
+		if self.max_time <= diff:
+			print "net timeout -> send (size=%s/%s)." \
+				% (self.__size, self.max_size)
+			return True
+		return False
+
+	def getMsg(self):
+		if self.__size==0: return None
+		if not self.__shouldBeSend(): return None
+		buf = self.__buffer
+		self.__reset()
+		return buf
+
+	def addMsg(self, msg, urgent):
+		if self.__size==0:
+			self.__time = time.time()
+		self.__buffer += msg
+		self.__size = self.__size + 1
+		if urgent or self.__shouldBeSend():
+			buf = self.__buffer
+			print "Do send."
+			self.__reset()
+			return buf 
+		return None
+
 class NetworkServerClient(object):
 	def __init__(self, conn, addr):
 		self.conn = conn
@@ -10,7 +51,14 @@ class NetworkServerClient(object):
 		self.on_read = None
 		self.on_send = None
 		self.__name = None
+		self.__buffer = ClientBuffer()
+		self.__buffer.max_size = 10
+		self.__buffer.max_time = 0.010
 
+	def live(self):
+		msg = self.__buffer.getMsg()
+		if msg!=None: self.__send(msg)
+		
 	def getName(self):
 		if self.__name != None: return self.__name
 		return "{ip=%s port=%u}" % (self.addr[0], self.addr[1])
@@ -77,9 +125,16 @@ class NetworkServerClient(object):
 			return None
 		if self.on_read != None: self.on_read(data)
 		return data
-
-	def send(self, data):
+		
+	def send(self, data, urgent=False):
 		if not self.connected: return
+		
+		data = self.__buffer.addMsg(data, urgent)
+		if data== None: return
+
+		self.__send(data)
+
+	def __send(self, data):
 		try:
 			self.conn.send(data)
 		except socket.error, err:

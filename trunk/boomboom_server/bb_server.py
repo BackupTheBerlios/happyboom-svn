@@ -17,6 +17,11 @@ class BoomBoomServer(base_server.BaseServer):
 		if self.game_state == None: return None
 		return self.game_state.active_character
 
+	def getActiveTeam(self):
+		c = self.getActiveCharacter()
+		if c==None: return c
+		return c.team
+
 	def createBoomBoomAgents(self):
 		self.game_state = GameStateAgent()
 		self.registerAgent(self.game_state)
