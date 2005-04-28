@@ -14,7 +14,7 @@ class ClientBuffer:
 
 	def __shouldBeSend(self):
 		if self.max_size <= self.__size:
-			print "buffer full (size=%s)" % (self.__size):w
+			print "buffer full (size=%s)" % (self.__size)
 			return True
 		diff = time.time() - self.__time
 		if self.max_time <= diff:
