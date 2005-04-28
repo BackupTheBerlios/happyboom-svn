@@ -57,6 +57,7 @@ class Projectile(server_agent.ServerAgent):
 		if self.server.world.hitGround(x,y):
 			print "Projectile Hit ground"
 			self.setActive(False)
+			self.sendMsg("projectile", "hit_ground")
 			self.sendMsg("game", "next_turn")
 			return
 		self.sendMsg("projectile", "move", "%i,%i" % (x,y))

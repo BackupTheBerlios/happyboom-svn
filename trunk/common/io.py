@@ -8,6 +8,7 @@ class ClientIO:
 		self.on_connect = None  # No argument
 		self.on_disconnect = None  # Have one arg : lost_connection
 		self.__client = net_client.NetworkClient()
+		self.__read_buffer = None
 
 	# Try to connect to host:port
 	# Return False if an error occurs, True else
@@ -24,11 +25,23 @@ class ClientIO:
 		if self.on_write != None: self.on_write (data)
 	
 	def __processRead(self, data):
-		if data==None: return None
+		if self.__read_buffer != None:
+			print "NET buffer = @@@%s@@@\n" % (self.__read_buffer)
+			if data==None:
+				data=self.__read_buffer
+			else:
+				data=self.__read_buffer+data
+			self.__read_buffer = None
+		else:
+			if data==None: return None
 		if self.on_read != None: self.on_read (data)
+		print "NET data = @@@%s@@@\n" % (data)
 		lines = data.split("\n")
-		for line in lines:
-			if line=="": lines.remove(line)
+		if lines[-1] != "":
+			print "NET do buffer"
+			self.__read_buffer = lines[-1]
+			del lines[-1]
+		print "NET lines = @@@%s@@@\n" % (lines)
 		return lines
 
 	def readBlocking(self, max_size=512):

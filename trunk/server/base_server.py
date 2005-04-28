@@ -143,7 +143,7 @@ class BaseServer(object):
 	def openInput(self, client):
 		print "Input %s try to connect ..." % (client.name)
 
-		client.send ("Version?")
+		client.send ("Version?\n")
 		answer = self.readClientAnswer(client, 16)
 		if answer == None:
 			if self.verbose: print "Client doesn't sent version"
