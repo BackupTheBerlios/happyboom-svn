@@ -25,6 +25,10 @@ class NetworkClient(object):
 		except socket.error, err:
 			if err[0] == 111:
 				return False
+			# Name or service not known
+			if err[0] == -2:
+				if self.debug: print "Unknow host name '%s'" % (self.__host)
+				return False
 			print err
 			raise
 		self.connected = True 
