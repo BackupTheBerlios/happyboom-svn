@@ -2,6 +2,7 @@
 	o Fix network client : use buffer to keep unfinished lines, and support
 	  wrong host name error
 	o Fix pygame : use pygame.quit() 
+	o BoomBoom have character, weapon and projectile
 
 2005-04-25
 	o Server client support socket error 11
