@@ -29,7 +29,6 @@ class Projectile(server_agent.ServerAgent):
 		if cmd == "shoot": self.shoot()
 
 	def setActive(self, active):
-		print "Set Active %u" % (active)
 		self.active = active
 		self.sendMsg("projectile", "activate", "%u" % (active))
 

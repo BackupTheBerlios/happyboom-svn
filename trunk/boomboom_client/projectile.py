@@ -10,7 +10,6 @@ class Projectile(BoomBoomAgent):
 			"activate": self.evtActivate}
 		self.visual = VisualObject("boomboom_data/banana.png")
 		self.active = False
-		self.x, self.y = None, None
 		
 
 	def evtHitGround(self, msg):
@@ -18,16 +17,12 @@ class Projectile(BoomBoomAgent):
 		# TODO: Graphic effect
 
 	def evtActivate(self, msg):
-		print "Activate : %s" % (msg)
 		self.active = (msg=="1")
-		if self.active==False:
-			self.x, self.y = None, None
+		self.visual.setVisibility(self.active)
 
 	def evtMove(self, msg):
 		msg = msg.split(",")
 		self.visual.move ( int(msg[0]), int(msg[1]) )
 
 	def draw(self, screen):
-		if not self.active: return
-		if self.x==None: return
 		self.visual.draw(screen)

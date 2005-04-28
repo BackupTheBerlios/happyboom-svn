@@ -14,7 +14,6 @@ class Weapon(server_agent.ServerAgent):
 		char = self.server.getActiveCharacter()
 		if char == None: return
 		team = char.team
-		print "team = %u, last=%u\n" % (team, self.last_team)
 		self.keep_data[self.last_team] = (self.angle, self.force,)
 		angle, force = self.keep_data.get(team, (45, 50,))
 		self.last_team = team

@@ -5,6 +5,7 @@ class VisualObject(object):
 	def __init__(self, file):
 		self.__x, self.__y = (0,0)
 		self.loadImage(file)
+		self.visible = True
 
 	def loadImage(self, file):
 		self.surface = pygame.image.load(file).convert_alpha()
@@ -40,8 +41,12 @@ class VisualObject(object):
 	def setY(self, y):
 		self.move(self.__x, y)
 	y = property(getY,setY)
+
+	def setVisibility(self, visible):
+		self.visible = visible
 		
 	def draw(self, screen):
+		if not self.visible: return
 		screen.blit(self.surface, (self.x, self.y))
 
 class BoomBoomAgent(ViewAgent):

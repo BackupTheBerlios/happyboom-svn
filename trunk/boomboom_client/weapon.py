@@ -17,7 +17,6 @@ class Weapon(BoomBoomAgent):
 
 	def updateAngle(self, angle):
 		self.angle = int(angle)
-		print "Angle = %s" % (self.angle)
 
 	def updateForce(self, force):
 		self.force = int(force)

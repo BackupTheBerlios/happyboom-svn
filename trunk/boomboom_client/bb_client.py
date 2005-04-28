@@ -31,9 +31,20 @@ class BoomBoomClient:
 			raise
 
 	def start(self, host, view_port, input_port):
+		# Start pygame
 		pygame.init()	
+		
+		# Start view and input
 		self.view.start(host, view_port)
 		self.input.start(host, input_port)
+		
+		# Start view and input
+		if not self.view.loop or self.input.quit:
+			print "Initialisation failed, quit."
+			self.stop()
+			return
+
+		# Create thread for input and view
 		thread.start_new_thread( self.thread_view, ())
 		thread.start_new_thread( self.thread_input, ())
 
@@ -43,3 +54,4 @@ class BoomBoomClient:
 	def stop(self):
 		self.view.stop()
 		self.input.stop()
+		pygame.quit()	

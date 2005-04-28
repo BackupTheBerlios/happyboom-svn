@@ -19,7 +19,6 @@ class CharacterAgent(BoomBoomAgent):
 		self.x = int(arg[1])
 		self.y = int(arg[2])
 		self.visual.move(self.x, self.y)
-		print "Move : %i,%i" % (self.x, self.y)
 
 	def draw(self, screen):
 		if self.x==None: return

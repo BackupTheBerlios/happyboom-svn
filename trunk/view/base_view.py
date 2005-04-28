@@ -1,6 +1,7 @@
 from common import io
 from view_agent_manager import *
 from common import mailing_list
+import socket
 
 class BaseView(object):
 	instance = None
@@ -37,12 +38,10 @@ class BaseView(object):
 	def start(self, host, port):
 		if self.verbose: print "Try to connect to server %s:%u." \
 			% (host, port)
-		try:
-			self.io.on_connect = self.on_connect
-			self.io.on_disconnect = self.on_disconnect
-			self.io.start(host, port)
-		except socket.error:
-			print "Connection to server %s:%s failed !" % (view.io.host, view.io.port)
+		self.io.on_connect = self.on_connect
+		self.io.on_disconnect = self.on_disconnect
+		if not self.io.start(host, port):
+			print "Connection to server %s:%s failed !" % (self.io.host, self.io.port)
 			self.loop = False
 
 	def on_connect(self):

@@ -32,10 +32,10 @@ class NetworkClient(object):
 		return True
 
 	def disconnect(self, lost_connection=False):
-		if not self.connected: return
-		if self.debug: print "Disconnect client %s." % (self.name)
-		self.__socket.close()
-		self.connected = False
+		if self.connected:
+			if self.debug: print "Disconnect client %s." % (self.name)
+			self.__socket.close()
+			self.connected = False
 		if self.on_disconnect != None: self.on_disconnect(lost_connection)
 		
 	def send(self, data):
