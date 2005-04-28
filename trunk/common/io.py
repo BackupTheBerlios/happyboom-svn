@@ -26,7 +26,6 @@ class ClientIO:
 	
 	def __processRead(self, data):
 		if self.__read_buffer != None:
-			print "NET buffer = @@@%s@@@\n" % (self.__read_buffer)
 			if data==None:
 				data=self.__read_buffer
 			else:
@@ -35,13 +34,10 @@ class ClientIO:
 		else:
 			if data==None: return None
 		if self.on_read != None: self.on_read (data)
-		print "NET data = @@@%s@@@\n" % (data)
 		lines = data.split("\n")
 		if lines[-1] != "":
-			print "NET do buffer"
 			self.__read_buffer = lines[-1]
-			del lines[-1]
-		print "NET lines = @@@%s@@@\n" % (lines)
+		del lines[-1]
 		return lines
 
 	def readBlocking(self, max_size=512):

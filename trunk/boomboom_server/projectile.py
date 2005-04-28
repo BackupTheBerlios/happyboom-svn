@@ -40,9 +40,9 @@ class Projectile(server_agent.ServerAgent):
 		if self.weapon_force==None: return
 
 		print "SHOOT"
-		self.setActive (True)
 		self.start_pos = (character.x, character.y, )
 		self.move(character.x, character.y)
+		self.setActive (True)
 		self.time = time.time()
 		sx = self.weapon_force * math.cos(self.weapon_angle)
 		sy = self.weapon_force * math.sin(self.weapon_angle)
@@ -53,7 +53,6 @@ class Projectile(server_agent.ServerAgent):
 	def move(self, x, y):
 		self.x = x
 		self.y = y
-		print "Projectile Move %i,%i" % (x, y)
 		if self.server.world.hitGround(x,y):
 			print "Projectile Hit ground"
 			self.setActive(False)

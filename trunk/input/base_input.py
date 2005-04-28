@@ -35,7 +35,7 @@ class PingClient:
 	def one_loop(self):
 		if self.ping_time != None:
 			if self.ping_timeout < time.time() - self.ping_time:
-				print "Server don't answer :-P"
+				print "Server don't answer to ping (timeout) :-P"
 				self.stop()
 				return
 				
