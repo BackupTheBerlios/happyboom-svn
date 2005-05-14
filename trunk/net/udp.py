@@ -39,7 +39,7 @@ class IO_UDP(BaseIO):
 			if self.verbose:
 				print "Connect to server %s:%u" % (self.host, self.port)
 			self.__server = UDP_Client(self, self.__addr)
-			self.__server.send_ping = True
+#			self.__server.send_ping = True
 			self.__clients_sema.acquire()
 			self.__clients[self.__addr] = self.__server
 			self.__clients_sema.release()
@@ -187,7 +187,7 @@ class IO_UDP(BaseIO):
 				self.__clients[addr] = client
 				self.__clients_sema.release()
 				if self.verbose: print "New client : %s:%u" % (addr[0], addr[1])
-				client.send_ping = True
+#				client.send_ping = True
 				if self.on_client_connect != None: self.on_client_connect(client)
 			else:
 				client = self.__clients[addr] 
