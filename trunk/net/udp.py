@@ -29,6 +29,7 @@ class IO_UDP(BaseIO):
 
 	# Connect to host:port
 	def connect(self, host, port):
+		host = socket.gethostbyname(host)
 		self.__addr = (host, port,)
 		self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		if self.__is_server:
@@ -198,6 +199,8 @@ class IO_UDP(BaseIO):
 		else:
 			# Drop packets which doesn't come from server
 			if self.__server.addr != addr:
+				if self.debug:
+					print "Drop packet from %s:%u" % (addr[0], addr[1])
 				return None
 			client = self.__server
 	
