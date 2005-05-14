@@ -8,10 +8,12 @@ import socket
 import sys
 import traceback
 import re
+import getopt
+import struct
 
 class Packet(object):
 	# Timeout before packet is resend
-	timeout = 0.005
+	timeout = 0.250
 
 	# Timeout before packet is said to be "lost"
 	total_timeout = 3.000 
@@ -39,18 +41,34 @@ class Packet(object):
 			% (self.__data, self.id, self.skippable)
 
 	# Fill attributs from a binary data packet
-	def unpack(self, data):
-		if data==None: return
-		m = re.compile("^([0-9]+):([0-9]+):(.+)$").match(data)
-		if m == None: return
-		self.skippable = (m.group(1) == '1')
-		self.id = int(m.group(2))
-		self.__data = m.group(3)
+	def unpack(self, binary_data):
+		if binary_data==None: return
+
+		# Read skippable, id, data len
+		format = "!BII"
+		size = struct.calcsize(format)
+		if len(binary_data) <  size: return None
+		data = struct.unpack(format, binary_data[:size])
+		self.skippable = (data[0]==1)
+		self.id = data[1]
+		data_len = data[2]
+		binary_data = binary_data[size:]
+
+		# Read data
+		format = "!%us" % (data_len)
+		if len(binary_data) != struct.calcsize(format): return None
+		
+		data = struct.unpack(format, binary_data) 
+		self.__data = data[0] 
 
 	# Pack datas to a binary string (using struct module)
 	def pack(self):
-		return "%u:%u:%s" \
-			% (self.skippable, self.id, self.__data)
+		data_len = len(self.__data)
+		x = struct.pack("!BII%us" % data_len, 
+			self.skippable+0, # Hack for convert boolean to integer
+			self.id, data_len, self.__data)
+		print "x = @", x, "@"
+		return x
 		
 	# Write a sting into packet
 	def writeStr(self, str):
@@ -76,6 +94,7 @@ class IO_UDP:
 		self.thread_sleep = 0.010
 
 		self.__is_server = is_server
+		self.loop = True
 
 		self.__socket = None
 		self.__addr = None
@@ -207,7 +226,7 @@ class IO_UDP:
 	# Function which should be called in a thread
 	def run_thread(self):
 		try:
-			while 1:
+			while self.loop:
 				self.live()				
 				if self.thread_receive:
 					packet = self.receive()				
@@ -219,6 +238,9 @@ class IO_UDP:
 			print msg
 			print "--"			
 			traceback.print_exc()
+
+	def stop(self):
+		self.loop = False
 
 	#--- Private functions ------------------------------------------------------
 	
@@ -277,25 +299,34 @@ def loop_client(io):
 
 def main():
 	is_server = False
-	for arg in sys.argv[1:]:
-		if arg=="--server": is_server = True
+	port = 12430
+	host = "localhost"
+	try:
+		opts, args = getopt.getopt(sys.argv[1:], "", ["host=","server"])
+	except getopt.GetoptError:
+		print "Arguments parse error"
+
+	for o, a in opts:
+		if o == "--server":
+			is_server = True
+		if o in ("--host"):
+			host = a
+	
+	# Create IO
 	io = IO_UDP(is_server)
 	io.debug = True
 	port = 12430
-	if is_server:
-		host = ''
-	else:
-		host = 'localhost'
-#		host = 'tchoy.net'
-#		host = '10.20.0.117'
+	if is_server: host = ''
 	io.connect(host, port)	
 
+	# Main loop
 	try:
 		if is_server:
 			loop_server(io)
 		else:
 			loop_client(io)
 	except KeyboardInterrupt:
+		io.stop()
 		print "\nProgramme interrompu (CTRL+C)."
 	
 if __name__=="__main__": main()
