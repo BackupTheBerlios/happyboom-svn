@@ -3,3 +3,5 @@ TODO LIST
 o Improve network security
 o Improve input threading
 o For network : not all blocking read functions catch socket error 11
+o Catch UDP Binding error
+o Limit UDP clients

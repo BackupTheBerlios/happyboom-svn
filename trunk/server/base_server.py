@@ -5,7 +5,48 @@ from common import mailing_list
 import string
 import time
 import thread
+import threading
 import random
+from net import udp
+from net import tcp
+import traceback
+
+class ClientBuffer:
+	def __init__(self):
+		self.__buffer = {} 
+		self.__sema = threading.Semaphore()
+
+	def clear(self, client):
+		self.__sema.acquire()
+		self.__buffer[client.addr] = [] 
+		self.__sema.release()
+	
+	def append(self, client, data):
+		self.__sema.acquire()
+		if self.__buffer.has_key(client.addr):
+			self.__buffer[client.addr].append(data)
+		else:
+			self.__buffer[client.addr] = [data]
+		self.__sema.release()
+
+	def readNonBlocking(self, client):
+		self.__sema.acquire()
+		buffer = self.__buffer.get(client.addr, [])
+		self.__buffer[client.addr] = []
+		self.__sema.release()
+		return buffer
+
+	def readBlocking(self, client):
+		addr = client.addr
+		data = None
+		while data == None:
+			self.__sema.acquire()
+			if self.__buffer.has_key(addr) and len(self.__buffer[addr]) != 0:
+				data = self.__buffer[addr][0]
+				del self.__buffer[addr][0] 
+			self.__sema.release()
+			if data == None: time.sleep(0.010)
+		return data
 
 class BaseServer(object):
 	instance = None
@@ -13,8 +54,10 @@ class BaseServer(object):
 	def __init__(self):
 		BaseServer.instance = self
 		self.agents = []
-		self.__view_io = net_server.NetworkServer()
-		self.__input_io = net_server.NetworkServer()
+		self.__view_io = udp.IO_UDP(is_server=True)
+		self.__input_io = udp.IO_UDP(is_server=True)
+		#self.__view_io = tcp.IO_TCP(is_server=True)
+		#self.__input_io = tcp.IO_TCP(is_server=True)
 		self.__inputs = []
 		self.mailing_list = mailing_list.MailingList()
 		self.net_mailing_list = {}
@@ -26,7 +69,8 @@ class BaseServer(object):
 		self.started = False
 		self.__input_protocol_version = "0.1.4"
 		self.__view_protocol_version = "0.1.4"
-		self.client_answer = {}
+		self.__input_buffer = ClientBuffer()
+		self.__view_buffer = ClientBuffer()
 		random.seed()
 
 	# Private are not private ??? :-P
@@ -36,17 +80,18 @@ class BaseServer(object):
 		return self.__view_io
 
 	def disconnect_client_timeout(self, client, timeout):
-		msg = self.createMsg("game", "Stop")
-		client.send (msg)
-		t = time.time()
-		while client.connected:
-			time.sleep(0.100)
-			# Hack to check if client is still connected
-			client.readNonBlocking()
-			if timeout < time.time() - t: break
-		if not client.connected: return
-		print "Timeout (%.1f sec) over!" % (timeout)
-		client.disconnect()
+#		msg = self.createMsg("game", "Stop")
+#		client.send (msg)
+#		t = time.time()
+#		while client.connected:
+#			time.sleep(0.100)
+#			# Hack to check if client is still connected
+#			client.readNonBlocking()
+#			if timeout < time.time() - t: break
+#		if not client.connected: return
+#		print "Timeout (%.1f sec) over!" % (timeout)
+#		client.disconnect()
+		pass
 	
 	# Convert a (role,type,arg) to string (to be sent throw network)
 	def createMsg(self, role, type, arg=None):
@@ -70,46 +115,68 @@ class BaseServer(object):
 	def initIO(self, max_view, view_port, max_input, input_port):
 		self.__view_io.name = "view server"
 		self.__view_io.on_client_connect = self.openView
-		self.__view_io.on_client_disconnect = self.closeView
-		self.__view_io.on_binding_error = self.bindingError
-		self.__view_io.start(view_port, max_view)
+#		self.__view_io.on_client_disconnect = self.closeView
+#		self.__view_io.on_binding_error = self.bindingError
+		self.__view_io.on_new_packet = self.recvViewPacket
+		self.__view_io.connect('', view_port) #, max_view)
 
 		self.__input_io.name = "input server"
 		self.__input_io.on_client_connect = self.openInput
-		self.__input_io.on_client_disconnect = self.closeInput
-		self.__input_io.on_binding_error = self.bindingError
-		self.__input_io.start(input_port, max_input)
-
+#		self.__input_io.on_client_disconnect = self.closeInput
+#		self.__input_io.on_binding_error = self.bindingError
+		self.__input_io.on_new_packet = self.recvInputPacket
+		self.__input_io.connect('', input_port) #, max_input)
+	
+		thread.start_new_thread( self.run_io_thread, ())
+		
+	def recvInputPacket(self, packet):
+		msg = packet.data.rstrip()
+		self.__input_buffer.append(packet.recv_from, packet)
+		
+	def recvViewPacket(self, packet):
+		msg = packet.data.rstrip()
+		self.__view_buffer.append(packet.recv_from, packet)
+	
+	# Function which should be called in a thread
+	def run_io_thread(self):
+		try:
+			while self.__input_io.loop and self.__view_io.loop:
+				self.__input_io.live()				
+				self.__view_io.live()				
+				time.sleep(0.010)
+		except Exception, msg:
+			print "EXCEPTION IN IO THREAD :"
+			print msg
+			print "--"			
+			traceback.print_exc()
+			
 	def bindingError(self, server):
 		print "Binding error for %s (port %u) !" % (server.name, server.port)
 		self.quit = True
 
-	def readClientAnswer(self, client, max_len=512):
-		if client in self.client_answer:
-			answer = self.client_answer[client][0]
-			del self.client_answer[client][0]
-			if len(self.client_answer[client])==0:
-				del self.client_answer[client]
-		else:
-			answer = client.read()
-			if answer == None: return None
-			lines = answer.split("\n")
-			del lines[-1] # Last line is always empty
-			if len(lines)==0:
-				if self.debug: print "Wrong client answer : %s" % (answer)
-				return None
-			if 1<len(lines):
-				self.client_answer[client] = lines[1:]
-			answer = lines[0]
-		if max_len < len(answer): answer = answer[:max_len]
+	def readViewAnswer(self, client):
+		return self.__readClientAnswer(self.__view_buffer, client)
+		
+	def readInputAnswer(self, client):
+		return self.__readClientAnswer(self.__input_buffer, client)
+		
+	def __readClientAnswer(self, buffer, client):
+		answer = buffer.readBlocking(client)
+		answer = answer.data.rstrip()
 		return answer
 		
 	def openView(self, client):
+		thread.start_new_thread( self.__do_openView, (client,))
+	
+	def __do_openView(self, client):
 		print "View %s try to connect ..." % (client.name)
 		
+		self.__view_buffer.clear(client)
+		
 		# Ask protocol version
-		client.send ( self.createMsg("agent_manager", "AskVersion") )
-		answer = self.readClientAnswer(client, 16)
+		msg = self.createMsg("agent_manager", "AskVersion")
+		client.send ( udp.Packet(msg) )
+		answer = self.readViewAnswer(client)
 		if answer != self.__view_protocol_version:
 			txt = "Sorry, you don't have same protocol version (%s VS %s)" \
 				% (answer, self.__view_protocol_version)
@@ -118,33 +185,41 @@ class BaseServer(object):
 			return
 		
 		# ask client name
-		client.send ( self.createMsg("agent_manager", "AskName") )
-		name = self.readClientAnswer(client, 16)
+		msg = self.createMsg("agent_manager", "AskName")
+		client.send ( udp.Packet(msg) )
+		name = self.readViewAnswer(client)
 		if name not in ("-", ""): client.name = name
 
 		self.registerNetMessage (client, "agent_manager")
 		self.registerNetMessage (client, "game")
 		for agent in self.agents:
 			msg = self.createMsg("agent_manager", "Create", "%s:%u" % (agent.type, agent.id))
-			client.send (msg)
-			answer = self.readClientAnswer(client, 3)
+			client.send ( udp.Packet(msg) )
+			answer = self.readViewAnswer(client)
 			if answer == "yes": 
-				role = self.readClientAnswer(client, 50)
+				role = self.readViewAnswer(client)
 				while role != ".":
 					self.registerNetMessage(client, role)
-					role = self.readClientAnswer(client, 50)
+					role = self.readViewAnswer(client)
 				agent.sync(client)
-		client.send ( self.createMsg("game", "Start") )
+
+		msg = self.createMsg("game", "Start")
+		client.send ( udp.Packet(msg) )
 			
 		txt = "Welcome to new (view) client : %s" % (client.name)
 		self.sendText(txt)
 		print "View %s connected." % (client.name)
 
 	def openInput(self, client):
+		thread.start_new_thread( self.__do_openInput, (client,))
+
+	def __do_openInput(self, client):
 		print "Input %s try to connect ..." % (client.name)
 
-		client.send ("Version?\n")
-		answer = self.readClientAnswer(client, 16)
+		self.__input_buffer.clear(client)
+
+		client.send ( udp.Packet("Version?\n") )
+		answer = self.readInputAnswer(client)
 		if answer == None:
 			if self.verbose: print "Client doesn't sent version"
 			client.disconnect()
@@ -155,17 +230,17 @@ class BaseServer(object):
 			self.sendText (txt, client)
 			thread.start_new_thread( self.disconnect_client_timeout, (client, 5.0,))
 			return	
-		client.send ("OK\n")
+		client.send (udp.Packet("OK\n"))
 		
 		# ask client name
-		client.send ("Name?\n")
-		name = self.readClientAnswer(client, 16)
+		client.send (udp.Packet("Name?\n"))
+		name = self.readInputAnswer(client)
 		if name == None:
 			if self.verbose: print "Client doesn't sent name"
 			client.disconnect()
 			return
 		if name not in ("-", ""): client.name = name
-		client.send ("OK\n")
+		client.send (udp.Packet("OK\n"))
 
 		self.__inputs.append (client)
 		print "Input %s connected." % (client.name)
@@ -196,6 +271,8 @@ class BaseServer(object):
 
 	def setVerbose(self, verbose):
 		self.verbose = verbose
+		self.__view_io.verbose = verbose
+		self.__input_io.verbose = verbose
 
 	def connectAgent(self, cmd, agent):
 		if self.cmd_handler.has_key(cmd):
@@ -209,18 +286,20 @@ class BaseServer(object):
 		self.agents.append(agent)
 		agent.start()
 
-	def sendMsgToClient(self, client, role, type, arg=None):
+	def sendMsgToClient(self, client, role, type, arg=None, skippable=False):
 		msg = self.createMsg(role, type, arg)
-		client.send(msg)
+		p = udp.Packet(msg)
+		p.skippable = skippable
+		client.send(p)
 		
 	def sendText(self, txt, client=None):
 		if client != None:
 			msg = self.createMsg("agent_manager", "Text", txt)
-			client.send(msg)
+			client.send( udp.Packet(msg) )
 		else:
 			self.sendMsg("agent_manager", "Text", txt)
 
-	def sendMsg(self, role, type, arg=None):
+	def sendMsg(self, role, type, arg=None, skippable=False):
 		msg = AgentMessage(role, type, arg)
 		locals = self.mailing_list.getLocal(role)
 		for agent in locals:
@@ -228,53 +307,57 @@ class BaseServer(object):
 		
 		msg = self.createMsg(role, type, arg)
 		clients = self.mailing_list.getNet(role)
-		for client in clients: client.send(msg)
+		for client in clients:
+			p = udp.Packet(msg)
+			p.skippable = skippable
+			client.send (p)
 		
 	def processCmd(self, cmd):
-		print "Received %s." % (cmd)
+		if self.debug: print "Received %s." % (cmd)
 		if self.cmd_handler.has_key(cmd):
 			for agent in self.cmd_handler[cmd]:
 				print "Send %s to agent %u." % (cmd, agent.id)
 				msg = AgentMessage(agent.id, "Command", cmd)
 				agent.putMessage(msg)
 
+	def processInputPacket(self, new_packet):
+		self.processInputCmd( new_packet.recv_from, new_packet.data )
+	
 	def processInputCmd(self, input, cmd):
 		pass
 		
 	def processInputs(self):
-		for input in self.__inputs:
-			data = input.readNonBlocking()
-			if data != None:
-				cmds = data.split("\n")
-				max_len = 80 
-				for cmd in cmds:	
-					import re
-					if len(cmd)==0: continue
-					if max_len<len(cmd): cmd=cmd[:max_len]
-					self.processInputCmd (input, cmd)
+		inputs = self.__inputs[:]
+		for client in inputs:
+			packets = self.__input_buffer.readNonBlocking(client)
+
+			for packet in packets:	
+				#if len(cmd)==0: continue
+				#if max_len<len(cmd): cmd=cmd[:max_len]
+				self.processInputCmd (packet.recv_from, packet.data.rstrip())
 
 	def live(self):
-		self.__input_io.live()
-		self.__view_io.live()
-		if not self.__input_io.listening:
-			time.sleep (0.250)
-			if self.verbose: print "Wait input server initialisation ..."
-			return
+#		self.__input_io.live()
+#		self.__view_io.live()
+#		if not self.__input_io.listening:
+#			time.sleep (0.250)
+#			if self.verbose: print "Wait input server initialisation ..."
+#			return
 		if not self.started:
 			self.started = True
 			print "Server started (waiting for clients ;-))"
-		if not self.__input_io.isRunning():
-			print "Input server stopped."
-			self.stop()
-			return
-		if not self.__view_io.isRunning():
-			print "View server stopped."
-			self.stop()
-			return			
-		if not self.__view_io.listening:
-			time.sleep (0.250)
-			if self.verbose: print "Wait view server initialisation ..."
-			return
+#		if not self.__input_io.isRunning():
+#			print "Input server stopped."
+#			self.stop()
+#			return
+#		if not self.__view_io.isRunning():
+#			print "View server stopped."
+#			self.stop()
+#			return			
+#		if not self.__view_io.listening:
+#			time.sleep (0.250)
+#			if self.verbose: print "Wait view server initialisation ..."
+#			return
 			
 		self.processInputs()
 		for agent in self.agents:

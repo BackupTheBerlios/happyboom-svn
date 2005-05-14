@@ -58,7 +58,7 @@ class Projectile(server_agent.ServerAgent):
 			self.sendMsg("projectile", "hit_ground")
 			self.sendMsg("game", "next_turn")
 			return
-		self.sendMsg("projectile", "move", "%i,%i" % (x,y))
+		self.sendMsg("projectile", "move", "%i,%i" % (x,y), skippable=True)
 
 	def live(self):
 		server_agent.ServerAgent.live(self)

@@ -81,11 +81,7 @@ def main():
 				input.live()
 
 	except KeyboardInterrupt:
-		if input.ping.quit:
-			print "Lost connection with server (no ping answer)."
-		else:
-			print "Program interrupted (CTRL+C)."
-		pass
+		print "Program interrupted (CTRL+C)."
 	input.stop()
 
 if __name__=="__main__": main()

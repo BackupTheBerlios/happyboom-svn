@@ -1,14 +1,17 @@
-from common import io
 from view_agent_manager import *
 from common import mailing_list
-import socket
+from net import udp
+from net import tcp
+from net import packet
+import thread
 
 class BaseView(object):
 	instance = None
 
 	def __init__(self):
 		BaseView.instance = self
-		self.io = io.ClientIO()
+		self.io = udp.IO_UDP()
+		#self.io = tcp.IO_TCP()
 		self.n = None
 		self.agents = {}
 		self.loop = True
@@ -40,17 +43,19 @@ class BaseView(object):
 			% (host, port)
 		self.io.on_connect = self.on_connect
 		self.io.on_disconnect = self.on_disconnect
-		if not self.io.start(host, port):
-			print "Connection to server %s:%s failed !" % (self.io.host, self.io.port)
-			self.loop = False
+		self.io.on_new_packet = self.processPacket
+		self.io.connect(host, port)
+
+# UDP
+		self.io.send( packet.Packet("I'm here") )
+		
+		thread.start_new_thread( self.io.run_thread, ())
 
 	def on_connect(self):
 		if self.verbose: print "Connected to server."
 
-	def on_disconnect(self, lost_connection):
-		if lost_connection == True: 
-			print "Connection with server broken :-("
-		elif self.verbose:
+	def on_disconnect(self):
+		if self.verbose:
 			print "Connection to server closed."
 		self.loop = False
 
@@ -72,32 +77,33 @@ class BaseView(object):
 	def registerMessage(self, agent, role):
 		self.mailing_list.register(role, agent)
 	
-	def processMessages(self, lines):
-		for line in lines:
-			msg = self.str2msg(line)
-			if msg != None: 
-				if self.debug: print "Received message: %s" %(msg.str())
-				if self.on_recv_message: self.on_recv_message (msg)
-				locals = self.mailing_list.getLocal(msg.role)
-				for agent in locals: agent.putMessage(msg)
+	def processPacket(self, new_packet):
+		msg = self.str2msg(new_packet.data.rstrip())
+		if msg != None: 
+			if self.debug: print "Received message: %s" %(msg.str())
+			if self.on_recv_message: self.on_recv_message (msg)
+			locals = self.mailing_list.getLocal(msg.role)
+			for agent in locals: agent.putMessage(msg)
 
 	def send(self, str):
-		self.io.send(str+"\n")
+		p = packet.Packet()
+		p.writeStr( str+"\n" )
+		self.io.send(p)
 	
 	def live(self):
-		if not self.io.connected:
-			if self.verbose or (self.wait_server_time == None):
-				print "Waiting for connection to server ..."
-			if self.wait_server_time != None:
-				if self.server_timeout < time.time() - self.wait_server_time:
-					print "Server %s:%u doesn't answer, try again." \
-						% (self.io.host, self.io.port)
-					self.stop()
-					return
-			else:
-				self.wait_server_time = time.time()
-			time.sleep(1.0)
-			return
+#		if not self.io.connected:
+#			if self.verbose or (self.wait_server_time == None):
+#				print "Waiting for connection to server ..."
+#			if self.wait_server_time != None:
+#				if self.server_timeout < time.time() - self.wait_server_time:
+#					print "Server %s:%u doesn't answer, try again." \
+#						% (self.io.host, self.io.port)
+#					self.stop()
+#					return
+#			else:
+#				self.wait_server_time = time.time()
+#			time.sleep(1.0)
+#			return
 	
 		live_begin = time.time()
 
@@ -110,10 +116,6 @@ class BaseView(object):
 			agent = agents_list[key]
 			agent.live()
 	
-		# Read messages from server
-		lines = self.io.read()
-		if lines!=None: self.processMessages(lines)
-
 		# Draw the screen
 		self.draw()
 		
@@ -129,17 +131,18 @@ class BaseView(object):
 		
 	def setDebugMode(self, debug):
 		self.debug = debug
-		self.io.setDebug(debug)
+		self.io.debug = debug
 
 	def setVerbose(self, verbose):
 		self.verbose = verbose
+		self.io.verbose = verbose
 		self.clear_screen = not verbose
 
 	def stop(self):
 		if not self.active: return
 		self.active = False
 		self.loop = False
-		self.io.send("quit")
+		self.send("quit")
 		self.io.stop()
 		print "View closed."
 

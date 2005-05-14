@@ -1,6 +1,7 @@
 import socket
 import threading
-from server_client import NetworkServerClient
+import traceback
+from io_client import IO_Client
 
 class NetworkServerWaiter(object):
 	def __init__(self, server):
@@ -25,18 +26,19 @@ class NetworkServerWaiter(object):
 		except Exception, msg:
 			print "NETWORK SERVER EXCEPTION!"
 			print "ERROR MSG: %s" % (msg)
+		traceback.print_exc()
 		self.__running = False 
 		
-	def client_connect(self, client):
+	def clientConnect(self, client):
 		if self.__server.debug:
 			print "Client %s enter server %s." \
 				% (client.name, self.__server.name)
 		self.__nb_clients_sema.acquire()
 		self.__nb_clients = self.__nb_clients + 1
 		self.__nb_clients_sema.release()
-		self.__server.client_connect (client)
+		self.__server.clientConnect (client)
 
-	def client_disconnect(self, client):
+	def clientDisconnect(self, client):
 		if self.__server.debug: print "New client : %s" % (client.getName())
 		self.__nb_clients_sema.acquire()
 		self.__nb_clients = self.__nb_clients - 1
@@ -56,7 +58,7 @@ class NetworkServerWaiter(object):
 					   self.getNbClients(), self.__max_clients)
 			conn.close()
 			return None
-		return NetworkServerClient(conn, addr)
+		return IO_Client(self.__server, addr, conn=conn)
 
 	def start(self, port, max_connection):
 		self.__max_clients = max_connection
@@ -84,7 +86,7 @@ class NetworkServerWaiter(object):
 		while 1:
 			try:
 				client = self.waitClient()
-				if client != None: self.client_connect (client)
+				if client != None: self.clientConnect (client)
 				client = None
 
 			except socket.error, error:

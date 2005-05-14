@@ -7,8 +7,8 @@ class ServerAgent(Agent):
 		self.id = -1 
 		self.server = None
 
-	def sendMsg(self, role, type, arg=None, client=None):
+	def sendMsg(self, role, type, arg=None, client=None, skippable=False):
 		if client != None:
-			self.server.sendMsgToClient(client, role, type, arg)
+			self.server.sendMsgToClient(client, role, type, arg, skippable=skippable)
 		else:
-			self.server.sendMsg(role, type, arg)
+			self.server.sendMsg(role, type, arg, skippable=skippable)
