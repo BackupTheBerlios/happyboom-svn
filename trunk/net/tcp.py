@@ -8,7 +8,7 @@ import socket
 import traceback
 import struct
 from packet import Packet
-from io_client import IO_Client
+from tcp_client import TCP_Client
 from server_waiter import NetworkServerWaiter
 from base_io import BaseIO
 
@@ -44,7 +44,7 @@ class IO_TCP(BaseIO):
 			self.__socket.connect(self.__addr)
 			self.__socket.setblocking(0)
 
-			client = IO_Client(self, self.__addr, conn=self.__socket)	
+			client = TCP_Client(self, self.__addr, conn=self.__socket)	
 			self.__clients_sema.acquire()
 			self.__clients[client.addr] = client
 			self.__clients_sema.release()
@@ -170,7 +170,7 @@ class IO_TCP(BaseIO):
 	def clientConnect(self, client):
 		client.on_read = self.on_read
 		client.on_send = self.on_send
-		client.connect(self)
+		client.setNetServer(self)
 		self.__clients_sema.acquire()
 		self.__clients[client.addr] = client
 		self.__clients_sema.release()

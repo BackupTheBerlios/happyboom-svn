@@ -7,7 +7,7 @@ import socket
 import traceback
 import struct
 from packet import Packet
-from io_client import IO_Client
+from udp_client import UDP_Client
 from base_io import BaseIO
 
 class IO_UDP(BaseIO):
@@ -17,6 +17,7 @@ class IO_UDP(BaseIO):
 		self.thread_sleep = 0.010
 
 		self.__is_server = is_server
+		self.__server = None # only used in client mode
 		self.loop = True
 
 		self.__socket = None
@@ -24,11 +25,7 @@ class IO_UDP(BaseIO):
 		self.__addr = None
 		self.__packet_id = 0
 		self.__clients = {}
-		self.__waitAck = {}
-		self.__received = {}
 		self.__clients_sema = threading.Semaphore()
-		self.__waitAck_sema = threading.Semaphore()
-		self.__received_sema = threading.Semaphore()
 
 	# Connect to host:port
 	def connect(self, host, port):
@@ -40,7 +37,11 @@ class IO_UDP(BaseIO):
 			self.__socket.bind(self.__addr)
 		else:
 			if self.verbose:
-				print "Connect to server %s:%u" % (self.host, self.port)			
+				print "Connect to server %s:%u" % (self.host, self.port)
+			self.__server = UDP_Client(self, self.__addr)
+			self.__clients_sema.acquire()
+			self.__clients[self.__addr] = self.__server
+			self.__clients_sema.release()
 		self.__socket_open = True
 		self.__socket.setblocking(0)
 		if self.on_connect != None: self.on_connect()
@@ -89,27 +90,23 @@ class IO_UDP(BaseIO):
 
 		if self.__is_server:
 			if to==None:
-				for addr in self.clients.keys(): # use internal copy for clients
-					self.__sendDataTo(packet, data, addr, need_ack)
+				for addr,client in self.clients.items(): # use internal copy for clients
+					self.__sendDataTo(packet, data, client, need_ack)
 			else:
-				self.__sendDataTo(packet, data, to.addr, need_ack)
+				self.__sendDataTo(packet, data, to, need_ack)
 		else:
-			self.__sendDataTo(packet, data, self.__addr, need_ack)
+			self.__sendDataTo(packet, data, self.__server, need_ack)
 			
-	def __sendDataTo(self, packet, data, addr, need_ack):
+	def __sendDataTo(self, packet, data, client, need_ack):
+		addr = client.addr
+
 		if self.debug:
 			print "Send [id=%u] %s to %s:%u" \
 				% (packet.id, packet.data, addr[0], addr[1])
 		self.__socket.sendto(data, addr)
 
 		# If the packet need an ack, add it to the list
-		if need_ack:
-			self.__waitAck_sema.acquire()
-			if self.__waitAck.has_key(addr):
-				self.__waitAck[addr][packet.id] = packet
-			else:
-				self.__waitAck[addr] = {packet.id: packet}
-			self.__waitAck_sema.release()
+		if need_ack: client.needAck(packet)
 	
 	# Read a packet from the socket
 	# Returns None if there is not new data
@@ -129,38 +126,19 @@ class IO_UDP(BaseIO):
 		# New client ?
 		return self.__processRecvData(data, addr)
 
+	def clientLostConnection(self, client):
+		if self.__is_server:
+			self.lostClient(client.addr)
+		else:
+			self.lostConnection()
+
+
 	# Keep the connection alive
 	def live(self):				
 		# Resend packets which don't have received their ack
-		self.__waitAck_sema.acquire()
-		waitAckCopy = self.__waitAck.copy()
-		self.__waitAck_sema.release()
-		for addr,packets in waitAckCopy.items():
-			for id,packet in packets.items():
-				if packet.timeout < time.time():
-					if packet.sent < Packet.max_resend:
-						self.send(packet)
-					else:
-						if self.__is_server:
-							self.lostClient(addr)
-						else:
-							self.lostConnection()
-							
+		for addr, client in self.clients.items(): # use internal copy for clients
+			client.live()							
 					
-		# Clean old received packets 
-		self.__received_sema.acquire()
-		receivedCopy = self.__received.copy()
-		self.__received_sema.release()
-		for addr,packets in receivedCopy.items():
-			for id,timeout in packets.items():
-				if timeout < time.time():
-					if self.debug:
-						print "Supprime ancien paquet %u de %s:%u (timeout)" \
-							% (id, addr[0], addr[1])
-					self.__received_sema.acquire()
-					del self.__received[addr][id]
-					self.__received_sema.release()
-
 		# Read data from network (if needed)
 		packet = self.receive()				
 		if packet != None: self.__processNewPacket(packet)
@@ -200,22 +178,28 @@ class IO_UDP(BaseIO):
 	#--- Private functions ------------------------------------------------------
 
 	def __processRecvData(self, data, addr):
-		self.__clients_sema.acquire()
-		if addr not in self.__clients:
-			client = IO_Client(self, addr)
-			self.__clients[addr] = client
-			self.__clients_sema.release()
-			if self.verbose: print "New client : %s:%u" % (addr[0], addr[1])
-			if self.on_client_connect != None: self.on_client_connect(client)
+		if self.__is_server:
+			self.__clients_sema.acquire()
+			if addr not in self.__clients:
+				client = UDP_Client(self, addr)
+				self.__clients[addr] = client
+				self.__clients_sema.release()
+				if self.verbose: print "New client : %s:%u" % (addr[0], addr[1])
+				if self.on_client_connect != None: self.on_client_connect(client)
+			else:
+				client = self.__clients[addr] 
+				self.__clients_sema.release()
 		else:
-			client = self.__clients[addr] 
-			self.__clients_sema.release()
+			# Drop packets which doesn't come from server
+			if self.__server.addr != addr:
+				return None
+			client = self.__server
 	
 		# Is it an ack ?
 		format = "!cI"
 		if len(data) == struct.calcsize(format):
 			ack = struct.unpack(format, data)
-			self.__processAck(addr, ack[1])
+			client.processAck(ack[1])
 			return None
 
 		# Decode data to normal packet (unpack) 
@@ -227,32 +211,19 @@ class IO_UDP(BaseIO):
 		return self.__processPacket(packet)
 
 	def __processPacket(self, packet):
-		addr = packet.recv_from.addr
+		client = packet.recv_from
+		addr = client.addr
 	
 		# Send an ack if needed
 		if not packet.skippable: self.__sendAck(packet)
 			
 		# This packet is already received ? Drop it!
-		self.__received_sema.acquire()
-		if self.__received.has_key(addr):
-			drop = packet.id in self.__received[addr]
-		else:
-			drop = False
-		self.__received_sema.release()
-		if drop:
+		if client.alreadyReceived(packet.id):
 			if self.debug:
 				print "Drop packet %u (already received)" % (packet.id)
 			return None	
 			
-		# Store packet to drop packet which are receive twice
-		if not packet.skippable:
-			timeout = time.time()+Packet.total_timeout
-			self.__received_sema.acquire()
-			if self.__received.has_key(addr):
-				self.__received[addr][packet.id] = timeout 
-			else:
-				self.__received[addr]=  {packet.id: timeout}
-			self.__received_sema.release()
+		client.receivePacket(packet)
 		
 		# Returns the new packet
 		return packet
@@ -263,19 +234,6 @@ class IO_UDP(BaseIO):
 		data = struct.pack("!cI", 'A', packet.id)
 		if self.debug: print "Send ACK : \"%s\"." % (data)
 		self.__socket.sendto(data, packet.recv_from.addr)
-
-	# Process an ack
-	def __processAck(self, addr, id):
-		if not self.__waitAck.has_key(addr): return
-		if not self.__waitAck[addr].has_key(id): return
-
-		# Debug message
-		if self.debug:
-			t = time.time() - self.__waitAck[addr][id].creation
-			print "Ack %u received (time=%.1f ms)" % (id, t*1000)
-
-		# The packet don't need ack anymore
-		del self.__waitAck[addr][id]
 
 	# Do something with a new packet
 	def __processNewPacket(self, packet):
