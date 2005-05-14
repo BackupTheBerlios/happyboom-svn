@@ -43,10 +43,13 @@ class IO_UDP(BaseIO):
 			self.__clients_sema.acquire()
 			self.__clients[self.__addr] = self.__server
 			self.__clients_sema.release()
-			self.send( Packet("I'm here") )
 
 		self.__socket_open = True
 		self.__socket.setblocking(0)
+
+		if not self.__is_server:
+			self.send( Packet("I'm here") )
+		
 		if self.on_connect != None: self.on_connect()
 
 	# Close connection
