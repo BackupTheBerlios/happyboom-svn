@@ -62,6 +62,7 @@ class IO_UDP(BaseIO):
 	
 	# Send a packet to the server or to all clients
 	def send(self, packet, to=None):
+		if not self.__socket_open: return
 		first_send = (packet.sent == 0)
 		
 		# No client, exit !
@@ -78,6 +79,7 @@ class IO_UDP(BaseIO):
 			self.__packet_id = self.__packet_id + 1
 			packet.id = self.__packet_id
 			if self.debug: packet.creation = time.time()
+		need_ack = first_send and not packet.skippable
 		
 		# Read binary version of the packet
 		data = packet.pack()
@@ -87,23 +89,33 @@ class IO_UDP(BaseIO):
 
 		if self.__is_server:
 			if to==None:
-				for client in self.clients: # use internal copy for clients
-					self.__socket.sendto(data, client.addr)
+				for addr in self.clients.keys(): # use internal copy for clients
+					self.__sendDataTo(packet, data, addr, need_ack)
 			else:
-				self.__socket.sendto(data, to.addr)
+				self.__sendDataTo(packet, data, to.addr, need_ack)
 		else:
-			self.__socket.sendto(data, self.__addr)
+			self.__sendDataTo(packet, data, self.__addr, need_ack)
+			
+	def __sendDataTo(self, packet, data, addr, need_ack):
+		if self.debug:
+			print "Send [id=%u] %s to %s:%u" \
+				% (packet.id, packet.data, addr[0], addr[1])
+		self.__socket.sendto(data, addr)
 
 		# If the packet need an ack, add it to the list
-		if first_send and not packet.skippable:
+		if need_ack:
 			self.__waitAck_sema.acquire()
-			self.__waitAck[packet.id] = packet
+			if self.__waitAck.has_key(addr):
+				self.__waitAck[addr][packet.id] = packet
+			else:
+				self.__waitAck[addr] = {packet.id: packet}
 			self.__waitAck_sema.release()
-
 	
 	# Read a packet from the socket
 	# Returns None if there is not new data
 	def receive(self, max_size = 1024):
+		if not self.__socket_open: return None
+
 		# Try to read data from the socket
 		try:						
 			data,addr = self.__socket.recvfrom(max_size)
@@ -123,26 +135,52 @@ class IO_UDP(BaseIO):
 		self.__waitAck_sema.acquire()
 		waitAckCopy = self.__waitAck.copy()
 		self.__waitAck_sema.release()
-		for id in waitAckCopy:
-			packet = self.__waitAck[id]
-			if packet.timeout < time.time():
-				if packet.sent < Packet.max_resend:
-					self.send(packet)
-				else:
-					raise Exception, "Paquet envoyé plus de %u fois !" % (Packet.max_resend)		
+		for addr,packets in waitAckCopy.items():
+			for id,packet in packets.items():
+				if packet.timeout < time.time():
+					if packet.sent < Packet.max_resend:
+						self.send(packet)
+					else:
+						if self.__is_server:
+							self.lostClient(addr)
+						else:
+							self.lostConnection()
+							
 					
 		# Clean old received packets 
 		self.__received_sema.acquire()
 		receivedCopy = self.__received.copy()
 		self.__received_sema.release()
-		for id in receivedCopy:
-			if self.__received[id] < time.time():
-				if self.debug: print "Supprime ancien paquet %u (timeout)" % (id)
-				del self.__received[id]
+		for addr,packets in receivedCopy.items():
+			for id,timeout in packets.items():
+				if timeout < time.time():
+					if self.debug:
+						print "Supprime ancien paquet %u de %s:%u (timeout)" \
+							% (id, addr[0], addr[1])
+					self.__received_sema.acquire()
+					del self.__received[addr][id]
+					self.__received_sema.release()
 
 		# Read data from network (if needed)
 		packet = self.receive()				
 		if packet != None: self.__processNewPacket(packet)
+					
+	def lostClient(self, addr):
+		self.__clients_sema.acquire()
+		client = self.__clients[addr]
+		self.__clients_sema.release()
+		if self.verbose:
+			print "Lost connection with client %s:%u!"
+		client.disconnect()
+	
+	def lostConnection(self):
+		if self.verbose:
+			print "Lost connection to %s:%u!" % (self.host, self.port)
+		self.loop = False
+		if self.__socket_open:
+			self.__socket.close()
+			self.__socket_open = False
+		if self.on_lost_connection: self.on_lost_connection()
 	
 	# Function which should be called in a thread
 	def run_thread(self):
@@ -177,7 +215,7 @@ class IO_UDP(BaseIO):
 		format = "!cI"
 		if len(data) == struct.calcsize(format):
 			ack = struct.unpack(format, data)
-			self.__processAck(ack[1])
+			self.__processAck(addr, ack[1])
 			return None
 
 		# Decode data to normal packet (unpack) 
@@ -189,12 +227,17 @@ class IO_UDP(BaseIO):
 		return self.__processPacket(packet)
 
 	def __processPacket(self, packet):
+		addr = packet.recv_from.addr
+	
 		# Send an ack if needed
 		if not packet.skippable: self.__sendAck(packet)
 			
 		# This packet is already received ? Drop it!
 		self.__received_sema.acquire()
-		drop = packet.id in self.__received
+		if self.__received.has_key(addr):
+			drop = packet.id in self.__received[addr]
+		else:
+			drop = False
 		self.__received_sema.release()
 		if drop:
 			if self.debug:
@@ -203,8 +246,12 @@ class IO_UDP(BaseIO):
 			
 		# Store packet to drop packet which are receive twice
 		if not packet.skippable:
+			timeout = time.time()+Packet.total_timeout
 			self.__received_sema.acquire()
-			self.__received[packet.id] = time.time()+Packet.total_timeout
+			if self.__received.has_key(addr):
+				self.__received[addr][packet.id] = timeout 
+			else:
+				self.__received[addr]=  {packet.id: timeout}
 			self.__received_sema.release()
 		
 		# Returns the new packet
@@ -218,18 +265,17 @@ class IO_UDP(BaseIO):
 		self.__socket.sendto(data, packet.recv_from.addr)
 
 	# Process an ack
-	def __processAck(self, id):
-		if self.__waitAck.has_key(id):			
-			# Debug message
-			if self.debug:
-				t = time.time() - self.__waitAck[id].creation
-				print "Ack %u received (time=%.1f ms)" % (id, t*1000)
+	def __processAck(self, addr, id):
+		if not self.__waitAck.has_key(addr): return
+		if not self.__waitAck[addr].has_key(id): return
 
-			# The packet don't need ack anymore
-			del self.__waitAck[id]
-		else:
-			# Ack already received
-			if self.debug: print "No more packet %u" % (id)
+		# Debug message
+		if self.debug:
+			t = time.time() - self.__waitAck[addr][id].creation
+			print "Ack %u received (time=%.1f ms)" % (id, t*1000)
+
+		# The packet don't need ack anymore
+		del self.__waitAck[addr][id]
 
 	# Do something with a new packet
 	def __processNewPacket(self, packet):

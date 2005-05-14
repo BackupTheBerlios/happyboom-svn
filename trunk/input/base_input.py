@@ -27,6 +27,7 @@ class BaseInput(object):
 	
 	def readCmd(self):
 		while len(self.__recv_buffer)==0:
+			if self.quit: return None
 			time.sleep(0.010)
 		msg = self.__recv_buffer[0]
 		del self.__recv_buffer[0]
@@ -37,17 +38,20 @@ class BaseInput(object):
 			print "Start server challenge (send version, send name, ...)."
 
 		cmd = self.readCmd()
+		if cmd==None: return False
 		if cmd != "Version?": 
 			if self.debug: print "Server answer: %s instead of Version?" % (cmd)
 			return False
 		self.sendCmd(self.__protocol_version)
 		
 		cmd = self.readCmd()
+		if cmd==None: return False
 		if cmd != "OK":
 			if self.debug: print "Server answer: %s instead of OK" % (cmd)
 			return False
 		
 		cmd = self.readCmd()
+		if cmd==None: return False
 		if cmd != "Name?":
 			if self.debug: print "Server answer: %s instead of Name?" % (cmd)
 			return False
@@ -55,6 +59,7 @@ class BaseInput(object):
 
 		if self.debug: print "Challenge: Wait Name OK"
 		cmd = self.readCmd()
+		if cmd==None: return False
 		if cmd != "OK":
 			if self.debug: print "Server answer: %s instead of OK" % (cmd)
 			return False
@@ -65,7 +70,8 @@ class BaseInput(object):
 		# Try to connect to server
 		if self.verbose: 
 			print "Try to connect to server %s:%s" % (host, port)
-		self.io.on_disconnect = self.on_disconnect
+		self.io.on_disconnect = self.onDisconnect
+		self.io.on_lost_connection = self.onLostConnection
 		self.io.on_new_packet = self.processPacket
 		self.io.connect(host, port)
 
@@ -76,7 +82,8 @@ class BaseInput(object):
 
 		# Server "challenge" (version, name, ...)
 		if self.serverChallenge() != True:
-			print "Server communication mistake !?"
+			if not self.quit:
+				print "Server communication mistake !?"
 			self.stop()
 			return
 
@@ -106,8 +113,13 @@ class BaseInput(object):
 			if (cmd == "quit") or (cmd == "close"):
 				self.quit = True
 
-	def on_disconnect(self):
-		print "Disconnect."
+	def onDisconnect(self):
+		print "Disconnect from server."
+		self.stop()
+
+	def onLostConnection(self):
+		print "Lost connection with server."
+		self.stop()
 
 	def stop(self):
 		if not self.active: return
@@ -115,5 +127,3 @@ class BaseInput(object):
 		self.quit = True
 		self.io.stop()
 		print "Input closed."
-
-

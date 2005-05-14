@@ -41,9 +41,10 @@ class BaseView(object):
 	def start(self, host, port):
 		if self.verbose: print "Try to connect to server %s:%u." \
 			% (host, port)
-		self.io.on_connect = self.on_connect
-		self.io.on_disconnect = self.on_disconnect
+		self.io.on_connect = self.onConnect
+		self.io.on_disconnect = self.onDisconnect
 		self.io.on_new_packet = self.processPacket
+		self.io.on_lost_connection = self.onLostConnection
 		self.io.connect(host, port)
 
 # UDP
@@ -51,13 +52,16 @@ class BaseView(object):
 		
 		thread.start_new_thread( self.io.run_thread, ())
 
-	def on_connect(self):
+	def onConnect(self):
 		if self.verbose: print "Connected to server."
 
-	def on_disconnect(self):
-		if self.verbose:
-			print "Connection to server closed."
+	def onDisconnect(self):
+		print "Connection to server closed."
 		self.loop = False
+
+	def onLostConnection(self):
+		print "Lost connection with server."
+		self.stop()
 
 	def str2msg(self, str):
 		import re
