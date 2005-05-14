@@ -92,7 +92,8 @@ class FollowAgentN(server_agent.ServerAgent):
 		self.sync()
 
 	def sync(self, client=None):
-		self.sendMsg("follow", "Update", "%i" % self.value)		
+		skip = (self.value != self.objective)
+		self.sendMsg("follow", "Update", "%i" % self.value, skippable=skip)
 
 	def live(self):
 		server_agent.ServerAgent.live(self)

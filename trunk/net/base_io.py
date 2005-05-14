@@ -18,7 +18,8 @@ class BaseIO(object):
 		self.on_connect = None            # No argument
 		self.on_lost_connection = None    # No argument
 		self.on_disconnect = None         # No argument
-		self.on_client_connect = None         # (addr) : client address
+		self.on_client_connect = None     # (client)
+		self.on_client_disconnect = None  # (client)
 		self.on_new_packet = None         # (packet) : client address
 
 		self.__name = None

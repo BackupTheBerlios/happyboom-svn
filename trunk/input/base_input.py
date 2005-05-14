@@ -75,10 +75,8 @@ class BaseInput(object):
 		self.io.on_new_packet = self.processPacket
 		self.io.connect(host, port)
 
-# UDP
-		self.io.send( packet.Packet("I'm here") )
-
 		thread.start_new_thread( self.io.run_thread, ())
+		thread.start_new_thread( self.io_live, ())
 
 		# Server "challenge" (version, name, ...)
 		if self.serverChallenge() != True:
@@ -88,8 +86,8 @@ class BaseInput(object):
 			return
 
 	def setDebugMode(self, debug):
-		self.io.debug = debug
 		self.debug = debug
+		self.io.debug = debug
 
 	def setVerbose(self, verbose):
 		self.verbose = verbose
@@ -101,6 +99,16 @@ class BaseInput(object):
 	def processCmd(self, cmd):
 		if cmd != "": self.sendCmd(cmd)
 
+	def io_live(self):
+		while 1:
+			packets = self.__recv_buffer
+			self.__recv_buffer = []
+			for cmd in packets:
+				if cmd == "quit":
+					self.stop()
+					break
+			time.sleep(0.250)
+	
 	def live(self):
 		if self.use_readline: import readline
 		while self.quit == False:

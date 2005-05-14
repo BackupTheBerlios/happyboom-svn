@@ -39,9 +39,12 @@ class IO_UDP(BaseIO):
 			if self.verbose:
 				print "Connect to server %s:%u" % (self.host, self.port)
 			self.__server = UDP_Client(self, self.__addr)
+			self.__server.send_ping = True
 			self.__clients_sema.acquire()
 			self.__clients[self.__addr] = self.__server
 			self.__clients_sema.release()
+			self.send( Packet("I'm here") )
+
 		self.__socket_open = True
 		self.__socket.setblocking(0)
 		if self.on_connect != None: self.on_connect()
@@ -54,12 +57,13 @@ class IO_UDP(BaseIO):
 		if self.on_disconnect != None: self.on_disconnect()
 
 	# Disconnect a client.
-	def disconnectClient(self, addr):
+	def disconnectClient(self, client):
 		self.__clients_sema.acquire()
-		del self.__clients[addr]
+		del self.__clients[client.addr]
 		self.__clients_sema.release()
 		if self.verbose:
-			print "Disconnect client %s:%u" % (addr[0], addr[1])
+			print "Disconnect client %s" % (client.name)
+		if self.on_client_disconnect != None: self.on_client_disconnect(client)
 	
 	# Send a packet to the server or to all clients
 	def send(self, packet, to=None):
@@ -126,13 +130,6 @@ class IO_UDP(BaseIO):
 		# New client ?
 		return self.__processRecvData(data, addr)
 
-	def clientLostConnection(self, client):
-		if self.__is_server:
-			self.lostClient(client.addr)
-		else:
-			self.lostConnection()
-
-
 	# Keep the connection alive
 	def live(self):				
 		# Resend packets which don't have received their ack
@@ -143,13 +140,18 @@ class IO_UDP(BaseIO):
 		packet = self.receive()				
 		if packet != None: self.__processNewPacket(packet)
 					
-	def lostClient(self, addr):
-		self.__clients_sema.acquire()
-		client = self.__clients[addr]
-		self.__clients_sema.release()
+
+	def clientLostConnection(self, client):
+		if self.__is_server:
+			self.__lostClient(client)
+		else:
+			self.lostConnection()
+
+	def __lostClient(self, client):
+		client = self.__clients[client.addr]
 		if self.verbose:
-			print "Lost connection with client %s:%u!"
-		client.disconnect()
+			print "Lost connection with client %s !" % (client.name)
+		self.disconnectClient(client)
 	
 	def lostConnection(self):
 		if self.verbose:
@@ -185,6 +187,7 @@ class IO_UDP(BaseIO):
 				self.__clients[addr] = client
 				self.__clients_sema.release()
 				if self.verbose: print "New client : %s:%u" % (addr[0], addr[1])
+				client.send_ping = True
 				if self.on_client_connect != None: self.on_client_connect(client)
 			else:
 				client = self.__clients[addr] 

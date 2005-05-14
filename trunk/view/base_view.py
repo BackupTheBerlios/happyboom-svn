@@ -47,9 +47,6 @@ class BaseView(object):
 		self.io.on_lost_connection = self.onLostConnection
 		self.io.connect(host, port)
 
-# UDP
-		self.io.send( packet.Packet("I'm here") )
-		
 		thread.start_new_thread( self.io.run_thread, ())
 
 	def onConnect(self):
