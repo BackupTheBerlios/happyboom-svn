@@ -2,101 +2,31 @@
 # -*- coding: ISO-8859-1 -*-
 
 import time
-import thread
 import threading
 import socket
-import sys
 import traceback
-import re
-import getopt
 import struct
+from packet import Packet
 
-class Packet(object):
-	# Timeout before packet is resend
-	timeout = 0.250
-
-	# Timeout before packet is said to be "lost"
-	total_timeout = 3.000 
-
-	# Maximum number of packet resend
-	max_resend = int(3.000 / timeout)
-	
-	# Constructor
-	# data (optionnal) is a binary packet
-	def __init__(self, data=None):
-		self.sent = 0
-		self.__data = None
-		self.timeout = None
-		self.skippable = False
-		self.id = None
-		self.unpack(data)
-
-	# After unpack, say if the packet is valid or not
-	def isValid(self):
-		return self.__data != None
-		
-	# For debug only, convert to string
-	def toStr(self):
-		return "\"%s\" [id=%u, skippable=%u]" \
-			% (self.__data, self.id, self.skippable)
-
-	# Fill attributs from a binary data packet
-	def unpack(self, binary_data):
-		if binary_data==None: return
-
-		# Read skippable, id, data len
-		format = "!BII"
-		size = struct.calcsize(format)
-		if len(binary_data) <  size: return None
-		data = struct.unpack(format, binary_data[:size])
-		self.skippable = (data[0]==1)
-		self.id = data[1]
-		data_len = data[2]
-		binary_data = binary_data[size:]
-
-		# Read data
-		format = "!%us" % (data_len)
-		if len(binary_data) != struct.calcsize(format): return None
-		
-		data = struct.unpack(format, binary_data) 
-		self.__data = data[0] 
-
-	# Pack datas to a binary string (using struct module)
-	def pack(self):
-		data_len = len(self.__data)
-		x = struct.pack("!BII%us" % data_len, 
-			self.skippable+0, # Hack for convert boolean to integer
-			self.id, data_len, self.__data)
-		print "x = @", x, "@"
-		return x
-		
-	# Write a sting into packet
-	def writeStr(self, str):
-		if self.__data == None:
-			self.__data = str
-		else:
-			self.__data = self.__data + str
-		
-	# Prepare the packet before it will be send
-	def prepareSend(self):
-		self.timeout = time.time()+Packet.timeout
-		self.sent = self.sent + 1
-
-	#-- Properties --------------------------------------------------------------
-	def getData(self): return self.__data
-	data = property(getData)	
-
-class IO_UDP:
+class IO_UDP(object):
 	def __init__(self, is_server=False):
 		self.debug = False
+		self.verbose = True 
 		self.packet_timeout = 1.000
 		self.thread_receive = True
 		self.thread_sleep = 0.010
+
+		# Events
+		self.on_connect = None            # No argument
+		self.on_lost_connection = None    # No argument
+		self.on_disconnect = None         # No argument
+		self.on_new_client = None         # (addr) : client address
 
 		self.__is_server = is_server
 		self.loop = True
 
 		self.__socket = None
+		self.__socket_open = False		
 		self.__addr = None
 		self.__packet_id = 0
 		self.__clients = []
@@ -104,6 +34,7 @@ class IO_UDP:
 		self.__received = {}
 		self.__waitAck_sema = threading.Semaphore()
 		self.__received_sema = threading.Semaphore()
+		self.__name = None
 
 	# Connect to a server if __is_server=True
 	# Bind a port else
@@ -111,11 +42,22 @@ class IO_UDP:
 		self.__addr = (host, port,)
 		self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		if self.__is_server:
-			print "Run server at %s:%u" % (self.__addr[0], self.__addr[1])
+			if self.verbose:
+				print "Run server at %s:%u" % (self.__addr[0], self.__addr[1])
 			self.__socket.bind(self.__addr)
 		else:
-			print "Connect to server %s:%u" % (self.__addr[0], self.__addr[1])			
+			if self.verbose:
+				print "Connect to server %s:%u" % (self.__addr[0], self.__addr[1])			
+		self.__socket_open = True
 		self.__socket.setblocking(0)
+		if self.on_connect != None: self.on_connect()
+
+	# Close connection
+	def disconnect(self):
+		if not self.__socket_open: return
+		self.__socket.close()
+		self.__socket_open = False
+		if self.on_disconnect != None: self.on_disconnect()
 	
 	# Send a packet to the server or to all clients
 	def send(self, packet):
@@ -147,11 +89,6 @@ class IO_UDP:
 		else:
 			self.__socket.sendto(data, self.__addr)
 
-	# Action when a new client is detected
-	def connectClient(self, addr):
-		self.__clients.append(addr)
-		print "New client : %s:%u" % (addr[0], addr[1])
-
 	# Read a packet from the socket
 	# Returns None if there is not new data
 	def receive(self, max_size = 1024):
@@ -162,17 +99,19 @@ class IO_UDP:
 			if err[0] == 11: return None
 			raise
 
-		if self.debug: print "Received packet (\"%s\" from %s:%u)" % (data, addr[0], addr[1])
+		if self.debug:
+			print "Received packet (\"%s\" from %s:%u)" % (data, addr[0], addr[1])
 		
 		# New client ?
 		if self.__is_server:
 			if addr not in self.__clients:
-				self.connectClient(addr)
+				self.__connectClient(addr)
 
 		# Is it an ack ?
-		m = re.compile("^ACK ([0-9]+)$").match(data)
-		if m != None:
-			self.__processAck(int(m.group(1)))
+		format = "!cI"
+		if len(data) == struct.calcsize(format):
+			ack = struct.unpack(format, data)
+			self.__processAck(ack[1])
 			return None
 
 		# Decode data to normal packet (unpack) 
@@ -241,13 +180,20 @@ class IO_UDP:
 
 	def stop(self):
 		self.loop = False
+		self.disconnect()
 
 	#--- Private functions ------------------------------------------------------
+
+	# Action when a new client is detected
+	def __connectClient(self, addr):
+		self.__clients.append(addr)
+		if self.verbose: print "New client : %s:%u" % (addr[0], addr[1])
+		if self.on_new_client != None: self.on_new_client(addr)
 	
 	# Send an ack for a packet
 	def __sendAck(self, packet, addr):
 		# Write ack to socket
-		data = "ACK %u" % (packet.id)
+		data = struct.pack("!cI", 'A', packet.id)
 		if self.debug: print "Send ACK : \"%s\"." % (data)
 		self.__socket.sendto(data, addr)
 
@@ -264,69 +210,23 @@ class IO_UDP:
 		else:
 			# Ack already received
 			if self.debug: print "No more packet %u" % (id)
-
-def loop_server(io):
-	io.thread_sleep = 0.010
-	thread.start_new_thread( io.run_thread, ())
-	while 1:
-		msg = raw_input(">> ")
-		if msg=="": break
-		packet = Packet()
-		packet.writeStr(msg)
-		io.send(packet)
-		time.sleep(0.100)
-		print ""
-		
-def loop_client(io):
-	io.thread_receive = False
-	thread.start_new_thread( io.run_thread, ())
 	
-	while 1:
-		msg = raw_input(">> ")
-		if msg=="": break
+	def __getPort(self):
+		return self.__addr[1]
+
+	def __getHost(self):
+		if self.__addr[0]=='': return "localhost"
+		return self.__addr[0]
+
+	def __getName(self):
+		if self.__name != None: return self.__name
+		return self.host
 		
-		m = re.compile("^eval:(.+)$").match(msg)
-		if m != None: msg = eval(m.group(1))			
+	def __setName(self, name):
+		self.__name = name	
 		
-		packet = Packet()
-		packet.writeStr(msg)
-		if msg[0]=='0':			
-			packet.skippable = True
-		io.send(packet)
-		io.thread_receive = True
-		time.sleep(0.100)
-		print ""
+	#--- Properties -------------------------------------------------------------
 
-def main():
-	is_server = False
-	port = 12430
-	host = "localhost"
-	try:
-		opts, args = getopt.getopt(sys.argv[1:], "", ["host=","server"])
-	except getopt.GetoptError:
-		print "Arguments parse error"
-
-	for o, a in opts:
-		if o == "--server":
-			is_server = True
-		if o in ("--host"):
-			host = a
-	
-	# Create IO
-	io = IO_UDP(is_server)
-	io.debug = True
-	port = 12430
-	if is_server: host = ''
-	io.connect(host, port)	
-
-	# Main loop
-	try:
-		if is_server:
-			loop_server(io)
-		else:
-			loop_client(io)
-	except KeyboardInterrupt:
-		io.stop()
-		print "\nProgramme interrompu (CTRL+C)."
-	
-if __name__=="__main__": main()
+	name = property(__getName, __setName)
+	port = property(__getPort)
+	host = property(__getHost)
