@@ -249,8 +249,9 @@ class BaseServer(object):
 		self.sendText(txt)
 
 	def closeInput(self, client):
-		self.__inputs.remove (client)
 		print "Input %s disconnected." % (client.name)
+		if not (client in self.__inputs): return
+		self.__inputs.remove (client)
 		txt = "Client %s (input) leave us." % (client.name)
 		self.sendText(txt)
 

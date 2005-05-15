@@ -40,7 +40,7 @@ class IO_UDP(BaseIO):
 			if self.verbose:
 				print "Connect to server %s:%u" % (self.host, self.port)
 			self.__server = UDP_Client(self, self.__addr)
-#			self.__server.send_ping = True
+			self.__server.send_ping = True
 			self.__clients_sema.acquire()
 			self.__clients[self.__addr] = self.__server
 			self.__clients_sema.release()
@@ -104,7 +104,15 @@ class IO_UDP(BaseIO):
 				self.__sendDataTo(packet, data, to, need_ack)
 		else:
 			self.__sendDataTo(packet, data, self.__server, need_ack)
-			
+		
+	# Send binary data that doesn't need ack
+	def sendBinary(self, data, client):
+		if self.debug:
+			print "Send [id=%u] %s to %s:%u (without ack)" \
+				% (packet.id, packet.data, addr[0], addr[1])
+		self.__socket.sendto(data, client.addr)	
+	
+	# Send binary data with ack to a client
 	def __sendDataTo(self, packet, data, client, need_ack):
 		addr = client.addr
 
@@ -191,7 +199,7 @@ class IO_UDP(BaseIO):
 				self.__clients[addr] = client
 				self.__clients_sema.release()
 				if self.verbose: print "New client : %s:%u" % (addr[0], addr[1])
-#				client.send_ping = True
+				client.send_ping = True
 				if self.on_client_connect != None: self.on_client_connect(client)
 			else:
 				client = self.__clients[addr] 
@@ -207,8 +215,16 @@ class IO_UDP(BaseIO):
 		# Is it an ack ?
 		format = "!cI"
 		if len(data) == struct.calcsize(format):
-			ack = struct.unpack(format, data)
-			client.processAck(ack[1])
+			undata = struct.unpack(format, data)
+			if undata[0]=='A':
+				client.processAck(undata[1])
+			elif undata[0]=='P':
+				client.processPing(undata[1])
+			elif undata[0]=='p':
+				client.processPong(undata[1])
+			else:
+				if self.debug:
+					print "Drop strange packet (%s)." % (data)			
 			return None
 
 		# Decode data to normal packet (unpack) 
