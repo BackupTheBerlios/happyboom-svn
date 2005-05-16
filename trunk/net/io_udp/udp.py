@@ -68,7 +68,7 @@ class IO_UDP(io.BaseIO):
 	# Disconnect a client.
 	def disconnectClient(self, client):
 		self.__clients_sema.acquire()
-		del self.__clients[client.addr]
+		if self.__clients.has_key(client.addr): del self.__clients[client.addr]
 		self.__clients_sema.release()
 		if self.verbose:
 			print "Disconnect client %s" % (client.name)

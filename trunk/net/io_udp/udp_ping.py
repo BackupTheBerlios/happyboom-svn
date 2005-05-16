@@ -2,7 +2,7 @@ import time
 import struct
 
 class UDP_Ping:
-	timeout = 1.000
+	timeout = 3.000
 	
 	def __init__(self, id):
 		self.creation = time.time()
