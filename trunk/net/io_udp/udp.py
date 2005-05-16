@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # -*- coding: ISO-8859-1 -*-
 
 import time
@@ -36,7 +35,7 @@ class IO_UDP(io.BaseIO):
 		self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		if self.__is_server:
 			if self.verbose:
-				print "Run server at %s:%u" % (self.host, self.port)
+				print "Run server at %s:%u (udp)" % (self.host, self.port)
 			self.__socket.bind(self.__addr)
 		else:
 			if self.verbose:
@@ -114,8 +113,8 @@ class IO_UDP(io.BaseIO):
 	# Send binary data that doesn't need ack
 	def sendBinary(self, data, client):
 		if self.debug:
-			print "Send [id=%u] %s to %s:%u (without ack)" \
-				% (packet.id, packet.data, addr[0], addr[1])
+			print "Send %s to %s:%u (without ack)" \
+				% (data, client.host, client.port)
 		self.__socket.sendto(data, client.addr)	
 		
 		# Call user event if needed

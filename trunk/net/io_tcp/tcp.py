@@ -34,7 +34,7 @@ class IO_TCP(io.BaseIO):
 		self.__addr = (host, port,)
 		if self.__is_server:
 			if self.verbose:
-				print "Run server at %s:%u" % (self.host, self.port)
+				print "Run server at %s:%u (tcp)" % (self.host, self.port)
 			thread.start_new_thread( self.__waiter.run_thread, (port,max_connection,))
 		else:
 			if self.verbose:
