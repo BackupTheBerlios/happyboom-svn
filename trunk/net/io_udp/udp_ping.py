@@ -3,7 +3,7 @@ import struct
 from net import io
 
 class UDP_Ping:
-	timeout = 3.000
+	timeout = 5.000
 	
 	def __init__(self, id):
 		self.creation = time.time()
@@ -35,11 +35,9 @@ class UDP_Pinger:
 		self.__sent_ping[ping.id] = ping
 				
 	def pingTimeout(self, id):
-		print "Ping timeout (client %s:%u)." \
+		print "Disconnect client %s:%u (ping timeout)." \
 			% (self.client.host, self.client.port)
-#		print "Disconnect client %s:%u : ping timeout." \
-#			% (self.client.host, self.client.port)
-#		self.client.disconnect()
+		self.client.disconnect()
 
 	def live(self):
 		# Remove old ping

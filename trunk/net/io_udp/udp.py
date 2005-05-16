@@ -161,6 +161,7 @@ class IO_UDP(io.BaseIO):
 			self.lostConnection()
 
 	def __lostClient(self, client):
+		if not client.addr in self.__clients: return
 		client = self.__clients[client.addr]
 		if self.verbose:
 			print "Lost connection with client %s !" % (client.name)

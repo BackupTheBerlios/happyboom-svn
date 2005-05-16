@@ -6,7 +6,7 @@ class Packet(object):
 	timeout = 0.250
 
 	# Timeout before packet is said to be "lost"
-	total_timeout = 3.000 
+	total_timeout = 5.000 
 
 	# Maximum number of packet resend
 	max_resend = int(total_timeout / timeout)
