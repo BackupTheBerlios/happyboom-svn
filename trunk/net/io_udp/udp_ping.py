@@ -31,9 +31,11 @@ class UDP_Pinger:
 		self.__sent_ping[ping.id] = ping
 				
 	def pingTimeout(self, id):
-		print "Disconnect client %s:%u : ping timeout." \
+		print "Ping timeout (client %s:%u)." \
 			% (self.client.host, self.client.port)
-		self.client.disconnect()
+#		print "Disconnect client %s:%u : ping timeout." \
+#			% (self.client.host, self.client.port)
+#		self.client.disconnect()
 
 	def live(self):
 		# Remove old ping
