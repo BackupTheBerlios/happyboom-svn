@@ -1,8 +1,8 @@
 from view_agent_manager import *
 from common import mailing_list
 from net import io
-#from net import io_udp
-from net import io_tcp
+from net import io_udp
+#from net import io_tcp
 import thread
 
 class BaseView(object):
@@ -10,8 +10,8 @@ class BaseView(object):
 
 	def __init__(self):
 		BaseView.instance = self
-		#self.__io = io_udp.IO_UDP()
-		self.__io = io_tcp.IO_TCP()
+		self.__io = io_udp.IO_UDP()
+		#self.__io = io_tcp.IO_TCP()
 		self.n = None
 		self.agents = {}
 		self.loop = True
@@ -22,7 +22,6 @@ class BaseView(object):
 		self.stats = False
 		self.debug = False
 		self.max_fps = 25
-		self.server_timeout = 10.0
 		self.wait_server_time = None
 		self.__protocol_version = "0.1.4"
 		self.name = "no name"

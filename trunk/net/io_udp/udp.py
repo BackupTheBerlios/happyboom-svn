@@ -17,7 +17,7 @@ class IO_UDP(io.BaseIO):
 
 		self.__is_server = is_server
 		self.__server = None # only used in client mode
-		self.loop = True
+		self.__running = True
 
 		self.__socket = None
 		self.__socket_open = False		
@@ -64,6 +64,7 @@ class IO_UDP(io.BaseIO):
 		self.__socket.close()
 		self.__socket_open = False
 		if self.on_disconnect != None: self.on_disconnect()
+		self.stop()
 
 	# Disconnect a client.
 	def disconnectClient(self, client):
@@ -177,16 +178,16 @@ class IO_UDP(io.BaseIO):
 	def lostConnection(self):
 		if self.verbose:
 			print "Lost connection to %s:%u!" % (self.host, self.port)
-		self.loop = False
 		if self.__socket_open:
 			self.__socket.close()
 			self.__socket_open = False
 		if self.on_lost_connection: self.on_lost_connection()
+		self.stop()
 	
 	# Function which should be called in a thread
 	def run_thread(self):
 		try:
-			while self.loop:
+			while self.__running:
 				self.live()				
 				time.sleep(self.thread_sleep)
 		except Exception, msg:
@@ -196,8 +197,11 @@ class IO_UDP(io.BaseIO):
 			self.stop()
 
 	def stop(self):
-		self.loop = False
+		if not self.__running: return
+		self.__running = False 
 		self.disconnect()
+
+	def isRunning(self): return self.__running
 
 	#--- Private functions ------------------------------------------------------
 

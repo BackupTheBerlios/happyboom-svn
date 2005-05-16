@@ -3,15 +3,15 @@ import string
 import os
 import signal
 from net import io
-#from net import io_udp
-from net import io_tcp
+from net import io_udp
+#from net import io_tcp
 from net import net_buffer
 import thread
 
 class BaseInput(object):
 	def __init__(self):
-		#self.__io = io_udp.IO_UDP() 
-		self.__io = io_tcp.IO_TCP() 
+		self.__io = io_udp.IO_UDP() 
+		#self.__io = io_tcp.IO_TCP() 
 		self.pid = os.getpid()
 		self.quit = False
 		self.active = True

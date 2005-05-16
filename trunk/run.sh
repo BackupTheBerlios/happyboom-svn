@@ -1,5 +1,5 @@
 #!/bin/sh
-xterm -e "cd $PWD; python server.py" &
+xterm -e "cd $PWD; python console_server.py" &
 sleep 1
-xterm -e "cd $PWD; python view.py" &
-xterm -e "cd $PWD; python input.py" &
+xterm -e "cd $PWD; python console_view.py" &
+xterm -e "cd $PWD; python console_input.py" &
