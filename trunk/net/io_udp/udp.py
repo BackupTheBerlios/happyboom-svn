@@ -35,8 +35,8 @@ class IO_UDP(io.BaseIO):
 		self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		if self.__is_server:
 			if self.verbose:
-				print "Run server at %s:%u (udp)" % (self.host, self.port)
-			self.__socket.bind(self.__addr)
+				print "Run server at %s:%u (udp)" % ("", self.port)
+			self.__socket.bind(("",port,))
 		else:
 			if self.verbose:
 				print "Connect to server %s:%u" % (self.host, self.port)
