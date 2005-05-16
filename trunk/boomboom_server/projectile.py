@@ -33,6 +33,8 @@ class Projectile(server_agent.ServerAgent):
 		self.sendMsg("projectile", "activate", "%u" % (active))
 
 	def shoot(self):
+		if self.active: return
+
 		character = self.server.getActiveCharacter()
 		if character==None: return
 		if self.weapon_angle==None: return
