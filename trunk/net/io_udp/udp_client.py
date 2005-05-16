@@ -1,6 +1,7 @@
 from net import io
 import threading
 import time
+import struct
 from udp_ping import UDP_Pinger 
 
 class UDP_Client(io.IO_Client):
@@ -34,7 +35,14 @@ class UDP_Client(io.IO_Client):
 	def processPong(self, id):
 		self.__pinger.processPong(id)
 		
-	def processAck(self, id):
+	def processAck(self, packet):
+		# Read packet ID
+		format  = "!I"
+		if len(packet.data) != struct.calcsize(format): return None
+		data = struct.unpack(format, packet.data)
+		id = data[0]
+
+		# Packet still exists ?
 		self.__waitAck_sema.acquire()
 		if not self.__waitAck.has_key(id):
 			self.__waitAck_sema.release()

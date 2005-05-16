@@ -1,5 +1,6 @@
 import time
 import struct
+from net import io
 
 class UDP_Ping:
 	timeout = 3.000
@@ -9,8 +10,11 @@ class UDP_Ping:
 		self.timeout = self.creation+UDP_Ping.timeout
 		self.id = id
 
-	def getBinary(self):
-		return struct.pack("!cI", 'P', self.id)
+	def getPacket(self):
+		ping = io.Packet()
+		ping.type = io.Packet.PACKET_PING
+		ping.writeStr( struct.pack("!I", self.id) )
+		return ping	
 
 class UDP_Pinger:
 	ping_sleep = 1.000
@@ -27,7 +31,7 @@ class UDP_Pinger:
 	def sendPing(self):
 		self.__ping_id = self.__ping_id + 1
 		ping = UDP_Ping(self.__ping_id)
-		self.client.sendBinary( ping.getBinary() )
+		self.client.send( ping.getPacket() )
 		self.__sent_ping[ping.id] = ping
 				
 	def pingTimeout(self, id):
@@ -49,11 +53,25 @@ class UDP_Pinger:
 			self.__next_ping = time.time()+UDP_Pinger.ping_sleep
 			self.sendPing()
 
-	def processPing(self, id):
-		data = struct.pack("!cI", 'p', id)
-		self.client.sendBinary( data )
+	def __getPingId(self, data):
+		format  = "!I"
+		if len(data) != struct.calcsize(format): return None
+		data = struct.unpack(format, data)
+		return data[0]
+
+	def processPing(self, packet):
+		pong = io.Packet(skippable=True)
+		pong.type = io.Packet.PACKET_PONG
+		pong.writeStr( packet.data )
+		self.client.send(pong)
 		
-	def processPong(self, id):
+	def processPong(self, packet):
+		id = self.__getPingId(packet.data)
+		if id == None:
+			if self.debug:
+				print "Wrong ping packet (%s)!" % (packet.toStr())
+			return
+
 		# Received too late ?
 		if not self.__sent_ping.has_key(id): return
 

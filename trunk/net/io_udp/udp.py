@@ -41,6 +41,7 @@ class IO_UDP(io.BaseIO):
 			if self.verbose:
 				print "Connect to server %s:%u" % (self.host, self.port)
 			self.__server = UDP_Client(self, self.__addr)
+			self.__server.name = "server"
 			self.__server.send_ping = True
 			self.__clients_sema.acquire()
 			self.__clients[self.__addr] = self.__server
@@ -97,10 +98,8 @@ class IO_UDP(io.BaseIO):
 		
 		# Read binary version of the packet
 		data = packet.pack()
-		if self.debug:
-			t = time.time() - packet.creation
-			print "Send data : \"%s\" (time=%.1f ms)." % (data, 1000*t)
 
+		# Send data to client(s)
 		if self.__is_server:
 			if to==None:
 				for addr,client in self.clients.items(): # use internal copy for clients
@@ -112,9 +111,7 @@ class IO_UDP(io.BaseIO):
 		
 	# Send binary data that doesn't need ack
 	def sendBinary(self, data, client):
-		if self.debug:
-			print "Send %s to %s:%u (without ack)" \
-				% (data, client.host, client.port)
+		if self.debug: print "Send data %s to %s (without ack)" % (data, client.name)
 		self.__socket.sendto(data, client.addr)	
 		
 		# Call user event if needed
@@ -122,9 +119,7 @@ class IO_UDP(io.BaseIO):
 	
 	# Send binary data with ack to a client
 	def __sendDataTo(self, packet, data, client, need_ack):
-		if self.debug:
-			print "Send [id=%u] %s to %s:%u" \
-				% (packet.id, packet.data, client.host, client.port)
+		if self.debug: print "Send packet %s to %s" % (packet.toStr(), client.name)
 		self.__socket.sendto(data, client.addr)
 
 		# If the packet need an ack, add it to the list
@@ -144,10 +139,7 @@ class IO_UDP(io.BaseIO):
 		except socket.error, err:
 			if err[0] == 11: return None
 			raise
-
-		if self.debug:
-			print "Received packet (\"%s\" from %s:%u)" % (data, addr[0], addr[1])
-		
+	
 		# New client ?
 		return self.__processRecvData(data, addr)
 
@@ -221,42 +213,43 @@ class IO_UDP(io.BaseIO):
 			# Drop packets which doesn't come from server
 			if self.__server.addr != addr:
 				if self.debug:
-					print "Drop packet from %s:%u" % (addr[0], addr[1])
+					print "Drop packet from %s:%u (it isn't the server address)" % (addr[0], addr[1])
 				return None
 			client = self.__server
 	
 		# Call user event if needed
 		if self.on_receive != None: self.on_receive(data)
-	
-		# Is it an ack ?
-		format = "!cI"
-		if len(data) == struct.calcsize(format):
-			undata = struct.unpack(format, data)
-			if undata[0]=='A':
-				client.processAck(undata[1])
-			elif undata[0]=='P':
-				client.processPing(undata[1])
-			elif undata[0]=='p':
-				client.processPong(undata[1])
-			else:
-				if self.debug:
-					print "Drop strange packet (%s)." % (data)			
-			return None
-
+					
 		# Decode data to normal packet (unpack) 
 		packet = io.Packet()
 		packet.unpack(data)
-		if not packet.isValid(): return None
-
+		if not packet.isValid():
+			if self.debug: print "Drop invalid packet (%s) from %s" % (data, client.name)			
+			return None
+		
+		# Return packet
 		packet.recv_from = client 
 		return self.__processPacket(packet)
 
 	def __processPacket(self, packet):
 		client = packet.recv_from
-		addr = client.addr
-	
+
+		if self.debug:
+			print "Received packet %s from %s:%u" % (packet.toStr(), client.host, client.port)
+		
 		# Send an ack if needed
 		if not packet.skippable: self.__sendAck(packet)
+		
+		# Is is a special packet (ack / ping / poing) ?
+		if packet.type == io.Packet.PACKET_ACK:
+			client.processAck(packet)
+			return None
+		if packet.type == io.Packet.PACKET_PING:
+			client.processPing(packet)
+			return None
+		if packet.type == io.Packet.PACKET_PONG:
+			client.processPong(packet)
+			return None
 			
 		# This packet is already received ? Drop it!
 		if client.alreadyReceived(packet.id):
@@ -272,9 +265,11 @@ class IO_UDP(io.BaseIO):
 	# Send an ack for a packet
 	def __sendAck(self, packet):
 		# Write ack to socket
-		data = struct.pack("!cI", 'A', packet.id)
-		if self.debug: print "Send ACK : \"%s\"." % (data)
-		self.__socket.sendto(data, packet.recv_from.addr)
+		ack = io.Packet(skippable=True)
+		ack.type = io.Packet.PACKET_ACK
+		ack.writeStr( struct.pack("!I", packet.id) )
+		#if self.debug: print "Send ACK %u." % (ack.id)
+		packet.recv_from.send(ack)
 
 	# Do something with a new packet
 	def __processNewPacket(self, packet):
