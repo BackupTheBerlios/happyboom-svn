@@ -6,13 +6,12 @@ import threading
 import socket
 import traceback
 import struct
-from packet import Packet
+from net import io
 from udp_client import UDP_Client
-from base_io import BaseIO
 
-class IO_UDP(BaseIO):
+class IO_UDP(io.BaseIO):
 	def __init__(self, is_server=False):
-		BaseIO.__init__(self)
+		io.BaseIO.__init__(self)
 		self.packet_timeout = 1.000
 		self.thread_sleep = 0.010
 
@@ -29,7 +28,10 @@ class IO_UDP(BaseIO):
 
 	# Connect to host:port
 	def connect(self, host, port):
-		host = socket.gethostbyname(host)
+		if host != "":
+			host = socket.gethostbyname(host)
+		else:
+			host = "127.0.0.1"
 		self.__addr = (host, port,)
 		self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		if self.__is_server:
@@ -49,7 +51,7 @@ class IO_UDP(BaseIO):
 		self.__socket.setblocking(0)
 
 		if not self.__is_server:
-			self.send( Packet("I'm here") )
+			self.send( io.Packet("I'm here") )
 		
 		if self.on_connect != None: self.on_connect()
 
@@ -111,18 +113,22 @@ class IO_UDP(BaseIO):
 			print "Send [id=%u] %s to %s:%u (without ack)" \
 				% (packet.id, packet.data, addr[0], addr[1])
 		self.__socket.sendto(data, client.addr)	
+		
+		# Call user event if needed
+		if self.on_send != None: self.on_send(data)
 	
 	# Send binary data with ack to a client
 	def __sendDataTo(self, packet, data, client, need_ack):
-		addr = client.addr
-
 		if self.debug:
 			print "Send [id=%u] %s to %s:%u" \
-				% (packet.id, packet.data, addr[0], addr[1])
-		self.__socket.sendto(data, addr)
+				% (packet.id, packet.data, client.host, client.port)
+		self.__socket.sendto(data, client.addr)
 
 		# If the packet need an ack, add it to the list
 		if need_ack: client.needAck(packet)
+		
+		# Call user event if needed
+		if self.on_send != None: self.on_send(data)
 	
 	# Read a packet from the socket
 	# Returns None if there is not new data
@@ -184,6 +190,7 @@ class IO_UDP(BaseIO):
 			print "EXCEPTION DANS LE THREAD IO :"
 			print msg
 			traceback.print_exc()
+			self.stop()
 
 	def stop(self):
 		self.loop = False
@@ -212,6 +219,9 @@ class IO_UDP(BaseIO):
 				return None
 			client = self.__server
 	
+		# Call user event if needed
+		if self.on_receive != None: self.on_receive(data)
+	
 		# Is it an ack ?
 		format = "!cI"
 		if len(data) == struct.calcsize(format):
@@ -228,7 +238,7 @@ class IO_UDP(BaseIO):
 			return None
 
 		# Decode data to normal packet (unpack) 
-		packet = Packet()
+		packet = io.Packet()
 		packet.unpack(data)
 		if not packet.isValid(): return None
 

@@ -13,11 +13,11 @@ class Packet(object):
 	
 	# Constructor
 	# data (optionnal) is a binary packet
-	def __init__(self, str=None):
+	def __init__(self, str=None, skippable=False):
 		self.sent = 0
 		self.__data = None
 		self.timeout = None
-		self.skippable = False
+		self.skippable = skippable
 		self.id = None
 		self.recv_from = None
 		if str != None: self.writeStr(str)

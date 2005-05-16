@@ -1,4 +1,4 @@
-from net import net_server
+#from net import net_server
 from server_agent import *
 from stat import *
 from common import mailing_list
@@ -7,9 +7,8 @@ import time
 import thread
 import threading
 import random
-from net import packet
-from net import udp
-from net import tcp
+from net import io
+from net import io_udp
 import traceback
 
 class ClientBuffer:
@@ -55,8 +54,8 @@ class BaseServer(object):
 	def __init__(self):
 		BaseServer.instance = self
 		self.agents = []
-		self.__view_io = udp.IO_UDP(is_server=True)
-		self.__input_io = udp.IO_UDP(is_server=True)
+		self.__view_io = io_udp.IO_UDP(is_server=True)
+		self.__input_io = io_udp.IO_UDP(is_server=True)
 		#self.__view_io = tcp.IO_TCP(is_server=True)
 		#self.__input_io = tcp.IO_TCP(is_server=True)
 		self.__inputs = []
@@ -150,6 +149,7 @@ class BaseServer(object):
 			print msg
 			print "--"			
 			traceback.print_exc()
+			self.stop()
 			
 	def bindingError(self, server):
 		print "Binding error for %s (port %u) !" % (server.name, server.port)
@@ -176,7 +176,7 @@ class BaseServer(object):
 		
 		# Ask protocol version
 		msg = self.createMsg("agent_manager", "AskVersion")
-		client.send ( packet.Packet(msg) )
+		client.send ( io.Packet(msg) )
 		answer = self.readViewAnswer(client)
 		if answer != self.__view_protocol_version:
 			txt = "Sorry, you don't have same protocol version (%s VS %s)" \
@@ -187,7 +187,7 @@ class BaseServer(object):
 		
 		# ask client name
 		msg = self.createMsg("agent_manager", "AskName")
-		client.send ( packet.Packet(msg) )
+		client.send ( io.Packet(msg) )
 		name = self.readViewAnswer(client)
 		if name not in ("-", ""): client.name = name
 
@@ -195,7 +195,7 @@ class BaseServer(object):
 		self.registerNetMessage (client, "game")
 		for agent in self.agents:
 			msg = self.createMsg("agent_manager", "Create", "%s:%u" % (agent.type, agent.id))
-			client.send ( packet.Packet(msg) )
+			client.send ( io.Packet(msg) )
 			answer = self.readViewAnswer(client)
 			if answer == "yes": 
 				role = self.readViewAnswer(client)
@@ -205,7 +205,7 @@ class BaseServer(object):
 				agent.sync(client)
 
 		msg = self.createMsg("game", "Start")
-		client.send ( packet.Packet(msg) )
+		client.send ( io.Packet(msg) )
 			
 		txt = "Welcome to new (view) client : %s" % (client.name)
 		self.sendText(txt)
@@ -219,7 +219,7 @@ class BaseServer(object):
 
 		self.__input_buffer.clear(client)
 
-		client.send ( packet.Packet("Version?\n") )
+		client.send ( io.Packet("Version?\n") )
 		answer = self.readInputAnswer(client)
 		if answer == None:
 			if self.verbose: print "Client doesn't sent version"
@@ -231,17 +231,17 @@ class BaseServer(object):
 			self.sendText (txt, client)
 			thread.start_new_thread( self.disconnect_client_timeout, (client, 5.0,))
 			return	
-		client.send (packet.Packet("OK\n"))
+		client.send (io.Packet("OK\n"))
 		
 		# ask client name
-		client.send (packet.Packet("Name?\n"))
+		client.send (io.Packet("Name?\n"))
 		name = self.readInputAnswer(client)
 		if name == None:
 			if self.verbose: print "Client doesn't sent name"
 			client.disconnect()
 			return
 		if name not in ("-", ""): client.name = name
-		client.send (packet.Packet("OK\n"))
+		client.send (io.Packet("OK\n"))
 
 		self.__inputs.append (client)
 		print "Input %s connected." % (client.name)
@@ -263,7 +263,11 @@ class BaseServer(object):
 	def start(self, arg):
 		self.stat = ServerStat(self)
 		self.initIO(arg["max-view"], arg["view-port"], arg["max-input"], arg["input-port"])
-		self.stat.start()
+		self.__view_io.on_send = self.stat.onNetSend
+		self.__input_io.on_send = self.stat.onNetSend
+		self.__view_io.on_receive = self.stat.onNetReceive
+		self.__input_io.on_receive = self.stat.onNetReceive
+
 		self.createAgents()
 
 	def setDebug(self, debug):
@@ -290,14 +294,14 @@ class BaseServer(object):
 
 	def sendMsgToClient(self, client, role, type, arg=None, skippable=False):
 		msg = self.createMsg(role, type, arg)
-		p = packet.Packet(msg)
+		p = io.Packet(msg)
 		p.skippable = skippable
 		client.send(p)
 		
 	def sendText(self, txt, client=None):
 		if client != None:
 			msg = self.createMsg("agent_manager", "Text", txt)
-			client.send( packet.Packet(msg) )
+			client.send( io.Packet(msg) )
 		else:
 			self.sendMsg("agent_manager", "Text", txt)
 
@@ -310,9 +314,7 @@ class BaseServer(object):
 		msg = self.createMsg(role, type, arg)
 		clients = self.mailing_list.getNet(role)
 		for client in clients:
-			p = packet.Packet(msg)
-			p.skippable = skippable
-			client.send (p)
+			client.send ( io.Packet(msg, skippable = skippable) )
 		
 	def processCmd(self, cmd):
 		if self.debug: print "Received %s." % (cmd)
@@ -351,6 +353,6 @@ class BaseServer(object):
 	def stop(self):
 		self.sendMsg("game", "Stop")
 		for client in self.__inputs:
-			client.send( packet.Packet("quit") )
+			client.send( io.Packet("quit") )
 		self.agents = {}				
 		self.quit = True

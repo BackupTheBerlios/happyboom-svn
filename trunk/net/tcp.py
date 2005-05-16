@@ -129,6 +129,7 @@ class IO_TCP(BaseIO):
 			print "EXCEPTION DANS LE THREAD IO :"
 			print msg
 			traceback.print_exc()
+			self.stop()
 
 	def stop(self):
 		self.__clients_sema.acquire()

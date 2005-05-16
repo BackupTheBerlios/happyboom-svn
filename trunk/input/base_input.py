@@ -2,14 +2,15 @@ import time
 import string
 import os
 import signal
-from net import udp
-from net import tcp
-from net import packet
+from net import io
+from net import io_udp
+#from net import tcp
+#from net import packet
 import thread
 
 class BaseInput(object):
 	def __init__(self):
-		self.io = udp.IO_UDP() 
+		self.io = io_udp.IO_UDP() 
 		#self.io = tcp.IO_TCP() 
 		self.pid = os.getpid()
 		self.quit = False
@@ -94,7 +95,7 @@ class BaseInput(object):
 		self.io.verbose = verbose
 
 	def sendCmd(self, cmd):
-		self.io.send( udp.Packet(cmd+"\n"))
+		self.io.send( io.Packet(cmd+"\n"))
 
 	def processCmd(self, cmd):
 		if cmd != "": self.sendCmd(cmd)
@@ -116,8 +117,6 @@ class BaseInput(object):
 			cmd = string.strip(cmd)
 			if cmd != "":
 				self.processCmd(cmd)
-#			if self.io.connected == False:
-#				self.quit = True
 			if (cmd == "quit") or (cmd == "close"):
 				self.quit = True
 

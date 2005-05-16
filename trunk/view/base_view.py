@@ -1,8 +1,8 @@
 from view_agent_manager import *
 from common import mailing_list
-from net import udp
-from net import tcp
-from net import packet
+from net import io
+from net import io_udp
+#from net import tcp
 import thread
 
 class BaseView(object):
@@ -10,8 +10,8 @@ class BaseView(object):
 
 	def __init__(self):
 		BaseView.instance = self
-		self.io = udp.IO_UDP()
-		#self.io = tcp.IO_TCP()
+		self.__io = io_udp.IO_UDP()
+		#self.__io = tcp.IO_TCP()
 		self.n = None
 		self.agents = {}
 		self.loop = True
@@ -29,6 +29,11 @@ class BaseView(object):
 		self.active = True
 		self.only_watch_server = False
 
+	def setIoSendReceive(self, on_send, on_receive):
+		self.__io.on_send = on_send
+		self.__io.on_receive = on_receive
+
+
 	def getAgent(self, id):
 		return self.agents.get(id, None)
 
@@ -41,13 +46,13 @@ class BaseView(object):
 	def start(self, host, port):
 		if self.verbose: print "Try to connect to server %s:%u." \
 			% (host, port)
-		self.io.on_connect = self.onConnect
-		self.io.on_disconnect = self.onDisconnect
-		self.io.on_new_packet = self.processPacket
-		self.io.on_lost_connection = self.onLostConnection
-		self.io.connect(host, port)
+		self.__io.on_connect = self.onConnect
+		self.__io.on_disconnect = self.onDisconnect
+		self.__io.on_new_packet = self.processPacket
+		self.__io.on_lost_connection = self.onLostConnection
+		self.__io.connect(host, port)
 
-		thread.start_new_thread( self.io.run_thread, ())
+		thread.start_new_thread( self.__io.run_thread, ())
 
 	def onConnect(self):
 		if self.verbose: print "Connected to server."
@@ -87,25 +92,11 @@ class BaseView(object):
 			for agent in locals: agent.putMessage(msg)
 
 	def send(self, str):
-		p = packet.Packet()
+		p = io.Packet()
 		p.writeStr( str+"\n" )
-		self.io.send(p)
+		self.__io.send(p)
 	
 	def live(self):
-#		if not self.io.connected:
-#			if self.verbose or (self.wait_server_time == None):
-#				print "Waiting for connection to server ..."
-#			if self.wait_server_time != None:
-#				if self.server_timeout < time.time() - self.wait_server_time:
-#					print "Server %s:%u doesn't answer, try again." \
-#						% (self.io.host, self.io.port)
-#					self.stop()
-#					return
-#			else:
-#				self.wait_server_time = time.time()
-#			time.sleep(1.0)
-#			return
-	
 		live_begin = time.time()
 
 		# Do a copy because agent manager can add new agent, and Python
@@ -132,11 +123,11 @@ class BaseView(object):
 		
 	def setDebugMode(self, debug):
 		self.debug = debug
-		self.io.debug = debug
+		self.__io.debug = debug
 
 	def setVerbose(self, verbose):
 		self.verbose = verbose
-		self.io.verbose = verbose
+		self.__io.verbose = verbose
 		self.clear_screen = not verbose
 
 	def stop(self):
@@ -144,7 +135,7 @@ class BaseView(object):
 		self.active = False
 		self.loop = False
 		self.send("quit")
-		self.io.stop()
+		self.__io.stop()
 		print "View closed."
 
 	def getProtocolVersion(self):

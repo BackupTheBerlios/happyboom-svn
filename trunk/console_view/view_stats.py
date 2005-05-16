@@ -11,8 +11,7 @@ class NetworkStatAgent(ViewAgent):
 		self.avg_out = 0
 
 	def start(self):
-		self.server.io.on_read = self.on_read
-		self.server.io.on_write = self.on_write
+		self.server.setIoSendReceive(self.on_write, self.on_read)
 
 	def on_write(self, data):
 		self.out_bytes = self.out_bytes + len(data)

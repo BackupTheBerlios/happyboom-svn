@@ -21,6 +21,8 @@ class BaseIO(object):
 		self.on_client_connect = None     # (client)
 		self.on_client_disconnect = None  # (client)
 		self.on_new_packet = None         # (packet) : client address
+		self.on_send = None               # (data)
+		self.on_receive = None            # (data)
 
 		self.__name = None
 
@@ -35,7 +37,6 @@ class BaseIO(object):
 	# Send a packet to the server or to all clients
 	def send(self, packet, to=None):
 		pass
-
 	
 	# Read a packet from the socket
 	# Returns None if there is not new data

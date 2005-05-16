@@ -8,16 +8,10 @@ class ServerStat:
 		self.net_in = 0
 		self.net_out = 0
 
-	def start(self):
-		self.server.getViewIO().on_send = self.onNetSend
-		self.server.getInputIO().on_send = self.onNetSend
-		self.server.getViewIO().on_read = self.onNetRead
-		self.server.getInputIO().on_read = self.onNetRead
-
 	# Event called on new sent/read data from network
 	def onNetSend(self, data):
 		self.net_out = self.net_out + len(data)
-	def onNetRead(self, data):
+	def onNetReceive(self, data):
 		self.net_in = self.net_in + len(data)
 
 	# Number of seconds since server started
