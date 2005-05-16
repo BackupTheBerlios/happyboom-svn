@@ -53,6 +53,9 @@ class IO_UDP(io.BaseIO):
 		if not self.__is_server:
 			self.send( io.Packet("I'm here") )
 		
+		io.BaseIO.connect(self, host, port)
+
+		# Call user event if needed
 		if self.on_connect != None: self.on_connect()
 
 	# Close connection

@@ -4,6 +4,7 @@ class IO_Client(object):
 	def __init__(self, io, addr, name=None):
 		self.__addr = addr
 		self.name = name
+		self.connected = True 
 		self.io = io
 		if self.name == None:
 			self.name = "%s:%u" % (self.host, self.port)
@@ -12,6 +13,7 @@ class IO_Client(object):
 		pass
 
 	def disconnect(self):
+		self.connected = False
 		self.io.disconnectClient(self)
 
 	def __getAddr(self):

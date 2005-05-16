@@ -44,11 +44,9 @@ class BoomBoomClient:
 			self.stop()
 			return
 
-		print "start2"
 		# Create thread for input and view
 		thread.start_new_thread( self.thread_view, ())
 		thread.start_new_thread( self.thread_input, ())
-		print "start3"
 
 	def live(self):
 		time.sleep(0.100)

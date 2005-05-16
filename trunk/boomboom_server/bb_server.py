@@ -59,5 +59,4 @@ class BoomBoomServer(base_server.BaseServer):
 		if re.compile("^chat:(.*)$").match(cmd) != None:
 			print "New chat message: %s" % (r.group(1))
 			self.sendMsg("chat_server", "new", r.group(1))
-		elif cmd == "Ping?": input.send("Pong!\n")
 		elif cmd in cmd_ok:	self.sendMsg ("command", "new", cmd)

@@ -7,26 +7,25 @@ import threading
 import socket
 import traceback
 import struct
-from packet import Packet
 from tcp_client import TCP_Client
+from net import io
 from server_waiter import NetworkServerWaiter
-from base_io import BaseIO
 
-class IO_TCP(BaseIO):
+class IO_TCP(io.BaseIO):
 	def __init__(self, is_server=False):
-		BaseIO.__init__(self)
+		io.BaseIO.__init__(self)
 		self.packet_timeout = 1.000
 		self.thread_sleep = 0.010
 
 		self.__is_server = is_server
-		self.loop = True
 
 		self.__waiter = NetworkServerWaiter(self)
-		self.__socket = None
-		self.__socket_open = False		
 		self.__addr = None
 		self.__clients = {}
+		self.__server = None
 		self.__clients_sema = threading.Semaphore()
+		self.__running = True
+		io.Packet.use_tcp = True
 
 	# Connect to host:port
 	def connect(self, host, port):
@@ -40,35 +39,42 @@ class IO_TCP(BaseIO):
 		else:
 			if self.verbose:
 				print "Connect to server %s:%u" % (self.host, self.port)			
-			self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-			self.__socket.connect(self.__addr)
-			self.__socket.setblocking(0)
+			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			s.connect(self.__addr)
 
-			client = TCP_Client(self, self.__addr, conn=self.__socket)	
+			client = TCP_Client(self, self.__addr, socket=s)
+			self.__server = client
 			self.__clients_sema.acquire()
 			self.__clients[client.addr] = client
 			self.__clients_sema.release()
 
-		self.__socket_open = True
 		if self.on_connect != None: self.on_connect()
+		io.BaseIO.connect(self, host, port)
 
 	# Close connection
 	def disconnect(self):
-		if not self.__socket_open: return
-		self.__socket.close()
-		self.__socket_open = False
+		self.__clients_sema.acquire()
+		clients = self.__clients.copy()
+		self.__clients_sema.release()
+		for client_addr, client in clients.items():
+			client.disconnect()
 		if self.on_disconnect != None: self.on_disconnect()
+		self.stop()
 
 	# Disconnect a client.
 	def disconnectClient(self, client):
 		self.__clients_sema.acquire()
-		del self.__clients[client.addr]
+		if  self.__clients.has_key(client.addr): del self.__clients[client.addr]
 		self.__clients_sema.release()
 		if self.verbose:
 			print "Disconnect client %s:%u" % (client.host, client.port)
+		if self.on_client_disconnect != None: self.on_client_disconnect (client)
+		if self.__server == client: self.disconnect()
 	
 	# Send a packet to the server or to all clients
 	def send(self, packet, to=None):
+		if not self.__running: return
+		
 		# Read binary version of the packet
 		data = packet.pack()
 
@@ -78,27 +84,11 @@ class IO_TCP(BaseIO):
 				clients = self.__clients.copy()
 				self.__clients_sema.release()	
 				for client in clients:
-					client.send(data)
+					client.sendBinary(data)
 			else:
-				to.send(data)
+				to.sendBinary(data)
 		else:
-			self.__socket.send(data)
-
-	# Read a packet from the socket
-	# Returns None if there is not new data
-	def receive(self, max_size = 1024):
-		# Try to read data from the socket
-		try:						
-			data,addr = self.__socket.recvfrom(max_size)
-		except socket.error, err:
-			if err[0] == 11: return None
-			raise
-
-		if self.debug:
-			print "Received packet (\"%s\" from %s:%u)" % (data, addr[0], addr[1])
-		
-		# New client ?
-		return self.__processRecvData(data, addr)
+			self.__server.sendBinary(data)
 
 	# Keep the connection alive
 	def live(self):				
@@ -106,23 +96,23 @@ class IO_TCP(BaseIO):
 		for client_addr, client in clients.items():
 			data = client.receiveNonBlocking()
 			if data != None:
-				if len(data)==0:
-					client.disconnect()
-				else:
-					self.__processData(client, data)
+				self.__processData(client, data)
 
 	def __processData(self, client, data):
 		while data != "":
-			packet = Packet(data)
-			data = packet.unpack(data)
+			packet = io.Packet()
 			packet.recv_from = client
+			data = packet.unpack(data)
+			if not packet.isValid():
+				print "Bad data packet (%s) from %s !" % (data, client.name)
+				return
 			if self.debug: print "Received %s:%u => \"%s\"" % (client.host, client.port, packet.data)
 			if self.on_new_packet: self.on_new_packet(packet)
 	
 	# Function which should be called in a thread
 	def run_thread(self):
 		try:
-			while self.loop:
+			while self.__running:
 				self.live()				
 				time.sleep(self.thread_sleep)
 		except Exception, msg:
@@ -132,14 +122,11 @@ class IO_TCP(BaseIO):
 			self.stop()
 
 	def stop(self):
-		self.__clients_sema.acquire()
-		clients = self.__clients.copy()
-		self.__clients_sema.release()
-		for client_addr, client in clients.items():
-			client.conn.close()
-
-		self.loop = False
+		if not self.__running: return
+		self.__running = False
 		self.disconnect()
+
+	def isRunning(self): return self.__running
 
 	#--- Private functions ------------------------------------------------------
 
@@ -169,9 +156,8 @@ class IO_TCP(BaseIO):
 		return 0
 	
 	def clientConnect(self, client):
-		client.on_read = self.on_read
+		client.on_receive = self.on_receive
 		client.on_send = self.on_send
-		client.setNetServer(self)
 		self.__clients_sema.acquire()
 		self.__clients[client.addr] = client
 		self.__clients_sema.release()

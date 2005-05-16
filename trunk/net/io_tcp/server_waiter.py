@@ -1,7 +1,7 @@
 import socket
 import threading
 import traceback
-from io_client import IO_Client
+from tcp_client import TCP_Client
 
 class NetworkServerWaiter(object):
 	def __init__(self, server):
@@ -58,7 +58,7 @@ class NetworkServerWaiter(object):
 					   self.getNbClients(), self.__max_clients)
 			conn.close()
 			return None
-		return IO_Client(self.__server, addr, conn=conn)
+		return TCP_Client(self.__server, addr, socket=conn)
 
 	def start(self, port, max_connection):
 		self.__max_clients = max_connection

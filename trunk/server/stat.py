@@ -20,13 +20,13 @@ class ServerStat:
 
 	# Current/Maximum number of view/input clients
 	def getNbInputs(self):
-		return len(self.server.getInputIO().clients)
+		return self.server.getNbInput()
 	def getNbViews(self):
-		return len(self.server.getViewIO().clients)
+		return self.server.getNbView()
 	def getMaxViews(self):
-		return self.server.getViewIO().max_clients
+		return self.server.getMaxNbView()
 	def getMaxInputs(self):
-		return self.server.getInputIO().max_clients
+		return self.server.getMaxNbInput()
 
 class ServerStatAgent(server_agent.ServerAgent):
 	def __init__(self):

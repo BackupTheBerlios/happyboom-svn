@@ -4,5 +4,6 @@ o Improve network security
 o Improve input threading
 o For network : not all blocking read functions catch socket error 11
 o Catch UDP Binding error
-o Limit UDP clients
+o Limit number of UDP clients
 o IO_Client : should self.io be self.__io ? 
+o Add timeout when a client try to connect

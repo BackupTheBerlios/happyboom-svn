@@ -1,8 +1,8 @@
 from view_agent_manager import *
 from common import mailing_list
 from net import io
-from net import io_udp
-#from net import tcp
+#from net import io_udp
+from net import io_tcp
 import thread
 
 class BaseView(object):
@@ -10,8 +10,8 @@ class BaseView(object):
 
 	def __init__(self):
 		BaseView.instance = self
-		self.__io = io_udp.IO_UDP()
-		#self.__io = tcp.IO_TCP()
+		#self.__io = io_udp.IO_UDP()
+		self.__io = io_tcp.IO_TCP()
 		self.n = None
 		self.agents = {}
 		self.loop = True
@@ -32,7 +32,6 @@ class BaseView(object):
 	def setIoSendReceive(self, on_send, on_receive):
 		self.__io.on_send = on_send
 		self.__io.on_receive = on_receive
-
 
 	def getAgent(self, id):
 		return self.agents.get(id, None)
@@ -59,7 +58,7 @@ class BaseView(object):
 
 	def onDisconnect(self):
 		print "Connection to server closed."
-		self.loop = False
+		self.stop()
 
 	def onLostConnection(self):
 		print "Lost connection with server."
@@ -84,7 +83,7 @@ class BaseView(object):
 		self.mailing_list.register(role, agent)
 	
 	def processPacket(self, new_packet):
-		msg = self.str2msg(new_packet.data.rstrip())
+		msg = self.str2msg(new_packet.data)
 		if msg != None: 
 			if self.debug: print "Received message: %s" %(msg.str())
 			if self.on_recv_message: self.on_recv_message (msg)
@@ -93,7 +92,7 @@ class BaseView(object):
 
 	def send(self, str):
 		p = io.Packet()
-		p.writeStr( str+"\n" )
+		p.writeStr( str )
 		self.__io.send(p)
 	
 	def live(self):

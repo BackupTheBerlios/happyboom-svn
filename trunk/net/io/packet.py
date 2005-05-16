@@ -10,6 +10,8 @@ class Packet(object):
 
 	# Maximum number of packet resend
 	max_resend = int(3.000 / timeout)
+
+	use_tcp = False
 	
 	# Constructor
 	# data (optionnal) is a binary packet
@@ -35,7 +37,7 @@ class Packet(object):
 	def unpack(self, binary_data):
 		if binary_data==None: return
 
-		if False: #self.id == None:
+		if Packet.use_tcp:
 			# Read data len
 			format = "!I"
 			size = struct.calcsize(format)
@@ -72,7 +74,7 @@ class Packet(object):
 	# Pack datas to a binary string (using struct module)
 	def pack(self):
 		data_len = len(self.__data)
-		if self.id == None:
+		if Packet.use_tcp:
 			return struct.pack("!I%us" % data_len, 
 				data_len, self.__data)
 		else:

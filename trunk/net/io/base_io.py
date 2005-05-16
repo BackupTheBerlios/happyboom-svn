@@ -28,7 +28,8 @@ class BaseIO(object):
 
 	# Connect to host:port
 	def connect(self, host, port):
-		pass
+		if self.__name==None:
+			self.__name = "%s:%u" % (host, port)
 
 	# Close connection
 	def disconnect(self):
@@ -58,13 +59,13 @@ class BaseIO(object):
 
 	#--- Private functions ------------------------------------------------------
 
-	def __getName(self):
-		if self.__name != None: return self.__name
-		return self.host
-		
-	def __setName(self, name):
+	def getName(self):
+		if self.__name == None: return "no name"
+		return self.__name
+	
+	def setName(self, name):
 		self.__name = name	
 
 	#--- Properties -------------------------------------------------------------
 
-	name = property(__getName, __setName)
+	name = property(getName, setName)

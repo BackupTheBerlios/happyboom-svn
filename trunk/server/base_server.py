@@ -7,46 +7,11 @@ import time
 import thread
 import threading
 import random
+from net import net_buffer
 from net import io
-from net import io_udp
+#from net import io_udp
+from net import io_tcp
 import traceback
-
-class ClientBuffer:
-	def __init__(self):
-		self.__buffer = {} 
-		self.__sema = threading.Semaphore()
-
-	def clear(self, client):
-		self.__sema.acquire()
-		self.__buffer[client.addr] = [] 
-		self.__sema.release()
-	
-	def append(self, client, data):
-		self.__sema.acquire()
-		if self.__buffer.has_key(client.addr):
-			self.__buffer[client.addr].append(data)
-		else:
-			self.__buffer[client.addr] = [data]
-		self.__sema.release()
-
-	def readNonBlocking(self, client):
-		self.__sema.acquire()
-		buffer = self.__buffer.get(client.addr, [])
-		self.__buffer[client.addr] = []
-		self.__sema.release()
-		return buffer
-
-	def readBlocking(self, client):
-		addr = client.addr
-		data = None
-		while data == None:
-			self.__sema.acquire()
-			if self.__buffer.has_key(addr) and len(self.__buffer[addr]) != 0:
-				data = self.__buffer[addr][0]
-				del self.__buffer[addr][0] 
-			self.__sema.release()
-			if data == None: time.sleep(0.010)
-		return data
 
 class BaseServer(object):
 	instance = None
@@ -54,10 +19,10 @@ class BaseServer(object):
 	def __init__(self):
 		BaseServer.instance = self
 		self.agents = []
-		self.__view_io = io_udp.IO_UDP(is_server=True)
-		self.__input_io = io_udp.IO_UDP(is_server=True)
-		#self.__view_io = tcp.IO_TCP(is_server=True)
-		#self.__input_io = tcp.IO_TCP(is_server=True)
+		#self.__view_io = io_udp.IO_UDP(is_server=True)
+		#self.__input_io = io_udp.IO_UDP(is_server=True)
+		self.__view_io = io_tcp.IO_TCP(is_server=True)
+		self.__input_io = io_tcp.IO_TCP(is_server=True)
 		self.__inputs = []
 		self.mailing_list = mailing_list.MailingList()
 		self.net_mailing_list = {}
@@ -69,36 +34,16 @@ class BaseServer(object):
 		self.started = False
 		self.__input_protocol_version = "0.1.4"
 		self.__view_protocol_version = "0.1.4"
-		self.__input_buffer = ClientBuffer()
-		self.__view_buffer = ClientBuffer()
+		self.__input_buffer = net_buffer.NetBuffer()
+		self.__view_buffer = net_buffer.NetBuffer()
 		random.seed()
 
-	# Private are not private ??? :-P
-	def getInputIO(self):
-		return self.__input_io
-	def getViewIO(self):
-		return self.__view_io
-
-	def disconnect_client_timeout(self, client, timeout):
-#		msg = self.createMsg("game", "Stop")
-#		client.send (msg)
-#		t = time.time()
-#		while client.connected:
-#			time.sleep(0.100)
-#			# Hack to check if client is still connected
-#			client.readNonBlocking()
-#			if timeout < time.time() - t: break
-#		if not client.connected: return
-#		print "Timeout (%.1f sec) over!" % (timeout)
-#		client.disconnect()
-		pass
-	
 	# Convert a (role,type,arg) to string (to be sent throw network)
 	def createMsg(self, role, type, arg=None):
 		if arg != None:
-			return "%s:%s:%s\n" % (role, type, arg)
+			return "%s:%s:%s" % (role, type, arg)
 		else:
-			return "%s:%s\n" % (role, type)
+			return "%s:%s" % (role, type)
 
 	# A newtork client would like to receive all messages of given role
 	def registerNetMessage(self, client, role):
@@ -130,17 +75,16 @@ class BaseServer(object):
 		thread.start_new_thread( self.run_io_thread, ())
 		
 	def recvInputPacket(self, packet):
-		msg = packet.data.rstrip()
-		self.__input_buffer.append(packet.recv_from, packet)
+		self.__input_buffer.append(packet.recv_from.addr, packet)
 		
 	def recvViewPacket(self, packet):
-		msg = packet.data.rstrip()
-		self.__view_buffer.append(packet.recv_from, packet)
+		msg = packet.data
+		self.__view_buffer.append(packet.recv_from.addr, packet)
 	
 	# Function which should be called in a thread
 	def run_io_thread(self):
 		try:
-			while self.__input_io.loop and self.__view_io.loop:
+			while self.__input_io.isRunning() and self.__view_io.isRunning():
 				self.__input_io.live()				
 				self.__view_io.live()				
 				time.sleep(0.010)
@@ -161,18 +105,32 @@ class BaseServer(object):
 	def readInputAnswer(self, client):
 		return self.__readClientAnswer(self.__input_buffer, client)
 		
-	def __readClientAnswer(self, buffer, client):
-		answer = buffer.readBlocking(client)
-		answer = answer.data.rstrip()
+	def __readClientAnswer(self, buffer, client, timeout=1.000):
+		answer = buffer.readBlocking(client.addr, timeout)
+		if answer==None: return None
+		answer = answer.data
 		return answer
 		
 	def openView(self, client):
-		thread.start_new_thread( self.__do_openView, (client,))
+		thread.start_new_thread( self.__clientChallenge, (client,self.__do_openView,"VIEW",))
+
+	def openInput(self, client):
+		thread.start_new_thread( self.__clientChallenge, (client,self.__do_openInput,"INPUT",))
+
+	def __clientChallenge(self, client, func, client_type):
+		try:
+			func(client)
+		except Exception, msg:
+			print "EXCEPTION WHEN %s TRY TO CONNECT :" % (client_type)
+			print msg
+			print "--"
+			traceback.print_exc()
+			self.stop()
 	
 	def __do_openView(self, client):
 		print "View %s try to connect ..." % (client.name)
 		
-		self.__view_buffer.clear(client)
+		self.__view_buffer.clear(client.addr)
 		
 		# Ask protocol version
 		msg = self.createMsg("agent_manager", "AskVersion")
@@ -182,7 +140,7 @@ class BaseServer(object):
 			txt = "Sorry, you don't have same protocol version (%s VS %s)" \
 				% (answer, self.__view_protocol_version)
 			self.sendText(txt)
-			thread.start_new_thread( self.disconnect_client_timeout, (client, 5.0,))
+			client.disconnect()
 			return
 		
 		# ask client name
@@ -211,15 +169,12 @@ class BaseServer(object):
 		self.sendText(txt)
 		print "View %s connected." % (client.name)
 
-	def openInput(self, client):
-		thread.start_new_thread( self.__do_openInput, (client,))
-
 	def __do_openInput(self, client):
 		print "Input %s try to connect ..." % (client.name)
 
-		self.__input_buffer.clear(client)
+		self.__input_buffer.clear(client.addr)
 
-		client.send ( io.Packet("Version?\n") )
+		client.send ( io.Packet("Version?") )
 		answer = self.readInputAnswer(client)
 		if answer == None:
 			if self.verbose: print "Client doesn't sent version"
@@ -229,19 +184,19 @@ class BaseServer(object):
 			txt = "Sorry, you don't have same protocol version (%s VS %s)" \
 				% (answer, self.__input_protocol_version)
 			self.sendText (txt, client)
-			thread.start_new_thread( self.disconnect_client_timeout, (client, 5.0,))
+			client.disconnect()
 			return	
-		client.send (io.Packet("OK\n"))
+		client.send (io.Packet("OK"))
 		
 		# ask client name
-		client.send (io.Packet("Name?\n"))
+		client.send (io.Packet("Name?"))
 		name = self.readInputAnswer(client)
 		if name == None:
 			if self.verbose: print "Client doesn't sent name"
 			client.disconnect()
 			return
 		if name not in ("-", ""): client.name = name
-		client.send (io.Packet("OK\n"))
+		client.send (io.Packet("OK"))
 
 		self.__inputs.append (client)
 		print "Input %s connected." % (client.name)
@@ -333,12 +288,12 @@ class BaseServer(object):
 	def processInputs(self):
 		inputs = self.__inputs[:]
 		for client in inputs:
-			packets = self.__input_buffer.readNonBlocking(client)
+			packets = self.__input_buffer.readNonBlocking(client.addr)
 
 			for packet in packets:	
 				#if len(cmd)==0: continue
 				#if max_len<len(cmd): cmd=cmd[:max_len]
-				self.processInputCmd (packet.recv_from, packet.data.rstrip())
+				self.processInputCmd (packet.recv_from, packet.data)
 
 	def live(self):
 		if not self.started:
@@ -351,8 +306,12 @@ class BaseServer(object):
 			if self.quit==True: break
 
 	def stop(self):
-		self.sendMsg("game", "Stop")
-		for client in self.__inputs:
-			client.send( io.Packet("quit") )
+		self.__view_io.stop()
+		self.__input_io.stop()
 		self.agents = {}				
 		self.quit = True
+
+	def getNbInput(self): return len(self.__input_io.clients)
+	def getNbView(self): return len(self.__view_io.clients)
+	def getMaxNbInput(self): return self.__input_io.max_clients
+	def getMaxNbView(self): return self.__view_io.max_clients

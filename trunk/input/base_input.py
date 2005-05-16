@@ -3,15 +3,15 @@ import string
 import os
 import signal
 from net import io
-from net import io_udp
-#from net import tcp
-#from net import packet
+#from net import io_udp
+from net import io_tcp
+from net import net_buffer
 import thread
 
 class BaseInput(object):
 	def __init__(self):
-		self.io = io_udp.IO_UDP() 
-		#self.io = tcp.IO_TCP() 
+		#self.__io = io_udp.IO_UDP() 
+		self.__io = io_tcp.IO_TCP() 
 		self.pid = os.getpid()
 		self.quit = False
 		self.active = True
@@ -21,18 +21,13 @@ class BaseInput(object):
 		self.use_readline = False
 		self.__protocol_version = "0.1.4"
 		self.name = "-"
-		self.__recv_buffer = []
+		self.__recv_buffer = net_buffer.NetBuffer()
 
 	def processPacket(self, new_packet):
-		self.__recv_buffer.append(new_packet.data.rstrip())
+		self.__recv_buffer.append(0,new_packet.data)
 	
-	def readCmd(self):
-		while len(self.__recv_buffer)==0:
-			if self.quit: return None
-			time.sleep(0.010)
-		msg = self.__recv_buffer[0]
-		del self.__recv_buffer[0]
-		return msg
+	def readCmd(self, timeout=1.000):
+		return self.__recv_buffer.readBlocking(0,timeout)
 	
 	def serverChallenge(self):
 		if self.verbose: 
@@ -71,13 +66,12 @@ class BaseInput(object):
 		# Try to connect to server
 		if self.verbose: 
 			print "Try to connect to server %s:%s" % (host, port)
-		self.io.on_disconnect = self.onDisconnect
-		self.io.on_lost_connection = self.onLostConnection
-		self.io.on_new_packet = self.processPacket
-		self.io.connect(host, port)
+		self.__io.on_disconnect = self.onDisconnect
+		self.__io.on_lost_connection = self.onLostConnection
+		self.__io.on_new_packet = self.processPacket
+		self.__io.connect(host, port)
 
-		thread.start_new_thread( self.io.run_thread, ())
-		thread.start_new_thread( self.io_live, ())
+		thread.start_new_thread( self.__io.run_thread, ())
 
 		# Server "challenge" (version, name, ...)
 		if self.serverChallenge() != True:
@@ -86,35 +80,36 @@ class BaseInput(object):
 			self.stop()
 			return
 
+		thread.start_new_thread( self.runIo, ())
+
 	def setDebugMode(self, debug):
 		self.debug = debug
-		self.io.debug = debug
+		self.__io.debug = debug
 
 	def setVerbose(self, verbose):
 		self.verbose = verbose
-		self.io.verbose = verbose
+		self.__io.verbose = verbose
 
 	def sendCmd(self, cmd):
-		self.io.send( io.Packet(cmd+"\n"))
+		self.__io.send( io.Packet(cmd))
 
 	def processCmd(self, cmd):
 		if cmd != "": self.sendCmd(cmd)
 
-	def io_live(self):
+	def runIo(self):
 		while 1:
-			packets = self.__recv_buffer
-			self.__recv_buffer = []
-			for cmd in packets:
+			cmd = self.__recv_buffer.readNonBlocking(0)
+			while cmd != None:
 				if cmd == "quit":
 					self.stop()
 					break
+				cmd = self.__recv_buffer.readNonBlocking(0)
 			time.sleep(0.250)
 	
 	def live(self):
 		if self.use_readline: import readline
 		while self.quit == False:
 			cmd = raw_input("cmd ? ")
-			cmd = string.strip(cmd)
 			if cmd != "":
 				self.processCmd(cmd)
 			if (cmd == "quit") or (cmd == "close"):
@@ -132,5 +127,5 @@ class BaseInput(object):
 		if not self.active: return
 		self.active = False
 		self.quit = True
-		self.io.stop()
+		self.__io.stop()
 		print "Input closed."
