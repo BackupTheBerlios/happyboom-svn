@@ -37,7 +37,7 @@ def parseArgs(ia, val):
 	for o, a in opts:
 		if o == "--help":
 			usage(defval)
-			sys.exit()
+			sys.exit(0)
 		if o == "--dont-load":
 			val["load"] = False
 		if o == "--dont-save":
@@ -58,7 +58,8 @@ def main():
 		ia.init(val)
 		ia.run()
 		print ""
-	
+	except SystemExit, code:
+		pass
 	except Exception, msg:
 		print "EXCEPTION :"
 		print msg
