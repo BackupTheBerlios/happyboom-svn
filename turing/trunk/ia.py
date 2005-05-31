@@ -6,7 +6,6 @@ import random # to get/set state
 
 class MainIA:
 	def __init__(self):
-		self.x = 0
 		self.search_func = None
 		self.search = SearchTuring()
 		self.test_name = "add"
@@ -14,8 +13,8 @@ class MainIA:
 		self.valid_test = { \
 			"add": test_add,
 			"add3": test_add3,
+			"max": test_max,
 			"sign": test_sign}
-		self.search.step_sleep = 0.0
 		self.save_result = True
 
 	def init(self, arg):

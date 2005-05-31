@@ -6,22 +6,52 @@ from turing import Turing
 
 # Initialize VM for test "sign(a)"
 def init_vm_sign(search, actor):
-	actor.vm.set_reg("a", search.arga)
+	actor.turing.set_reg("a", search.arga)
+
+def random_vm_max(search):
+	try:
+		a= search.arga
+		b= search.argb
+	except:
+		a=b=None
+	search.arga = random.randint(-999,999)
+	search.argb = random.randint(-999,999)
+	while search.arga==search.argb:
+		search.arga = random.randint(-999,999)
+		search.argb = random.randint(-999,999)
+	if a != None:
+		ok = a<b and search.arga>search.argb
+		ok = ok or (a>b and search.arga<search.argb)
+		if not ok:
+			tmp = search.arga
+			search.arga = search.argb
+			search.argb = tmp 
+	if search.arga > search.argb:
+		search.result = search.arga
+	else:
+		search.result = search.argb
 
 def random_vm_sign(search):
-	search.arga = random.randint(-9,9)
-	while abs(search.arga) < 2:
-		search.arga = random.randint(-9,9)
+	try:
+		result= search.result
+	except:
+		result=None
+	search.arga = random.randint(-100,100)
+	while abs(search.arga)<2: search.arga = random.randint(-100,100)
 	if search.arga > 0:
 		search.result = 1
 	else:
 		search.result = -1
+
+	if result != None and search.result == result:
+		search.arga = -search.arga
+		search.result = -search.result
 	
 def random_vm_add(search):
-	search.arga = random.randint(-9,9)
-	search.argb = random.randint(-9,9)
+	search.arga = random.randint(-100,100)
+	search.argb = random.randint(-100,100)
 	while search.arga == search.argb:
-		search.argb = random.randint(-9,9)
+		search.argb = random.randint(-100,100)
 	search.result = search.arga + search.argb
 	
 def random_vm_add3(search):
@@ -35,7 +65,7 @@ def random_vm_add3(search):
 	search.result = search.arga + search.argb + search.argc
 	
 # Initialize VM for test "add(a,b)"
-def init_vm_add(search, actor):
+def init_vm_regab(search, actor):
 	actor.turing.set_reg("a", search.arga)
 	actor.turing.set_reg("b", search.argb)			
 
@@ -44,6 +74,48 @@ def init_vm_add3(search, actor):
 	actor.turing.set_reg("a", search.arga)
 	actor.turing.set_reg("b", search.argb)			
 	actor.turing.set_reg("c", search.argc)
+
+# Evaluate quality of alogithm for test max(a,b)
+# Result in [0.0 .. 1.0]
+def eval_quality_max(search, actor):
+	quality = 0.0
+
+	# +15% for use of if instruction
+	useif = False
+	for instr in actor.code.code:
+		if instr[0] == 'cmp_gt':
+			useif = True
+			break
+	if not useif: return quality
+	quality = quality + 0.15
+		
+	# +15% for use of if instruction
+	useif = False
+	for instr in actor.code.code:
+		if instr[0] == 'jumpif':
+			useif = True
+			break
+	if not useif: return quality
+	quality = quality + 0.15
+	
+	# exit if it not the expected result
+	value = actor.turing.get_reg("a")
+	if value != search.result: return quality
+
+	# +20% for expected result
+	quality = quality + 0.20
+
+	# +50% for code length
+	code_len = len(actor.code.code)
+	best = search.best_instr_len
+	if best <= code_len and TuringCode.max_instr != best:
+		code_len = float(code_len-best) / (TuringCode.max_instr-best)
+		code_len = 1.0 - code_len
+	else:
+		code_len = 1.0
+	quality = quality + 0.50 * code_len
+
+	return quality
 
 # Evaluate quality of alogithm for test sign(a)
 # Result in [0.0 .. 1.0]
@@ -58,7 +130,7 @@ def eval_quality_sign(search, actor):
 			break
 	if not useif: return quality
 	quality = quality + 0.25
-	
+		
 	# exit if it not the expected result
 	value = actor.turing.get_reg("a")
 	if value != search.result: return quality
@@ -69,7 +141,7 @@ def eval_quality_sign(search, actor):
 	# +50% for code length
 	code_len = len(actor.code.code)
 	best = search.best_instr_len
-	if best <= code_len:
+	if best <= code_len and TuringCode.max_instr != best:
 		code_len = float(code_len-best) / (TuringCode.max_instr-best)
 		code_len = 1.0 - code_len
 	else:
@@ -105,7 +177,7 @@ def eval_quality_add(search, actor):
 	# +35% for code length
 	code_len = len(actor.code.code)
 	best = search.best_instr_len
-	if best <= code_len:
+	if best <= code_len and TuringCode.max_instr != best:
 		code_len = float(code_len-best) / (TuringCode.max_instr-best)
 		code_len = 1.0 - code_len
 	else:
@@ -134,7 +206,7 @@ def test_message(test_name, search):
 def test_add(ia):
 	ia.search.population = 10
 	TuringCode.max_instr = 10
-	ia.search.init_vm_func = init_vm_add
+	ia.search.init_vm_func = init_vm_regab
 	ia.search.eval_quality_func = eval_quality_add
 	
 	ia.search.random_vm_func = random_vm_add
@@ -144,7 +216,7 @@ def test_add(ia):
 	ia.search.best_instr_len = 2
 	ia.search.retest_result = 4
 #	ia.search.use_instr = ["add", "push"]
-	ia.search.use_regs = ["a", "b"]
+#	ia.search.use_regs = ["a", "b"]
 	test_message("add(a,b)", ia.search)
 	ia.search.run()
 
@@ -169,18 +241,37 @@ def test_sign(ia):
 	ia.search.eval_quality_func = eval_quality_sign
 	ia.search.random_vm_func = random_vm_sign
 	
-	ia.search.excepted_quality = 0.90
+	ia.search.excepted_quality = 1.0
 	ia.search.population = 30
 	ia.search.timeout = 60.0
-	ia.search.retest_result = 20
+	ia.search.retest_result = 5
 
-	ia.search.use_instr = ["store", "jumpif", "cmp_gt"]
-	ia.search.use_regs = ["a", "b"]
+#	ia.search.use_instr = ["store", "jumpif", "cmp_gt"]
+#	ia.search.use_regs = ["a", "b"]
 	
 	ia.search.best_instr_len = 3
 	TuringCode.min_instr = 2
 	TuringCode.max_instr = 10
 	test_message("sign(a)", ia.search)
+	ia.search.run()
+
+def test_max(ia):
+	ia.search.random_vm_func = random_vm_max
+	ia.search.init_vm_func = init_vm_regab
+	ia.search.eval_quality_func = eval_quality_max
+	
+	ia.search.excepted_quality = 1.0 
+	ia.search.population = 10 
+	ia.search.timeout = 60.0
+	ia.search.retest_result = 10
+
+#	ia.search.use_instr = ["store", "jumpif", "cmp_gt"]
+#	ia.search.use_regs = ["a", "b"]
+	
+	ia.search.best_instr_len = 3
+	TuringCode.min_instr = 3
+	TuringCode.max_instr = 10
+	test_message("max(a)", ia.search)
 	ia.search.run()
 
 def test_turing_jump(ia):
@@ -224,3 +315,16 @@ def test_turing_sign(ia):
 	else:
 		print "fail!"
 
+def test_turing_max(ia):
+	sys.stdout.write("Turing max test: ")
+	c = TuringCode(ia.search.vm)
+	c.code.append( ("store", "a", 2,) )
+	c.code.append( ("store", "b", 8,) )
+	c.code.append( ("cmp_gt", "a", "b", "c") )
+	c.code.append( ("jumpif", "c", 1, ) )
+	c.code.append( ("copy", "b", "a",) )
+	c.run()
+	if c.vm.get_reg("a")==8:
+		print "ok."
+	else:
+		print "fail!"

@@ -1,6 +1,6 @@
-from actor import Actor
 import time
 import sys # sys.stdout
+from actor import Actor
 from turing import Turing
 from exception import TuringException
 import random
@@ -17,8 +17,7 @@ class SearchTuring:
 		self.eval_quality_func = None
 		self.timeout = 3.0 # seconds
 		self.best_quality = -1
-		self.best_index = None
-		self.best_actor = None
+		self.best_index = 0 
 		self.use_instr = None
 		self.use_regs = None
 		self.actor = []
@@ -36,8 +35,11 @@ class SearchTuring:
 		self.population = f.load()
 		self.start()
 		for actor in self.actor: actor.load(f)
-		self.best_actor = self.actor[self.best_index]
 		print "Restore search: step=%u, quality=%.2f%%" % (self.step, self.best_quality)
+		
+	def getBestActor(self):
+		return self.actor[self.best_index]
+	best_actor = property(getBestActor)
 		
 	def save(self, f):
 		f.dump(self.step)
@@ -96,24 +98,25 @@ class SearchTuring:
 			else:
 				continue
 			
-			new_quality = actor.quality
-			if 0 <= self.best_quality and self.best_quality < new_quality and self.random_vm_func != None:
+			if self.best_quality < actor.quality and self.random_vm_func != None:
 				test = 0
+				new_quality = actor.quality
 				while test < self.retest_result and new_quality <= actor.quality:
 					self.random_vm_func(self)
 					self.run_actor(actor)
 					test = test + 1
-				if actor.quality < new_quality: new_quality = -1
-
-			if self.best_quality < new_quality:
-				self.best_quality = new_quality 
-				self.best_actor = actor.copy()
-				self.best_index = actor_index
+				if actor.quality < new_quality:
+					actor.quality = 0.0
+					
+			if self.best_quality < actor.quality:
+				self.best_quality = actor.quality 
+				self.best_index = actor_index-1
 				new_best = True
 
-				print "New best quality = %.2f%%" % (self.best_quality)
+				print "New best quality = %.2f%% (index=%u)" % (self.best_quality, self.best_index)
 				print self.best_actor.code.str()
 
+		# Print all codes
 #		i = 0
 #		for actor in self.actor:
 #			i = i + 1
@@ -137,8 +140,19 @@ class SearchTuring:
 			print "Quality: %.2f%%" % (self.best_quality)
 			return
 
-#		if new_best:
-#			self.actor = [self.best_actor.copy() for i in range(self.population)]
+		if new_best:
+			self.actor = [self.best_actor.copy() for i in range(self.population)]
+	
+	def computeActorQuality(self):
+		qmin = qavg = qmax = self.actor[0].quality
+		i = 0
+		for actor in self.actor[1:]:
+			i = i + 1
+			if qmin>actor.quality: qmin = actor.quality
+			if qmax<actor.quality: qmax = actor.quality
+			qavg = qavg + actor.quality
+		qavg = float(qavg) / len(self.actor)
+		return [qmin, qavg, qmax]
 
 	def run(self):
 		self.start()
@@ -151,8 +165,9 @@ class SearchTuring:
 				break
 			if 1.0 < time.time() - t_sec:
 				t_sec = time.time()
-				print "Search (step=%u, quality=%.2f, time=%us) ..." \
-					% (self.step, self.best_quality, time.time() - t)
-#			print "--- %.2f%%" % (self.best_quality)
-			time.sleep(self.step_sleep) # CPU limit for laptop :-)
+				q = self.computeActorQuality()
+				print "   Search (step=%u, quality=[%.2f %.2f %.2f] -> %.2f, time=%us) ..." \
+					% (self.step, q[0], q[1], q[2], self.best_quality, time.time() - t)
+				print "   > Old best code: %s" % (self.best_actor.code.str())
+			time.sleep(0.010)
 		print "Step: %u" % (self.step)
