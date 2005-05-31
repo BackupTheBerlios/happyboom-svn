@@ -7,8 +7,6 @@ def random_vm_add(search):
 	while search.arga == search.argb:
 		search.argb = random.randint(1,9)
 	search.result = search.arga + search.argb
-#	print "Random : %s+%s = %s" %\
-#		(search.arga, search.argb, search.result)
 	
 # Initialize VM for test "add(a,b)"
 def init_vm_add(search, actor):

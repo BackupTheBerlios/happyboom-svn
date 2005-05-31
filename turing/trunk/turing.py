@@ -42,16 +42,18 @@ class Turing:
 		self.instruction = {\
 			"add": (self.add, "R", "R", "R"),
 			"sub": (self.sub, "R", "R", "R"),
-			"jump": (self.jump, "V"),
-			"jumpif": (self.jumpif, "R", "V"),
-			"store": (self.store, "R", "V"),
-			"pop": (self.pop, "R"),
+#			"jump": (self.jump, "V"),
+#			"jumpif": (self.jumpif, "R", "V"),
+#			"store": (self.store, "R", "V"),
+#			"pop": (self.pop, "R"),
 			"push": (self.push, "R")
 			}
 		self.regs = {"a": 0, "b": 0, "c": 0, "d": 0}
 		self.verbose = False
 		self.instr_pointer = 0
 		self.conditionnal = False
+		self.step = 0
+		self.max_step = 20
 
 	def copy(self):
 		turing = Turing()
@@ -85,9 +87,8 @@ class Turing:
 	def jumpif(self, instr):
 		if instr[2] == -1: 
 			raise TuringException("Illegal jump!")
-		self.conditionnal = True
 		if self.get_reg( instr[1] ) == 0: return
-		print instr[1], self.get_reg( instr[1] )
+		self.conditionnal = (instr[2] < 0)
 		self.do_jump(instr[2])
 
 	def sub(self, instr):
@@ -109,9 +110,13 @@ class Turing:
 
 	def run(self):
 		self.instr_pointer = 0
+		self.step = 0
 		while self.instr_pointer < len(self.code):
 			self.run_instr(self.code[self.instr_pointer])
 			self.instr_pointer = self.instr_pointer + 1
+			self.step = self.step + 1
+			if self.max_step < self.step:
+				raise TuringException("To much Turing steps!")
 
 	def print_regs(self):
 		print "[ Regs ]"

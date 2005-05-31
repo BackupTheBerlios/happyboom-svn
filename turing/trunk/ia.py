@@ -9,6 +9,14 @@ from search import SearchTuring
 
 from test import *
 
+def test_message(test_name, search):
+	print ""
+	print "=== Start test \"%s\" ===" % (test_name)
+	print "Quality >= %.2f" % (search.excepted_quality)
+	print "Population = %u" % (search.population)
+	print "Max. instr = %u" % (Actor.max_instr)
+	print ""
+
 def test_add():
 	search = SearchTuring()
 	Actor.max_instr = 10
@@ -21,7 +29,7 @@ def test_add():
 	search.population = 100
 	search.timeout = 20.0
 	search.best_instr_len = 2
-	print "Start add(a,b) test : search %.2f%% <= quality." % (search.excepted_quality)
+	test_message("add(a,b)", search)
 	search.run()
 
 def test_add3():
@@ -34,7 +42,7 @@ def test_add3():
 	search.timeout = 30.0
 	search.best_instr_len = 3
 	search.result = 17
-	print "Start add(a,b,c) test : search %.2f%% <= quality." % (search.excepted_quality)
+	test_message("add(a,b,c)", search)
 	search.run()
 
 def test_turing_jump():
@@ -71,6 +79,7 @@ def main():
 #		test_add3()
 #		test_turing_jump()
 #		test_turing_jumpif()
+		print ""
 	
 	except Exception, msg:
 		print "EXCEPTION :"

@@ -39,8 +39,8 @@ class SearchTuring:
 			try:
 				actor.eval()
 				actor.quality = self.eval_quality_func (self, actor)
-			except:# TuringException, msg:
-				raise #actor.quality = 0.0
+			except TuringException, msg:
+				actor.quality = 0.0
 			
 			if best_quality < actor.quality:
 				best_quality = actor.quality
