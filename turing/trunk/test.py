@@ -1,9 +1,19 @@
 from search import Actor
+import random
 
+def random_vm_add(search):
+	search.arga = random.randint(1,9)
+	search.argb = random.randint(1,9)
+	while search.arga == search.argb:
+		search.argb = random.randint(1,9)
+	search.result = search.arga + search.argb
+#	print "Random : %s+%s = %s" %\
+#		(search.arga, search.argb, search.result)
+	
 # Initialize VM for test "add(a,b)"
 def init_vm_add(search, actor):
-	actor.vm.set_reg("a", 5)
-	actor.vm.set_reg("b", 2)			
+	actor.vm.set_reg("a", search.arga)
+	actor.vm.set_reg("b", search.argb)			
 
 # Initialize VM for test "add(a,b,c)"
 def init_vm_add3(search, actor):
@@ -46,12 +56,13 @@ def eval_quality_add(search, actor):
 	quality = quality + 0.35 * code_len
 
 	# +10% if it doesn't use store trick
-	trick = False
-	for instr in actor.vm.code:
-		if instr[0] == 'store':
-			trick = True
-			break
-	if not trick: quality = quality + 0.10
+#	trick = False
+#	for instr in actor.vm.code:
+#		if instr[0] == 'store':
+#			trick = True
+#			break
+#	if not trick: quality = quality + 0.10
+	quality = quality + 0.10
 
 	# Final quality
 	return quality

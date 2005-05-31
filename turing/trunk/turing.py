@@ -42,12 +42,16 @@ class Turing:
 		self.instruction = {\
 			"add": (self.add, "R", "R", "R"),
 			"sub": (self.sub, "R", "R", "R"),
-			"push": (self.push, "R"),
-			"pop": (self.pop, "R"),
+			"jump": (self.jump, "V"),
+			"jumpif": (self.jumpif, "R", "V"),
 			"store": (self.store, "R", "V"),
+			"pop": (self.pop, "R"),
+			"push": (self.push, "R")
 			}
 		self.regs = {"a": 0, "b": 0, "c": 0, "d": 0}
 		self.verbose = False
+		self.instr_pointer = 0
+		self.conditionnal = False
 
 	def copy(self):
 		turing = Turing()
@@ -56,11 +60,35 @@ class Turing:
 		turing.code = self.code[:]
 		return turing
 
+	def get_reg(self, reg):
+		return self.regs[ reg ]
+
 	def set_reg(self, reg, value):
 		self.regs[ reg ] = value
 
 	def add(self, instr):
 		self.regs[ instr[3] ] = self.regs[ instr[1] ] + self.regs[ instr[2] ]
+
+	def jump(self, instr):
+		if instr[1] == -1: 
+			raise TuringException("Illegal jump!")
+		if instr[1] < 0 and not self.conditionnal:
+			raise TuringException("Illegal jump (without conditionnal code)!")
+		self.do_jump(instr[1])
+
+	def do_jump(self, diff):
+		ip = self.instr_pointer + diff
+		if ip < 0 or len(self.code) <= ip:
+			raise TuringException("Illegal jump (out of code)!")
+		self.instr_pointer = ip		
+		
+	def jumpif(self, instr):
+		if instr[2] == -1: 
+			raise TuringException("Illegal jump!")
+		self.conditionnal = True
+		if self.get_reg( instr[1] ) == 0: return
+		print instr[1], self.get_reg( instr[1] )
+		self.do_jump(instr[2])
 
 	def sub(self, instr):
 		self.regs[ instr[3] ] = self.regs[ instr[1] ] - self.regs[ instr[2] ]
@@ -75,13 +103,15 @@ class Turing:
 		self.regs[ instr[1] ] = instr[2]
 
 	def run_instr(self, instr):
-		if self.verbose: print "Exec %s" % ( str(instr) )
+		if self.verbose: print "[ip=%u] Exec %s" % (self.instr_pointer, str(instr) )
 		func = self.instruction[ instr[0] ][0]
 		func (instr)
 
 	def run(self):
-		for instr in self.code:
-			self.run_instr(instr)
+		self.instr_pointer = 0
+		while self.instr_pointer < len(self.code):
+			self.run_instr(self.code[self.instr_pointer])
+			self.instr_pointer = self.instr_pointer + 1
 
 	def print_regs(self):
 		print "[ Regs ]"
@@ -104,7 +134,6 @@ class Turing:
 			s = s + str(instr[1])
 			for arg in instr[2:]: s = s + "," + str(arg)
 		return s + ")"
-		
 	
 	def print_code(self):
 		s = ""
