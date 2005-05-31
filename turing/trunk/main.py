@@ -13,14 +13,16 @@ def usage(defval):
 	print "Usage: %s [options] [test]" % (sys.argv[0])
 	print
 	print "Options :"
-	print "\t--help : Show this help"
-	print "\ttest   : Turing test (add, add3, sign)"
+	print "\t--help      : Show this help"
+	print "\t--dont-load : Don't load old state"
+	print "\t--dont-save : Don't save state when interrupted (CTRL+C)"
+	print "\ttest        : Turing test (add, add3, sign)"
 
 def parseArgs(ia, val):
 	defval = val.copy()
 	try:
 		short = "h" #:p:dv"
-		long = ["help"]
+		long = ["help", "dont-load", "dont-save"]
 		opts, args = getopt.getopt(sys.argv[1:], short, long)
 	except getopt.GetoptError:
 		usage(defval)
@@ -36,8 +38,10 @@ def parseArgs(ia, val):
 		if o == "--help":
 			usage(defval)
 			sys.exit()
-#		if o in ("-p", "--port",):
-#			val["port"] = int(a)
+		if o == "--dont-load":
+			val["load"] = False
+		if o == "--dont-save":
+			val["save"] = False
 	return val
 
 def main():
@@ -46,6 +50,8 @@ def main():
 		ia = MainIA()
 
 		val = { \
+			"load": True,
+			"save": True,
 			"test": "add"}
 		val = parseArgs(ia, val)
 		

@@ -142,7 +142,7 @@ def test_add(ia):
 	ia.search.excepted_quality = 1.0
 	ia.search.timeout = 20.0
 	ia.search.best_instr_len = 2
-	ia.search.retest_result = 3
+	ia.search.retest_result = 4
 #	ia.search.use_instr = ["add", "push"]
 	ia.search.use_regs = ["a", "b"]
 	test_message("add(a,b)", ia.search)
@@ -152,11 +152,11 @@ def test_add3(ia):
 	ia.search.random_vm_func = random_vm_add3
 	ia.search.init_vm_func = init_vm_add3
 	ia.search.eval_quality_func = eval_quality_add
-	ia.search.excepted_quality = 0.90
+	ia.search.excepted_quality = 1.0
 	ia.search.population = 10
 	ia.search.timeout = 30.0
 	ia.search.best_instr_len = 3
-	ia.search.retest_result = 2
+	ia.search.retest_result = 5
 	ia.search.use_instr = [\
 		"add", "sub", "neg", "copy", "push", "store", "pop"]
 	TuringCode.min_instr = 3

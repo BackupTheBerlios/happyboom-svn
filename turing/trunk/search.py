@@ -76,16 +76,26 @@ class SearchTuring:
 		if self.random_vm_func != None: self.random_vm_func(self)
 	
 		quality = {}
-		i = 0
+		actor_index = 0
 		new_best = False
 		for actor in self.actor:
-			actor.name = "Actor %u" % (i)
+			actor_index = actor_index + 1
+			actor.name = "Actor %u" % (actor_index)
 
+			if actor.quality==None: self.run_actor(actor)
+			
+			new_actor = actor.copy()
 			nb = random.randint(1,3)
-			for i in range(nb):	actor.mutation()
+			for i in range(nb):	new_actor.mutation()
 
-			self.run_actor(actor)
-
+			self.run_actor(new_actor)
+			take_bad = random.random()
+			if take_bad < 0.002 or (actor.quality < new_actor.quality):
+				self.actor[actor_index-1] = new_actor
+				actor = new_actor
+			else:
+				continue
+			
 			new_quality = actor.quality
 			if 0 <= self.best_quality and self.best_quality < new_quality and self.random_vm_func != None:
 				test = 0
@@ -97,20 +107,18 @@ class SearchTuring:
 
 			if self.best_quality < new_quality:
 				self.best_quality = new_quality 
-				self.best_actor = actor
-				self.best_index = i
+				self.best_actor = actor.copy()
+				self.best_index = actor_index
 				new_best = True
 
 				print "New best quality = %.2f%%" % (self.best_quality)
 				print self.best_actor.code.str()
 
-			i = i + 1
-
-#		best_actor.vm.print_code();
-#		if self.best_quality>=0.25:
-#			print "Step %u" % (self.step)
-#			self.actor[self.best_index].vm.print_code()
-#			time.sleep(0.250)
+#		i = 0
+#		for actor in self.actor:
+#			i = i + 1
+#			if i == self.best_index: sys.stdout.write ("* ")
+#			print "%s [%.2f%%] : %s" % (actor.name, actor.quality, actor.code.str())
 
 		self.quit = (self.excepted_quality <= self.best_quality)
 		if self.quit:
@@ -129,8 +137,8 @@ class SearchTuring:
 			print "Quality: %.2f%%" % (self.best_quality)
 			return
 
-		if new_best:
-			self.actor = [self.best_actor.copy() for i in range(self.population)]
+#		if new_best:
+#			self.actor = [self.best_actor.copy() for i in range(self.population)]
 
 	def run(self):
 		self.start()
@@ -145,5 +153,6 @@ class SearchTuring:
 				t_sec = time.time()
 				print "Search (step=%u, quality=%.2f, time=%us) ..." \
 					% (self.step, self.best_quality, time.time() - t)
+#			print "--- %.2f%%" % (self.best_quality)
 			time.sleep(self.step_sleep) # CPU limit for laptop :-)
 		print "Step: %u" % (self.step)

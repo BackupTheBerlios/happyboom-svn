@@ -8,7 +8,7 @@ class Actor:
 			self.step = 0
 			self.verbose = False
 			self.name = "no name"
-			self.quality = 0.0
+			self.quality = None 
 		else:
 			self.code = copy.code.copy()
 			self.step = copy.step

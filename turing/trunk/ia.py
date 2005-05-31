@@ -15,11 +15,14 @@ class MainIA:
 			"add": test_add,
 			"add3": test_add3,
 			"sign": test_sign}
+		self.search.step_sleep = 0.0
+		self.save_result = True
 
 	def init(self, arg):
 		self.test_name = arg["test"]
+		self.save_result = arg["save"]
 		self.search_func = self.valid_test[self.test_name]
-		self.load()
+		if arg["load"]: self.load()
 
 	def stateFilename(self):
 		return self.test_name+"_state"
@@ -48,6 +51,8 @@ class MainIA:
 			print "Load error."
 
 	def save(self):
+		if not self.save_result: return
+
 		filename = self.stateFilename()
 
 		# Result found : remove old state

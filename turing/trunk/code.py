@@ -16,7 +16,7 @@ class TuringCode:
 			self.use_instr = copy.use_instr[:]
 			
 	def copy(self):
-		return TuringCode(self.vm)
+		return TuringCode(self.vm, copy=self)
 
 	def load(self, f):
 		self.code = f.load() 
@@ -63,6 +63,7 @@ class TuringCode:
 			self.code.append( self.gen_instr() )
 
 	def run(self):
+		if len(self.code) == 0: self.regenerate()
 		self.vm.run(self.code)
 
 	def mutation(self):
@@ -98,5 +99,3 @@ class TuringCode:
 			index = random.randint(0, len(self.code)-1)
 			instr = self.gen_instr()
 			self.code[index] = instr 
-
-		print "New code : %s" % self.str()
