@@ -4,7 +4,6 @@ from exception import TuringException
 
 class Turing:
 	def __init__(self):
-		self.code = []
 		self.stack = TuringStack() 
 		self.instruction = {\
 			"add": (self.add, "R", "R", "R"),
@@ -23,25 +22,7 @@ class Turing:
 		self.instr_pointer = 0
 		self.step = 0
 		self.max_step = 20
-
-	def copy(self):
-		turing = Turing()
-		turing.regs = self.regs.copy()
-		turing.stack = self.stack.copy()
-		turing.code = self.code[:]
-		return turing
-
-	def load(self, f):
-		self.code = f.load() 
-		self.verbose = f.load()
-		self.step = f.load()
-		self.max_step = f.load()
-
-	def save(self, f):
-		f.dump( self.code )
-		f.dump( self.verbose )
-		f.dump( self.step )
-		f.dump( self.max_step )
+		self.code = None
 
 	def get_reg(self, reg):
 		return self.regs[ reg ]
@@ -101,9 +82,10 @@ class Turing:
 		func = self.instruction[ instr[0] ][0]
 		func (instr)
 
-	def run(self):
+	def run(self, code):
 		self.instr_pointer = 0
 		self.step = 0
+		self.code = code
 		while self.instr_pointer < len(self.code):
 			self.run_instr(self.code[self.instr_pointer])
 			self.instr_pointer = self.instr_pointer + 1
@@ -133,20 +115,11 @@ class Turing:
 			for arg in instr[2:]: s = s + "," + str(arg)
 		return s + ")"
 	
-	def print_code(self):
-		s = ""
-		for instr in self.code:
-			s = s + " %s;" % self.instr2str(instr)
-		print "Code:%s" % (s)
-		
 	def print_dump(self):
 		print ""
 		self.print_regs()
 		self.print_stack()
 		
-	def reset_code(self):
-		self.code = []
-
 	def reset_stack(self):
 		self.stack.reset()
 

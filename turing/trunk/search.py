@@ -1,7 +1,8 @@
 from actor import Actor
 import time
 import sys # sys.stdout
-from turing import TuringException
+from turing import Turing
+from exception import TuringException
 import random
 
 class SearchTuring:
@@ -21,6 +22,8 @@ class SearchTuring:
 		self.use_instr = None
 		self.use_regs = None
 		self.actor = []
+		self.vm = Turing()
+		self.step_sleep = 0.0
 
 	def load(self, f):
 		self.step = f.load()
@@ -50,14 +53,14 @@ class SearchTuring:
 	def start(self):
 		self.actor = []
 		for i in range(self.population):
-			actor = Actor()
-			if self.use_instr != None: actor.use_instr = self.use_instr
-			if self.use_regs != None: actor.use_regs = self.use_regs
+			actor = Actor(self.vm)
+			if self.use_instr != None: actor.code.use_instr = self.use_instr
+			if self.use_regs != None: actor.code.use_regs = self.use_regs
 			self.actor.append(actor)
 	
 	def run_actor(self,actor):
-		actor.vm.reset_stack()
-		actor.vm.reset_regs()
+		actor.turing.reset_stack()
+		actor.turing.reset_regs()
 		if self.init_vm_func != None: self.init_vm_func (self, actor)
 		try:
 			actor.eval()
@@ -99,7 +102,7 @@ class SearchTuring:
 				new_best = True
 
 				print "New best quality = %.2f%%" % (self.best_quality)
-				self.best_actor.vm.print_code()
+				print self.best_actor.code.str()
 
 			i = i + 1
 
@@ -113,15 +116,15 @@ class SearchTuring:
 		if self.quit:
 			print "=== Winner : %s ===" % self.best_actor.name 
 			actor = self.best_actor.copy()
-			actor.vm.reset_stack()
-			actor.vm.reset_regs()
+			actor.turing.reset_stack()
+			actor.turing.reset_regs()
 			if self.init_vm_func != None: self.init_vm_func (self, actor)
 			sys.stdout.write("Initial ")
-			actor.vm.print_regs()
+			actor.turing.print_regs()
 
-			self.best_actor.vm.print_code()
-			self.best_actor.vm.print_stack()
-			self.best_actor.vm.print_regs()
+			print self.best_actor.code.str()
+			self.best_actor.turing.print_stack()
+			self.best_actor.turing.print_regs()
 
 			print "Quality: %.2f%%" % (self.best_quality)
 			return
@@ -142,5 +145,5 @@ class SearchTuring:
 				t_sec = time.time()
 				print "Search (step=%u, quality=%.2f, time=%us) ..." \
 					% (self.step, self.best_quality, time.time() - t)
-			time.sleep(0.010) # CPU limit for laptop :-)
+			time.sleep(self.step_sleep) # CPU limit for laptop :-)
 		print "Step: %u" % (self.step)
