@@ -3,7 +3,7 @@ import random
 
 class Actor:
 	min_instr = 1
-	max_instr = 5
+	max_instr = 1
 
 	def __init__(self, copy=None):
 		if copy==None:

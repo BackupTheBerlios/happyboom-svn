@@ -23,7 +23,6 @@ class SearchTuring:
 		self.actor = []
 
 	def load(self, f):
-		self.population = f.load()
 		self.step = f.load()
 		self.retest_result = f.load()
 		self.excepted_quality = f.load()
@@ -31,14 +30,13 @@ class SearchTuring:
 		self.best_index = f.load()
 		self.use_instr = f.load()
 		self.use_regs = f.load()
+		self.population = f.load()
 		self.start()
-		for actor in self.actor:
-			actor.load(f)
+		for actor in self.actor: actor.load(f)
 		self.best_actor = self.actor[self.best_index]
-		print "Search restored : quality=%.2f%%" % (self.best_quality)
+		print "Restore search: step=%u, quality=%.2f%%" % (self.step, self.best_quality)
 		
 	def save(self, f):
-		f.dump(self.population)
 		f.dump(self.step)
 		f.dump(self.retest_result)
 		f.dump(self.excepted_quality)
@@ -46,8 +44,8 @@ class SearchTuring:
 		f.dump(self.best_index)
 		f.dump(self.use_instr)
 		f.dump(self.use_regs)
-		for actor in self.actor:
-			actor.save(f)
+		f.dump(self.population)
+		for actor in self.actor: actor.save(f)
 
 	def start(self):
 		self.actor = []
