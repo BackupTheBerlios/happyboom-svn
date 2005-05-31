@@ -20,6 +20,34 @@ class SearchTuring:
 		self.best_actor = None
 		self.use_instr = None
 		self.use_regs = None
+		self.actor = []
+
+	def load(self, f):
+		self.population = f.load()
+		self.step = f.load()
+		self.retest_result = f.load()
+		self.excepted_quality = f.load()
+		self.best_quality = f.load()
+		self.best_index = f.load()
+		self.use_instr = f.load()
+		self.use_regs = f.load()
+		self.start()
+		for actor in self.actor:
+			actor.load(f)
+		self.best_actor = self.actor[self.best_index]
+		print "Search restored : quality=%.2f%%" % (self.best_quality)
+		
+	def save(self, f):
+		f.dump(self.population)
+		f.dump(self.step)
+		f.dump(self.retest_result)
+		f.dump(self.excepted_quality)
+		f.dump(self.best_quality)
+		f.dump(self.best_index)
+		f.dump(self.use_instr)
+		f.dump(self.use_regs)
+		for actor in self.actor:
+			actor.save(f)
 
 	def start(self):
 		self.actor = []
@@ -72,7 +100,7 @@ class SearchTuring:
 				self.best_index = i
 				new_best = True
 
-				print "New best quality = %s" % (self.best_quality)
+				print "New best quality = %.2f%%" % (self.best_quality)
 				self.best_actor.vm.print_code()
 
 			i = i + 1

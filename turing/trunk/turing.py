@@ -56,7 +56,6 @@ class Turing:
 		self.regs = {"a": 0, "b": 0, "c": 0, "d": 0}
 		self.verbose = False
 		self.instr_pointer = 0
-		self.conditionnal = False
 		self.step = 0
 		self.max_step = 20
 
@@ -66,6 +65,18 @@ class Turing:
 		turing.stack = self.stack.copy()
 		turing.code = self.code[:]
 		return turing
+
+	def load(self, f):
+		self.code = f.load() 
+		self.verbose = f.load()
+		self.step = f.load()
+		self.max_step = f.load()
+
+	def save(self, f):
+		f.dump( self.code )
+		f.dump( self.verbose )
+		f.dump( self.step )
+		f.dump( self.max_step )
 
 	def get_reg(self, reg):
 		return self.regs[ reg ]
@@ -94,8 +105,6 @@ class Turing:
 	def jump(self, instr):
 		if instr[1] == -1: 
 			raise TuringException("Illegal jump!")
-		if instr[1] < 0 and not self.conditionnal:
-			raise TuringException("Illegal jump (without conditionnal code)!")
 		self.do_jump(instr[1])
 
 	def do_jump(self, diff):
@@ -108,7 +117,6 @@ class Turing:
 		if instr[2] == -1: 
 			raise TuringException("Illegal jump!")
 		if self.get_reg( instr[1] ) == 0: return
-		self.conditionnal = (instr[2] < 0)
 		self.do_jump(instr[2])
 
 	def sub(self, instr):

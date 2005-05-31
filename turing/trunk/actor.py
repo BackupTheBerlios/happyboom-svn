@@ -26,6 +26,24 @@ class Actor:
 	def copy(self):
 		return Actor(self)
 
+	def load(self, f):
+		self.step = f.load() 
+		self.name = f.load()
+		self.verbose = f.load()
+		self.use_regs = f.load()
+		self.use_instr = f.load()
+		self.quality = f.load()
+		self.vm.load (f)
+
+	def save(self, f):
+		f.dump( self.step ) 
+		f.dump( self.name )
+		f.dump( self.verbose )
+		f.dump( self.use_regs )
+		f.dump( self.use_instr )
+		f.dump( self.quality )
+		self.vm.save(f)
+
 	def gen_value(self, func):
 		return random.randint(-9,9)
 

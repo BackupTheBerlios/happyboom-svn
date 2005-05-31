@@ -1,129 +1,71 @@
-#!/usr/bin/python
-import random
-import traceback
-import sys
-
-from turing import Turing
-from search import Actor
 from search import SearchTuring
-
 from test import *
+import pickle
+import os # os.remove
 
-def test_message(test_name, search):
-	print ""
-	print "=== Start test \"%s\" ===" % (test_name)
-	print "Quality >= %.2f" % (search.excepted_quality)
-	print "Population = %u" % (search.population)
-	print "Max. instr = %u" % (Actor.max_instr)
-	print ""
+class MainIA:
+	def __init__(self):
+		self.x = 0
+		self.search_func = None
+		self.search = SearchTuring()
+		self.test_name = "add"
+		self.first_run = True
+		self.valid_test = { \
+			"add": test_add,
+			"add3": test_add3,
+			"sign": test_sign}
 
-def test_sign():
-	search = SearchTuring()
+	def init(self, arg):
+		self.test_name = arg["test"]
+		self.search_func = self.valid_test[self.test_name]
+		self.load()
 
-	search.init_vm_func = init_vm_sign
-	search.eval_quality_func = eval_quality_sign
-	search.random_vm_func = random_vm_sign
-	
-	search.excepted_quality = 0.90
-	search.population = 30
-	search.timeout = 60.0
-	search.retest_result = 20
+	def stateFilename(self):
+		return self.test_name+"_state"
 
-	search.use_instr = ["store", "jumpif", "cmp_gt"]
-	search.use_regs = ["a", "b"]
-	
-	search.best_instr_len = 3
-	Actor.min_instr = 2
-	Actor.max_instr = 4
-	test_message("sign(a)", search)
-	search.run()
+	def load(self):
+		filename = self.stateFilename()
+		try:
+			f = open(filename, 'r')
+		except IOError, code:
+			return
+			
+		print "Load ia from %s." % (filename)
+		try:
+			unpick = pickle.Unpickler(f)
+			self.test_name = unpick.load()
+			self.search.load(unpick)
+			self.first_run = False
+		except EOFError:
+			print "Load error."
 
-def test_add():
-	search = SearchTuring()
-	Actor.max_instr = 10
-	search.init_vm_func = init_vm_add
-	search.eval_quality_func = eval_quality_add
-	
-	search.random_vm_func = random_vm_add
-	
-	search.excepted_quality = 1.0
-	search.population = 10
-	search.timeout = 20.0
-	search.best_instr_len = 2
-	search.use_instr = ["add", "push"]
-	search.use_regs = ["a", "b"]
-	test_message("add(a,b)", search)
-	search.run()
+	def save(self):
+		filename = self.stateFilename()
 
-def test_add3():
-	search = SearchTuring()
-	Actor.max_instr = 10
-	search.init_vm_func = init_vm_add3
-	search.eval_quality_func = eval_quality_add
-	search.excepted_quality = 0.90
-	search.population = 10
-	search.timeout = 30.0
-	search.best_instr_len = 3
-	search.result = 17
-	test_message("add(a,b,c)", search)
-	search.run()
+		# Result found : remove old state
+		if self.search.quit:
+			try:
+				os.remove(filename)
+			except:
+				pass
+			return
 
-def test_turing_jump():
-	sys.stdout.write("Turing jump test: ")
-	vm = Turing()
-	vm.code.append( ("store", "a", 2,) )
-	vm.code.append( ("jump", 1,) )
-	vm.code.append( ("store", "a", 5,) )
-	vm.run()
-	if vm.get_reg("a")==2:
-		print "ok."
-	else:
-		print "fail!"
+		# Save state
+		print "Save ia into %s." % (filename)
+		try:
+			f = open(filename, 'w')
+		except IOError, code:
+			print "Can't save state :-("
+			return
+		pick = pickle.Pickler(f)
+		pick.dump(self.test_name)
+		self.search.save(pick)
 
-def test_turing_sign():
-	sys.stdout.write("Turing jumpif test: ")
-	vm = Turing()
-	vm.verbose = True
-	vm.code.append( ("store", "a", 8,) )
-	vm.code.append( ("cmp_gt", "a", "b", "b") )
-	vm.code.append( ("store", "a", 1,) )
-	vm.code.append( ("jumpif", "b", 1, ) )
-	vm.code.append( ("store", "a", -1,) )
-	vm.run()
-	if vm.get_reg("a")==1:
-		print "ok."
-	else:
-		print "fail!"
-
-def test_turing_jumpif():
-	sys.stdout.write("Turing jumpif test: ")
-	vm = Turing()
-	vm.verbose = True
-	vm.code.append( ("store", "b", 2,) )
-	vm.code.append( ("store", "a", 1,) )
-	vm.code.append( ("jumpif", "a", 1, ) )
-	vm.code.append( ("store", "b", 5,) )
-	vm.run()
-	if vm.get_reg("b")==2:
-		print "ok."
-	else:
-		print "fail!"
-
-def main():
-	random.seed()
-
-	try:
-#		test_add()
-		test_sign()
-#		test_add3()
-#		test_turing_jump()
-#		test_turing_jumpif()
-#		test_turing_sign()
-		print ""
-	
-	except Exception, msg:
-		print "EXCEPTION :"
-		print msg
-		traceback.print_exc()
-
-if __name__=="__main__": main()
+	def run(self):
+		try:
+			if self.search_func == None:
+				raise Exception("Invalid search function")
+			self.search_func (self)
+		except KeyboardInterrupt:
+			pass
+		self.save()
