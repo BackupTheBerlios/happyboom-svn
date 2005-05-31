@@ -17,6 +17,27 @@ def test_message(test_name, search):
 	print "Max. instr = %u" % (Actor.max_instr)
 	print ""
 
+def test_sign():
+	search = SearchTuring()
+
+	search.init_vm_func = init_vm_sign
+	search.eval_quality_func = eval_quality_sign
+	search.random_vm_func = random_vm_sign
+	
+	search.excepted_quality = 0.90
+	search.population = 30
+	search.timeout = 60.0
+	search.retest_result = 20
+
+	search.use_instr = ["store", "jumpif", "cmp_gt"]
+	search.use_regs = ["a", "b"]
+	
+	search.best_instr_len = 3
+	Actor.min_instr = 2
+	Actor.max_instr = 4
+	test_message("sign(a)", search)
+	search.run()
+
 def test_add():
 	search = SearchTuring()
 	Actor.max_instr = 10
@@ -26,9 +47,11 @@ def test_add():
 	search.random_vm_func = random_vm_add
 	
 	search.excepted_quality = 1.0
-	search.population = 100
+	search.population = 10
 	search.timeout = 20.0
 	search.best_instr_len = 2
+	search.use_instr = ["add", "push"]
+	search.use_regs = ["a", "b"]
 	test_message("add(a,b)", search)
 	search.run()
 
@@ -57,6 +80,21 @@ def test_turing_jump():
 	else:
 		print "fail!"
 
+def test_turing_sign():
+	sys.stdout.write("Turing jumpif test: ")
+	vm = Turing()
+	vm.verbose = True
+	vm.code.append( ("store", "a", 8,) )
+	vm.code.append( ("cmp_gt", "a", "b", "b") )
+	vm.code.append( ("store", "a", 1,) )
+	vm.code.append( ("jumpif", "b", 1, ) )
+	vm.code.append( ("store", "a", -1,) )
+	vm.run()
+	if vm.get_reg("a")==1:
+		print "ok."
+	else:
+		print "fail!"
+
 def test_turing_jumpif():
 	sys.stdout.write("Turing jumpif test: ")
 	vm = Turing()
@@ -75,10 +113,12 @@ def main():
 	random.seed()
 
 	try:
-		test_add()
+#		test_add()
+		test_sign()
 #		test_add3()
 #		test_turing_jump()
 #		test_turing_jumpif()
+#		test_turing_sign()
 		print ""
 	
 	except Exception, msg:

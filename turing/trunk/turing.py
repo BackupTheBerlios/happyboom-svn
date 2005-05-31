@@ -1,3 +1,5 @@
+import sys # sys.stdout
+
 class TuringException(Exception):
 	def __init__(self, msg):
 		Exception.__init__(self, msg)
@@ -42,10 +44,13 @@ class Turing:
 		self.instruction = {\
 			"add": (self.add, "R", "R", "R"),
 			"sub": (self.sub, "R", "R", "R"),
-#			"jump": (self.jump, "V"),
-#			"jumpif": (self.jumpif, "R", "V"),
-#			"store": (self.store, "R", "V"),
-#			"pop": (self.pop, "R"),
+			"neg": (self.neg, "R"),
+			"copy": (self.copyreg, "R", "R"),
+			"cmp_gt": (self.cmp_gt, "R", "R", "R"),
+			"jump": (self.jump, "V"),
+			"jumpif": (self.jumpif, "R", "V"),
+			"store": (self.store, "R", "V"),
+			"pop": (self.pop, "R"),
 			"push": (self.push, "R")
 			}
 		self.regs = {"a": 0, "b": 0, "c": 0, "d": 0}
@@ -67,6 +72,21 @@ class Turing:
 
 	def set_reg(self, reg, value):
 		self.regs[ reg ] = value
+
+	def copyreg(self, instr):
+		val = self.get_reg(instr[1])
+		self.set_reg(instr[2], val)
+
+	def cmp_gt(self, instr):
+		if self.get_reg(instr[1]) > self.get_reg(instr[2]):
+			self.set_reg(instr[3], 1)
+		else:
+			self.set_reg(instr[3], 0)
+
+	def neg(self, instr):
+		val = self.get_reg( instr[1] )
+		val = -val
+		self.regs[ instr[1] ] = val
 
 	def add(self, instr):
 		self.regs[ instr[3] ] = self.regs[ instr[1] ] + self.regs[ instr[2] ]
@@ -119,9 +139,9 @@ class Turing:
 				raise TuringException("To much Turing steps!")
 
 	def print_regs(self):
-		print "[ Regs ]"
+		sys.stdout.write("Regs: ")
 		for name,value in self.regs.items():
-			print "%s: %s" % (name, value)
+			sys.stdout.write("%s=%s, " % (name, value))
 		print ""
 
 	def print_stack(self):
