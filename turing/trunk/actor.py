@@ -1,10 +1,11 @@
 from code import TuringCode
 
 class Actor:
-	def __init__(self, turing, copy=None):
-		self.turing = turing
+	def __init__(self, search, copy=None):
+		self.search = search
+		self.turing = search.vm
 		if copy==None:
-			self.code = TuringCode(self.turing)
+			self.code = TuringCode(self.search)
 			self.step = 0
 			self.verbose = False
 			self.name = "no name"
@@ -17,7 +18,7 @@ class Actor:
 			self.quality = copy.quality
 
 	def copy(self):
-		return Actor(self.turing, copy=self)
+		return Actor(self.search, copy=self)
 
 	def load(self, f):
 		self.step = f.load() 

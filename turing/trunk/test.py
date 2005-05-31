@@ -55,13 +55,13 @@ def random_vm_add(search):
 	search.result = search.arga + search.argb
 	
 def random_vm_add3(search):
-	search.arga = random.randint(-9,9)
-	search.argb = random.randint(-9,9)
+	search.arga = random.randint(-100,100)
+	search.argb = random.randint(-100,100)
 	while search.arga == search.argb:
-		search.argb = random.randint(-9,9)
-	search.argc = random.randint(-9,9)
+		search.argb = random.randint(-100,100)
+	search.argc = random.randint(-100,100)
 	while search.argc == search.arga or search.argc == search.argb:
-		search.argc = random.randint(-9,9)
+		search.argc = random.randint(-100,100)
 	search.result = search.arga + search.argb + search.argc
 	
 # Initialize VM for test "add(a,b)"
@@ -78,7 +78,7 @@ def init_vm_add3(search, actor):
 # Evaluate quality of alogithm for test max(a,b)
 # Result in [0.0 .. 1.0]
 def eval_quality_max(search, actor):
-	quality = 0.0
+	quality = 0.00
 
 	# +15% for use of if instruction
 	useif = False
@@ -90,12 +90,7 @@ def eval_quality_max(search, actor):
 	quality = quality + 0.15
 		
 	# +15% for use of if instruction
-	useif = False
-	for instr in actor.code.code:
-		if instr[0] == 'jumpif':
-			useif = True
-			break
-	if not useif: return quality
+	if not actor.code.contains("jumpif"): return quality
 	quality = quality + 0.15
 	
 	# exit if it not the expected result
@@ -104,56 +99,35 @@ def eval_quality_max(search, actor):
 
 	# +20% for expected result
 	quality = quality + 0.20
-
+	
 	# +50% for code length
-	code_len = len(actor.code.code)
-	best = search.best_instr_len
-	if best <= code_len and TuringCode.max_instr != best:
-		code_len = float(code_len-best) / (TuringCode.max_instr-best)
-		code_len = 1.0 - code_len
-	else:
-		code_len = 1.0
-	quality = quality + 0.50 * code_len
+	quality = quality + 0.50 * actor.code.length_quality()
 
 	return quality
 
 # Evaluate quality of alogithm for test sign(a)
-# Result in [0.0 .. 1.0]
 def eval_quality_sign(search, actor):
 	quality = 0.0
 	
-	# +25% for use of if instruction
-	useif = False
-	for instr in actor.code.code:
-		if instr[0] == 'jumpif':
-			useif = True
-			break
-	if not useif: return quality
-	quality = quality + 0.25
-		
+	# +15% for use of if instruction
+	if actor.code.contains("jumpif"): quality = quality + 0.15
+	
+	# +15% for use of if instruction
+	if actor.code.contains("cmp_gt"): quality = quality + 0.15
+	
 	# exit if it not the expected result
 	value = actor.turing.get_reg("a")
 	if value != search.result: return quality
 
-	# +25% for expected result
-	quality = quality + 0.25
-
+	# +20% for expected result
+	quality = quality + 0.20
+	
 	# +50% for code length
-	code_len = len(actor.code.code)
-	best = search.best_instr_len
-	if best <= code_len and TuringCode.max_instr != best:
-		code_len = float(code_len-best) / (TuringCode.max_instr-best)
-		code_len = 1.0 - code_len
-	else:
-		code_len = 1.0
-	quality = quality + 0.50 * code_len
+	quality = quality + 0.50 * actor.code.length_quality()
 
 	return quality
 
 # Evaluate quality of alogithm for test add(...)
-# Quality of result in [0.0 ; 1.0]
-# [0.0 .. 0.5] : expected result
-# (0.5 .. 1.0] : very good results (small code, etc.)
 def eval_quality_add(search, actor):
 	# 0% if result is wrong
 	if actor.turing.stack.empty(): return 0.0
@@ -163,7 +137,7 @@ def eval_quality_add(search, actor):
 
 	# +30% for diffence to result
 	value = actor.turing.stack.top()
-	diff = abs(value - search.result) / 16.0
+	diff = abs(value - search.result) / 100.0
 	diff = 1.0 - diff
 	quality = quality + 0.3 * diff
 
@@ -174,23 +148,8 @@ def eval_quality_add(search, actor):
 	stack_len = len(actor.turing.stack.stack)
 	if stack_len == 1: quality = quality + 0.05
 
-	# +35% for code length
-	code_len = len(actor.code.code)
-	best = search.best_instr_len
-	if best <= code_len and TuringCode.max_instr != best:
-		code_len = float(code_len-best) / (TuringCode.max_instr-best)
-		code_len = 1.0 - code_len
-	else:
-		code_len = 1.0
-	quality = quality + 0.35 * code_len
-
-	# +10% if it doesn't use store trick
-	trick = False
-	for instr in actor.code.code:
-		if instr[0] == 'store':
-			trick = True
-			break
-	if not trick: quality = quality + 0.10
+	# +45% for code length
+	quality = quality + 0.45 * actor.code.length_quality()
 
 	# Final quality
 	return quality
@@ -244,7 +203,7 @@ def test_sign(ia):
 	ia.search.excepted_quality = 1.0
 	ia.search.population = 30
 	ia.search.timeout = 60.0
-	ia.search.retest_result = 5
+	ia.search.retest_result = 10
 
 #	ia.search.use_instr = ["store", "jumpif", "cmp_gt"]
 #	ia.search.use_regs = ["a", "b"]
@@ -269,52 +228,12 @@ def test_max(ia):
 #	ia.search.use_regs = ["a", "b"]
 	
 	ia.search.best_instr_len = 3
-	TuringCode.min_instr = 3
+	TuringCode.min_instr = 2
 	TuringCode.max_instr = 10
 	test_message("max(a)", ia.search)
 	ia.search.run()
 
-def test_turing_jump(ia):
-	sys.stdout.write("Turing jump test: ")
-	vm = Turing()
-	vm.code.append( ("store", "a", 2,) )
-	vm.code.append( ("jump", 1,) )
-	vm.code.append( ("store", "a", 5,) )
-	vm.run()
-	if vm.get_reg("a")==2:
-		print "ok."
-	else:
-		print "fail!"
-
-def test_turing_jumpif(ia):
-	sys.stdout.write("Turing jumpif test: ")
-	vm = Turing()
-#	vm.verbose = True
-	vm.code.append( ("store", "b", 2,) )
-	vm.code.append( ("store", "a", 1,) )
-	vm.code.append( ("jumpif", "a", 1, ) )
-	vm.code.append( ("store", "b", 5,) )
-	vm.run()
-	if vm.get_reg("b")==2:
-		print "ok."
-	else:
-		print "fail!"
-
-def test_turing_sign(ia):
-	sys.stdout.write("Turing jumpif test: ")
-	vm = Turing()
-#	vm.verbose = True
-	vm.code.append( ("store", "a", 8,) )
-	vm.code.append( ("cmp_gt", "a", "b", "b") )
-	vm.code.append( ("store", "a", 1,) )
-	vm.code.append( ("jumpif", "b", 1, ) )
-	vm.code.append( ("store", "a", -1,) )
-	vm.run()
-	if vm.get_reg("a")==1:
-		print "ok."
-	else:
-		print "fail!"
-
+# Just test Turing for small code
 def test_turing_max(ia):
 	sys.stdout.write("Turing max test: ")
 	c = TuringCode(ia.search.vm)

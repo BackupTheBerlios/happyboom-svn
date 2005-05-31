@@ -4,8 +4,9 @@ class TuringCode:
 	min_instr = 1
 	max_instr = 1
 
-	def __init__(self, vm, copy=None):
-		self.vm = vm
+	def __init__(self, search, copy=None):
+		self.search = search
+		self.vm = self.search.vm
 		if copy==None:
 			self.code = []
 			self.use_regs = self.vm.regs.keys()
@@ -16,7 +17,7 @@ class TuringCode:
 			self.use_instr = copy.use_instr[:]
 			
 	def copy(self):
-		return TuringCode(self.vm, copy=self)
+		return TuringCode(self.search, copy=self)
 
 	def load(self, f):
 		self.code = f.load() 
@@ -50,11 +51,17 @@ class TuringCode:
 			result.append( self.gen_arg(func, type) )
 		return result
 
+	def contains(self, name):
+		for instr in self.code:
+			if instr[0]==name: return True
+		return False
+
 	def str(self):
 		s = ""
 		for instr in self.code:
-			s = s + " %s;" % self.vm.instr2str(instr)
-		return "Code:%s" % (s)
+			if len(s) != 0: s = s + " "
+			s = s + "%s;" % self.vm.instr2str(instr)
+		return s 
 
 	def regenerate(self):
 		self.code = []
@@ -99,3 +106,12 @@ class TuringCode:
 			index = random.randint(0, len(self.code)-1)
 			instr = self.gen_instr()
 			self.code[index] = instr 
+
+	# Quality of code length (1.0 is best, 0.0 is worst)
+	def length_quality(self):
+		code_len = len(self.code)
+		best = self.search.best_instr_len
+		if code_len < best: return 1.0
+		if TuringCode.max_instr == best: return 1.0
+		code_len = float(code_len-best) / (TuringCode.max_instr-best)
+		return 1.0 - code_len

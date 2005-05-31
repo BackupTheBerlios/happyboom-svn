@@ -55,7 +55,7 @@ class SearchTuring:
 	def start(self):
 		self.actor = []
 		for i in range(self.population):
-			actor = Actor(self.vm)
+			actor = Actor(self)
 			if self.use_instr != None: actor.code.use_instr = self.use_instr
 			if self.use_regs != None: actor.code.use_regs = self.use_regs
 			self.actor.append(actor)
@@ -113,8 +113,8 @@ class SearchTuring:
 				self.best_index = actor_index-1
 				new_best = True
 
-				print "New best quality = %.2f%% (index=%u)" % (self.best_quality, self.best_index)
-				print self.best_actor.code.str()
+				print "\nNew best quality = %.2f%% (index=%u)" % (self.best_quality, self.best_index)
+				print "> Code %s" % (self.best_actor.code.str())
 
 		# Print all codes
 #		i = 0
@@ -126,17 +126,7 @@ class SearchTuring:
 		self.quit = (self.excepted_quality <= self.best_quality)
 		if self.quit:
 			print "=== Winner : %s ===" % self.best_actor.name 
-			actor = self.best_actor.copy()
-			actor.turing.reset_stack()
-			actor.turing.reset_regs()
-			if self.init_vm_func != None: self.init_vm_func (self, actor)
-			sys.stdout.write("Initial ")
-			actor.turing.print_regs()
-
 			print self.best_actor.code.str()
-			self.best_actor.turing.print_stack()
-			self.best_actor.turing.print_regs()
-
 			print "Quality: %.2f%%" % (self.best_quality)
 			return
 
@@ -166,8 +156,8 @@ class SearchTuring:
 			if 1.0 < time.time() - t_sec:
 				t_sec = time.time()
 				q = self.computeActorQuality()
-				print "   Search (step=%u, quality=[%.2f %.2f %.2f] -> %.2f, time=%us) ..." \
+				print "\n   Search (step=%u, quality=[%.2f %.2f %.2f] -> %.2f, time=%us) ..." \
 					% (self.step, q[0], q[1], q[2], self.best_quality, time.time() - t)
 				print "   > Old best code: %s" % (self.best_actor.code.str())
-			time.sleep(0.010)
+#			time.sleep(0.010)
 		print "Step: %u" % (self.step)
