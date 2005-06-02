@@ -55,7 +55,16 @@ class SearchTuring:
 		self.best_index = f.load()
 		self.use_instr = f.load()
 		self.use_regs = f.load()
+		
 		self.next_cross = f.load()
+		self.cross_quality = f.load()
+		self.best_run_crossing = f.load()
+		self.nb_cross = f.load()
+		self.next_cross_delta = f.load()
+
+		self.verbose = f.load()
+		self.take_bad = f.load()
+		self.max_nb_mutation = f.load()
 		self.population = f.load()
 		self.start()
 		print "************* LOAD ACTORS"
@@ -67,15 +76,24 @@ class SearchTuring:
 	best_actor = property(getBestActor)
 		
 	def save(self, f):
-		f.dump(self.step)
-		f.dump(self.retest_result)
-		f.dump(self.excepted_quality)
-		f.dump(self.best_quality)
-		f.dump(self.best_index)
-		f.dump(self.use_instr)
-		f.dump(self.use_regs)
-		f.dump(self.next_cross)
-		f.dump(self.population)
+		f.dump( self.step )
+		f.dump( self.retest_result )
+		f.dump( self.excepted_quality )
+		f.dump( self.best_quality )
+		f.dump( self.best_index )
+		f.dump( self.use_instr )
+		f.dump( self.use_regs )
+
+		f.dump( self.next_cross )
+		f.dump( self.cross_quality )
+		f.dump( self.best_run_crossing )
+		f.dump( self.nb_cross )
+		f.dump( self.next_cross_delta )
+
+		f.dump( self.verbose )
+		f.dump( self.take_bad )
+		f.dump( self.max_nb_mutation )
+		f.dump( self.population )
 		for actor in self.actor: actor.save(f)
 
 	def writeLog(self, str):
@@ -249,11 +267,9 @@ class SearchTuring:
 			# Is the new actor better ?
 			take_bad = random.random()
 			if take_bad < self.take_bad or (actor.quality < new_actor.quality):
-				if take_bad < self.take_bad:
+				if (actor.quality >= new_actor.quality) and take_bad < self.take_bad:
 					self.writeLog ("  Take bad.\n")
 				self.writeLog ("  Change actor %u.  -  " % actor_index)
-				self.writeLog (" %.5f/%.5f :: %.2f/%.2f\n" % \
-					(take_bad, self.take_bad, actor.quality, new_actor.quality))
 				self.actor[actor_index] = new_actor
 				actor = new_actor
 

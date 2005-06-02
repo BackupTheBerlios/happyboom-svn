@@ -16,13 +16,14 @@ def usage(defval):
 	print "\t--help      : Show this help"
 	print "\t--dont-load : Don't load old state"
 	print "\t--dont-save : Don't save state when interrupted (CTRL+C)"
+	print "\t--verbose   : Be more verbose"
 	print "\ttest        : Turing test (add, add3, sign)"
 
 def parseArgs(ia, val):
 	defval = val.copy()
 	try:
 		short = "h" #:p:dv"
-		long = ["help", "dont-load", "dont-save"]
+		long = ["help", "dont-load", "dont-save", "verbose"]
 		opts, args = getopt.getopt(sys.argv[1:], short, long)
 	except getopt.GetoptError:
 		usage(defval)
@@ -38,6 +39,8 @@ def parseArgs(ia, val):
 		if o == "--help":
 			usage(defval)
 			sys.exit(0)
+		if o == "--verbose":
+			val["verbose"] = True
 		if o == "--dont-load":
 			val["load"] = False
 		if o == "--dont-save":
@@ -52,6 +55,7 @@ def main():
 		val = { \
 			"load": True,
 			"save": True,
+			"verbose": False,
 			"test": "add"}
 		val = parseArgs(ia, val)
 		

@@ -1,5 +1,5 @@
 from search import SearchTuring
-from test import *
+from test_add import *
 import pickle
 import os # os.remove
 import random # to get/set state
@@ -21,6 +21,7 @@ class MainIA:
 		self.test_name = arg["test"]
 		self.save_result = arg["save"]
 		self.search_func = self.valid_test[self.test_name]
+		self.search.verbose = arg["verbose"]
 		if arg["load"]: self.load()
 
 	def stateFilename(self):
