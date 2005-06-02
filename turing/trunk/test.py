@@ -137,14 +137,17 @@ def eval_quality_add(search, actor):
 	# +20% if stack is not empty
 	quality = 0.2
 
-	# +30% for diffence to result
+	## +30% for diffence to result
 	value = actor.turing.stack.top()
-	diff = abs(value - search.result) / 200.0
-	diff = 1.0 - diff
-	quality = quality + 0.3 * diff
+#	diff = abs(value - search.result) / 200.0
+#	diff = 1.0 - diff
+#	quality = quality + 0.3 * diff
 
 	# Exit if the result is not exaclty to expected one's
 	if value != search.result: return quality
+	
+	# +30% if result is exact
+	quality = quality + 0.3
 
 	# +5% if stack length equals to one
 	stack_len = len(actor.turing.stack.stack)

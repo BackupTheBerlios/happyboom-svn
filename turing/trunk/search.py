@@ -92,18 +92,14 @@ class SearchTuring:
 			actor.quality = -1 
 
 	def runActor(self, actor):
-		if actor.quality==None:
-			old_quality = -1
-			self.doRunActor(actor)
-		else:
-			old_quality = actor.quality
+		old_quality = actor.quality
 
 		# Test the actor
 		self.doRunActor(actor)
 		
 		# Shouldn't the actor be retested ?
-		if actor.quality <= old_quality: return
 		if self.random_vm_func == None: return
+		if actor.quality < 0: return
 
 		# Retest the actor to be sure of it's quality
 		test = 0
@@ -113,7 +109,10 @@ class SearchTuring:
 			self.doRunActor(actor)
 			test = test + 1
 		if actor.quality < new_quality:
-			actor.quality = old_quality
+			if old_quality != None:
+				actor.quality = old_quality
+			else:
+				actor.quality = -1 
 		else:
 			actor.quality = new_quality		
 
@@ -329,7 +328,7 @@ class SearchTuring:
 #				print "\n   Search (step=%u, quality=[%.2f %.2f %.2f] -> %.2f, time=%us) ..." \
 #					% (self.step, q[0], q[1], q[2], self.best_quality, time.time() - t)
 #				print "   > Old best code: %s" % (self.best_actor.code.str())
-			time.sleep(0.010)
+#			time.sleep(0.010)
 
 		# End
 		if self.quit:
