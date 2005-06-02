@@ -46,23 +46,26 @@ def random_vm_sign(search):
 	if result != None and search.result == result:
 		search.arga = -search.arga
 		search.result = -search.result
-	
+
+def myRandomAdd(min,max):
+	x = random.randint(min,max)
+	if random.random() < 0.5: x = -x
+	return x
+
 def random_vm_add(search):
-	search.arga = random.randint(-100,100)
-	search.argb = random.randint(-100,100)
-	while abs(search.arga) < 5 and abs(search.argb) < 5 and abs(search.arga - search.argb) < 5:
-		search.arga = random.randint(-100,100)
-		search.argb = random.randint(-100,100)
+	search.arga = myRandomAdd(5,100)
+	search.argb = myRandomAdd(5,100)
+	while abs(search.arga + search.argb) < 5:
+		search.argb = myRandomAdd(5,100)
 	search.result = search.arga + search.argb
 	
 def random_vm_add3(search):
-	search.arga = random.randint(-100,100)
-	search.argb = random.randint(-100,100)
-	while search.arga == search.argb:
-		search.argb = random.randint(-100,100)
-	search.argc = random.randint(-100,100)
-	while search.argc == search.arga or search.argc == search.argb:
-		search.argc = random.randint(-100,100)
+	search.arga = myRandomAdd(5,100)
+	search.argb = myRandomAdd(5,100)
+	search.argc = myRandomAdd(5,100)
+	while abs(search.arga + search.argb + search.argc) < 5:
+		search.argb = myRandomAdd(5,100)
+		search.argc = myRandomAdd(5,100)
 	search.result = search.arga + search.argb + search.argc
 	
 # Initialize VM for test "add(a,b)"
@@ -160,6 +163,7 @@ def eval_quality_add(search, actor):
 	return quality
 
 def test_message(test_name, search):
+	if not search.verbose: return
 	print ""
 	print "=== Start test \"%s\" ===" % (test_name)
 	print "Quality >= %.2f" % (search.excepted_quality)

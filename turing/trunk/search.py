@@ -7,15 +7,28 @@ import random
 
 class SearchTuring:
 	def __init__(self):
-		self.take_bad = 0.001 # 0.002
-		self.max_nb_mutation = 2
-		self.nb_cross = 20
-		self.next_cross_delta = 5
+		# Mutation arguments
+		self.take_bad = 0.001
+		self.max_nb_mutation = 5
+
+		# Crossing arguments
 		self.cross_quality = 0.50
-		self.max_steps = 1000
+		if False:
+			# Don't use crossing
+			self.best_run_crossing = False
+			self.nb_cross = 10
+			self.next_cross_delta = 20000
+		else:
+			# Use crossing
+			self.best_run_crossing = True 
+			self.nb_cross = 20
+			self.next_cross_delta = 5 
 
-		self.verbose = False
+		# Search arguments
+		self.max_steps = 1500
+		self.verbose = False 
 
+		# (internal)
 		self.population = 1 
 		self.quit = False
 		self.step = 0
@@ -196,7 +209,6 @@ class SearchTuring:
 		self.actor.sort(self.compareActor)
 		self.best_index = 0
 		self.updateLog()
-		self.searchNewBest()
 
 	def actorMutation(self, actor):
 		actor.quality = None
@@ -215,9 +227,9 @@ class SearchTuring:
 				new_best = True
 
 				if self.verbose and 0 < self.best_quality:
-					print "\n[Step %u] New best quality = %.2f%% (actor %s)" % (self.step, self.best_quality, self.best_actor.name)
+					print "\n[Step %u] New best quality = %.2f%% (actor %u)" % (self.step, self.best_quality, self.best_index)
 					print "> Code %s" % (self.best_actor.code.str())
-					self.writeLog ("  New best actor (%s:%.2f).\n" % (self.best_actor.name, self.best_actor.quality))
+					self.writeLog ("  New best actor (%s:%.2f).\n" % (self.best_index, self.best_actor.quality))
 			actor_index = actor_index + 1
 		return new_best
 
@@ -227,7 +239,6 @@ class SearchTuring:
 	
 		actor_index = 0 
 		for actor in self.actor:
-			actor.name = "Actor %u" % (actor_index)
 			if actor.quality == None: self.runActor(actor)
 
 			# Do mutation on actor
@@ -257,9 +268,10 @@ class SearchTuring:
 		new_best = self.evalActors()
 
 		# Need to cross actors ?
-		if self.next_cross < self.step or new_best:
+		if self.next_cross < self.step or (new_best and self.best_run_crossing):
 			self.next_cross = self.step + self.next_cross_delta
 			self.crossActors()
+			self.searchNewBest()
 		else:
 			self.updateLog()
 
@@ -285,8 +297,9 @@ class SearchTuring:
 
 	def printDump(self):
 		self.writeLog("\n")
+		i = 0
 		for actor in self.actor:
-			self.writeLog("=== Actor %s ===\n" % actor.name)
+			self.writeLog("=== Actor %u ===\n" % i)
 			#self.writeLog("Quality = %.2f\n" % actor.quality)
 			self.writeLog("Quality = %.2f" % actor.quality)
 			if actor.quality<0.50:
@@ -294,6 +307,7 @@ class SearchTuring:
 			else:
 				self.writeLog(">=0.5\n")
 			self.writeLog("Code : %s\n" % actor.code.str())
+			i = i + 1
 
 	def run(self):
 		try:
@@ -332,7 +346,7 @@ class SearchTuring:
 
 		# End
 		if self.quit:
-			print "=== Winner : %s ===" % self.best_actor.name 
+			if self.verbose: print "=== Winner : %u ===" % self.best_index
 			print "Code : %s" % (self.best_actor.code.str())
 			print "Quality: %.2f%%" % (self.best_quality)
 		print "Step: %u" % (self.step)

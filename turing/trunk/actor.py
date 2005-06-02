@@ -8,12 +8,10 @@ class Actor:
 			self.code = TuringCode(self.search)
 			self.step = 0
 			self.verbose = False
-			self.name = "no name"
 			self.quality = None 
 		else:
 			self.code = copy.code.copy()
 			self.step = copy.step
-			self.name = copy.name
 			self.verbose = copy.verbose
 			self.quality = copy.quality
 
@@ -22,14 +20,12 @@ class Actor:
 
 	def load(self, f):
 		self.step = f.load() 
-		self.name = f.load()
 		self.verbose = f.load()
 		self.quality = f.load()
 		self.code.load (f)
 
 	def save(self, f):
 		f.dump( self.step ) 
-		f.dump( self.name )
 		f.dump( self.verbose )
 		f.dump( self.quality )
 		self.code.save(f)

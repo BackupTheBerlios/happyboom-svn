@@ -57,7 +57,6 @@ def main():
 		
 		ia.init(val)
 		ia.run()
-		print ""
 	except SystemExit, code:
 		pass
 	except Exception, msg:
