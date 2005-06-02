@@ -166,6 +166,7 @@ def test_message(test_name, search):
 
 def test_add(ia):
 	ia.search.population = 10
+	TuringCode.min_instr = 2
 	TuringCode.max_instr = 10
 	ia.search.init_vm_func = init_vm_regab
 	ia.search.eval_quality_func = eval_quality_add
