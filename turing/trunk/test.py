@@ -50,7 +50,8 @@ def random_vm_sign(search):
 def random_vm_add(search):
 	search.arga = random.randint(-100,100)
 	search.argb = random.randint(-100,100)
-	while search.arga == search.argb:
+	while abs(search.arga) < 5 and abs(search.argb) < 5 and abs(search.arga - search.argb) < 5:
+		search.arga = random.randint(-100,100)
 		search.argb = random.randint(-100,100)
 	search.result = search.arga + search.argb
 	
@@ -107,13 +108,14 @@ def eval_quality_max(search, actor):
 
 # Evaluate quality of alogithm for test sign(a)
 def eval_quality_sign(search, actor):
-	quality = 0.0
+	# 10% if program doesn't crash :-)
+	quality = 0.10
 	
-	# +15% for use of if instruction
-	if actor.code.contains("jumpif"): quality = quality + 0.15
+	# +10% for use of jumpif instruction
+	if actor.code.contains("jumpif"): quality = quality + 0.10
 	
-	# +15% for use of if instruction
-	if actor.code.contains("cmp_gt"): quality = quality + 0.15
+	# +10% for use of cmp_gt instruction
+	if actor.code.contains("cmp_gt"): quality = quality + 0.10
 	
 	# exit if it not the expected result
 	value = actor.turing.get_reg("a")
@@ -137,7 +139,7 @@ def eval_quality_add(search, actor):
 
 	# +30% for diffence to result
 	value = actor.turing.stack.top()
-	diff = abs(value - search.result) / 100.0
+	diff = abs(value - search.result) / 200.0
 	diff = 1.0 - diff
 	quality = quality + 0.3 * diff
 
@@ -173,7 +175,7 @@ def test_add(ia):
 	ia.search.excepted_quality = 1.0
 	ia.search.timeout = 20.0
 	ia.search.best_instr_len = 2
-	ia.search.retest_result = 4
+	ia.search.retest_result = 10
 #	ia.search.use_instr = ["add", "push"]
 #	ia.search.use_regs = ["a", "b"]
 	test_message("add(a,b)", ia.search)
@@ -201,7 +203,7 @@ def test_sign(ia):
 	ia.search.random_vm_func = random_vm_sign
 	
 	ia.search.excepted_quality = 1.0
-	ia.search.population = 30
+	ia.search.population = 10
 	ia.search.timeout = 60.0
 	ia.search.retest_result = 10
 

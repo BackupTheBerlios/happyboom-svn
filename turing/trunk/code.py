@@ -101,11 +101,25 @@ class TuringCode:
 				self.code[a] = self.code[b]
 				self.code[b] = tmp
 
-		# 50% of code mutation (one instruction)
-		else:
+		# 20% of code mutation (one instruction)
+		elif r < 0.70:
 			index = random.randint(0, len(self.code)-1)
 			instr = self.gen_instr()
 			self.code[index] = instr 
+
+		# 30% of parameter mutation (one parameter)
+		else:
+			# Choose instruction
+			index = random.randint(0, len(self.code)-1)
+
+			# Choose parameter
+			func = self.code[index][0]
+			instr = self.vm.instruction[ func ]
+			param = random.randint(1, len(instr)-1)
+			type = instr[param]
+
+			# Generate new argument
+			self.code[index][param] = self.gen_arg(func, type)
 
 	# Quality of code length (1.0 is best, 0.0 is worst)
 	def length_quality(self):
