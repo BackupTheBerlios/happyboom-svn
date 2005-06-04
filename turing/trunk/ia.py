@@ -1,5 +1,8 @@
 from search import SearchTuring
 from test_add import *
+from test_add3 import *
+from test_sign import *
+from test_max import *
 import pickle
 import os # os.remove
 import random # to get/set state

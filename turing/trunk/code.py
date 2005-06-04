@@ -1,23 +1,25 @@
 import random
+import copy
 
 class TuringCode:
 	min_instr = 1
 	max_instr = 1
 
-	def __init__(self, search, copy=None):
+	# src is used to copy a TuringCode
+	def __init__(self, search, src=None):
 		self.search = search
 		self.vm = self.search.vm
-		if copy==None:
+		if src==None:
 			self.code = []
 			self.use_regs = self.vm.regs.keys()
 			self.use_instr = self.vm.instruction.keys()
 		else:
-			self.code = copy.code[:]
-			self.use_regs = copy.use_regs[:]
-			self.use_instr = copy.use_instr[:]
+			self.code = copy.deepcopy(src.code)
+			self.use_regs = copy.deepcopy(src.use_regs)
+			self.use_instr = copy.deepcopy(src.use_instr)
 			
 	def copy(self):
-		return TuringCode(self.search, copy=self)
+		return TuringCode(self.search, src=self)
 
 	def load(self, f):
 		self.code = f.load() 
@@ -90,16 +92,16 @@ class TuringCode:
 				index = random.randint(0, len(self.code)-1)
 				del self.code[index]
 
-		# 20% of instruction exchange
+		# 20% of instruction move 
 		elif r < 0.50:
 			if 2 < len(self.code):
 				a = random.randint(0, len(self.code)-1)
 				b = random.randint(0, len(self.code)-1)
 				while a == b:
 					b = random.randint(0, len(self.code)-1)
-				tmp = self.code[a]
-				self.code[a] = self.code[b]
-				self.code[b] = tmp
+				instr = self.code[a]
+				del self.code[a]
+				self.code.insert(b, instr)
 
 		# 20% of code mutation (one instruction)
 		elif r < 0.70:

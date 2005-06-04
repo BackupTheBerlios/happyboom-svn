@@ -10,6 +10,8 @@ class SearchTuring:
 		# Mutation arguments
 		self.take_bad = 0.001
 		self.max_nb_mutation = 5
+		self.cross_probability = 1.0 
+		self.last_best_quality = -1
 
 		# Crossing arguments
 		self.cross_quality = 0.50
@@ -27,6 +29,14 @@ class SearchTuring:
 		# Search arguments
 		self.max_steps = 1500
 		self.verbose = False 
+		self.modele = None
+
+		# sign(a) arguments
+		if False:
+			self.take_bad = 0.01 
+			self.max_steps = 10000 
+			self.cross_probability = -1 
+			self.max_nb_mutation = 3
 
 		# (internal)
 		self.population = 1 
@@ -38,7 +48,6 @@ class SearchTuring:
 		self.init_vm_func = None
 		self.eval_quality_func = None
 		self.timeout = 3.0 # seconds
-		self.best_quality = -1
 		self.best_index = 0 
 		self.use_instr = None
 		self.use_regs = None
@@ -51,7 +60,6 @@ class SearchTuring:
 		self.step = f.load()
 		self.retest_result = f.load()
 		self.excepted_quality = f.load()
-		self.best_quality = f.load()
 		self.best_index = f.load()
 		self.use_instr = f.load()
 		self.use_regs = f.load()
@@ -69,7 +77,7 @@ class SearchTuring:
 		self.start()
 		print "************* LOAD ACTORS"
 		for actor in self.actor: actor.load(f)
-		print "Restore search: step=%u, quality=%.2f%%" % (self.step, self.best_quality)
+		print "Restore search: step=%u, quality=%.2f%%" % (self.step, self.best_actor.quality)
 		
 	def getBestActor(self):
 		return self.actor[self.best_index]
@@ -79,7 +87,6 @@ class SearchTuring:
 		f.dump( self.step )
 		f.dump( self.retest_result )
 		f.dump( self.excepted_quality )
-		f.dump( self.best_quality )
 		f.dump( self.best_index )
 		f.dump( self.use_instr )
 		f.dump( self.use_regs )
@@ -105,9 +112,12 @@ class SearchTuring:
 
 		self.log = open('log', 'w')
 		self.writeLog("-------------- START NEW --------------\n\n")
-		
+
 		for i in range(self.population):
-			actor = Actor(self)
+			if self.modele != None:
+				actor = self.modele.copy()
+			else:
+				actor = Actor(self)
 			if self.use_instr != None: actor.code.use_instr = self.use_instr
 			if self.use_regs != None: actor.code.use_regs = self.use_regs
 			self.actor.append(actor)
@@ -186,14 +196,13 @@ class SearchTuring:
 		self.actorMutation(childb)
 
 		childa.quality = None
-		self.runActor(childa)
 		childb.quality = None 
+		self.runActor(childa)
 		self.runActor(childb)
 		return (childa, childb,)
 
 	# Cross actors to produce new children
 	def crossActors(self):
-		self.updateLog()
 		self.writeLog("   *** Cross ***\n")
 		self.actor.sort(self.compareActor)
 		self.best_index = 0
@@ -221,12 +230,6 @@ class SearchTuring:
 		else:
 			# Only keep best actors in new population
 			self.actor.extend(children)
-			self.actor.sort(self.compareActor)
-		del self.actor[self.population:]
-
-		self.actor.sort(self.compareActor)
-		self.best_index = 0
-		self.updateLog()
 
 	def actorMutation(self, actor):
 		actor.quality = None
@@ -237,62 +240,83 @@ class SearchTuring:
 	# Return True is new best actor is found
 	def searchNewBest(self):
 		actor_index = 0
-		new_best = False
 		for actor in self.actor:							
-			if self.best_quality < actor.quality:
-				self.best_quality = actor.quality 
+			if self.best_index != actor_index and self.best_actor.quality < actor.quality:
 				self.best_index = actor_index
-				new_best = True
-
-				if self.verbose and 0 < self.best_quality:
-					print "\n[Step %u] New best quality = %.2f%% (actor %u)" % (self.step, self.best_quality, self.best_index)
+				if self.verbose:
+					print "\n[Step %u] New best quality = %.2f%% (actor %u)" % (self.step, self.best_actor.quality, self.best_index)
 					print "> Code %s" % (self.best_actor.code.str())
 					self.writeLog ("  New best actor (%s:%.2f).\n" % (self.best_index, self.best_actor.quality))
 			actor_index = actor_index + 1
-		return new_best
 
 	# Eval all actors
 	def evalActors(self):
-		if self.random_vm_func != None: self.random_vm_func(self)
-	
+		for actor in self.actor:
+			if actor.quality == None:
+				self.runActor(actor)
+
+	# Mutate actors
+	def actorsMutation(self):
 		actor_index = 0 
 		for actor in self.actor:
-			if actor.quality == None: self.runActor(actor)
-
 			# Do mutation on actor
 			new_actor = actor.copy()
 			self.actorMutation(new_actor)
 			self.runActor(new_actor)
-			
+
+			# Exclude actors which doesn't work
+			if new_actor.quality < 0: continue
+
 			# Is the new actor better ?
 			take_bad = random.random()
 			if take_bad < self.take_bad or (actor.quality < new_actor.quality):
+				self.writeLog ("  > Code=%s\n" % actor.code.str())
 				if (actor.quality >= new_actor.quality) and take_bad < self.take_bad:
 					self.writeLog ("  Take bad.\n")
-				self.writeLog ("  Change actor %u.  -  " % actor_index)
 				self.actor[actor_index] = new_actor
-				actor = new_actor
+				self.writeLog ("  Change actor %u (q=%.2f).\n" % (actor_index, new_actor.quality))
+				self.writeLog ("  > Code=%s\n" % new_actor.code.str())
 
 			actor_index = actor_index + 1
-		return self.searchNewBest()
+			new_actor = None
 		
 	def live(self):
 		# New search step
 		self.step = self.step + 1
+		
+		# Insert some random in arguments :)
+		if self.random_vm_func != None: self.random_vm_func(self)
 
-		# Eval actors quality
-		new_best = self.evalActors()
+		# Evaluate all actors quality
+		self.evalActors()
 
 		# Need to cross actors ?
-		if self.next_cross < self.step or (new_best and self.best_run_crossing):
+		r = random.random()
+		if r < self.cross_probability: #self.next_cross < self.step: # or (new_best and self.best_run_crossing):
 			self.next_cross = self.step + self.next_cross_delta
 			self.crossActors()
-			self.searchNewBest()
+			cross = True
 		else:
-			self.updateLog()
+			cross = False
+
+		# Eval actors quality
+		self.actorsMutation()
+
+		if cross:
+			self.actor.sort(self.compareActor)
+			self.best_index = 0
+			del self.actor[self.population:]
+		else:
+			self.searchNewBest()
+		
+		if self.last_best_quality < self.best_actor.quality:
+			self.last_best_quality = self.best_actor.quality
+			print "[%u] New best quality = %.2f" % (self.step, self.best_actor.quality)
+		
+		self.updateLog()
 
 		# Quit ?
-		self.quit = (self.excepted_quality <= self.best_quality)
+		self.quit = (self.excepted_quality <= self.best_actor.quality)
 	
 	def computeActorQuality(self):
 		qmin = qavg = qmax = self.actor[0].quality
@@ -352,17 +376,17 @@ class SearchTuring:
 			if self.max_steps < local_step:
 				print "*********** Seach timeout (too much steps)! ************"
 				break
-#			if 1.0 < time.time() - t_sec:
-#				t_sec = time.time()
-#				q = self.computeActorQuality()
-#				print "\n   Search (step=%u, quality=[%.2f %.2f %.2f] -> %.2f, time=%us) ..." \
-#					% (self.step, q[0], q[1], q[2], self.best_quality, time.time() - t)
-#				print "   > Old best code: %s" % (self.best_actor.code.str())
-#			time.sleep(0.010)
+			if 1.0 < time.time() - t_sec:
+				t_sec = time.time()
+				q = self.computeActorQuality()
+				print "\n   Search (step=%u, quality=[%.2f %.2f %.2f] -> %.2f, time=%us) ..." \
+					% (self.step, q[0], q[1], q[2], self.best_actor.quality, time.time() - t)
+				print "   > Old best code: %s" % (self.best_actor.code.str())
+			time.sleep(0.010)
 
 		# End
 		if self.quit:
 			if self.verbose: print "=== Winner : %u ===" % self.best_index
 			print "Code : %s" % (self.best_actor.code.str())
-			print "Quality: %.2f%%" % (self.best_quality)
+			print "Quality: %.2f%%" % (self.best_actor.quality)
 		print "Step: %u" % (self.step)
