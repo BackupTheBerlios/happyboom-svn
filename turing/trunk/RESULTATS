@@ -1,0 +1,7 @@
+Pour add(a,b) :
+- Plus le nombre de croisements est important,
+  plus ça va vite (politique élitiste)
+
+Pour optimiser un bout de code :
+- Changer les probabilités dans TuringCode::mutation() permet
+  d'accélérer une optimisation (on utilise plus des delete par ex.)

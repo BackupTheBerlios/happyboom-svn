@@ -23,7 +23,7 @@ class SearchTuring:
 		else:
 			# Use crossing
 			self.best_run_crossing = True 
-			self.nb_cross = 20
+			self.nb_cross = 10 
 			self.next_cross_delta = 5 
 
 		# Search arguments
@@ -311,7 +311,8 @@ class SearchTuring:
 		
 		if self.last_best_quality < self.best_actor.quality:
 			self.last_best_quality = self.best_actor.quality
-			print "[%u] New best quality = %.2f" % (self.step, self.best_actor.quality)
+			if self.verbose:
+				print "[%u] New best quality = %.2f" % (self.step, self.best_actor.quality)
 		
 		self.updateLog()
 
@@ -376,13 +377,13 @@ class SearchTuring:
 			if self.max_steps < local_step:
 				print "*********** Seach timeout (too much steps)! ************"
 				break
-			if 1.0 < time.time() - t_sec:
+			if self.verbose and 1.0 < time.time() - t_sec:
 				t_sec = time.time()
 				q = self.computeActorQuality()
 				print "\n   Search (step=%u, quality=[%.2f %.2f %.2f] -> %.2f, time=%us) ..." \
 					% (self.step, q[0], q[1], q[2], self.best_actor.quality, time.time() - t)
 				print "   > Old best code: %s" % (self.best_actor.code.str())
-			time.sleep(0.010)
+#			time.sleep(0.010)
 
 		# End
 		if self.quit:
