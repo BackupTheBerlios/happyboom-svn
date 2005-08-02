@@ -5,7 +5,27 @@ import struct
 from udp_ping import UDP_Pinger 
 
 class UDP_Client(io.IO_Client):
+	""" An UDP Client.
+	@ivar __waitAck: List of packets (id) which are waiting for an acknoledge.
+	@type __waitAck: C{dict<int>, L{Packet<io.Packet>}}
+	@ivar __waitAck_sema: Semaphore used to access L{__waitAck}.
+	@type __waitAck_sema: C{threading.Semaphore}
+	@ivar __received: List of received packets (id). List used to remove duplicated packets.
+	@type __received: C{dict<int, L{Packet<io.Packet>}>}
+	@ivar __received_sema: Semaphore used to access L{__received}.
+	@type __received_sema: C{threading.Semaphore}
+	@ivar __pinger: Send regulary ping to server.
+	@type __pinger: C{L{UDP_Pinger}}
+	"""
 	def __init__(self, io_udp, addr, name=None):
+		""" Constructor.
+		@parameter io_udp: Main IO.
+		@type io_udp: C{L{IO_UDP}}
+		@parameter addr: The client network address (host, port).
+		@type addr: C{(str, int)}
+		@parameter name: The client name.
+		@type name: C{str}
+		"""
 		io.IO_Client.__init__(self, io_udp, addr, name)
 		self.send_ping = False
 		self.__waitAck = {}
@@ -15,12 +35,18 @@ class UDP_Client(io.IO_Client):
 		self.__pinger = UDP_Pinger(self)
 
 	def alreadyReceived(self, id):
+		""" Tell if a packet (id) is already received.
+		@rtype: C{bool}
+		"""
 		self.__received_sema.acquire()
 		received = id in self.__received
 		self.__received_sema.release()
 		return received
 
 	def receivePacket(self, packet):
+		""" Process a new received packet.
+		@type packet: C{L{Packet<io.Packet>}}
+		"""
 		if packet.skippable: return
 		
 		# Store packet to drop packet which are receive twice
@@ -30,12 +56,21 @@ class UDP_Client(io.IO_Client):
 		self.__received_sema.release()	
 
 	def processPing(self, id):
+		""" Process a new received ping.
+		@type id: C{int}
+		"""
 		self.__pinger.processPing(id)
 		
 	def processPong(self, id):
+		""" Process a new received pong.
+		@type id: C{int}
+		"""
 		self.__pinger.processPong(id)
 		
 	def processAck(self, packet):
+		""" Process new received acknoledge.
+		@type packet: C{L{Packet<io.Packet>}}
+		"""
 		# Read packet ID
 		format  = "!I"
 		if len(packet.data) != struct.calcsize(format): return None
@@ -58,14 +93,22 @@ class UDP_Client(io.IO_Client):
 		self.__waitAck_sema.release()
 
 	def disconnect(self):
+		""" Disconnect client. """
 		self.io.disconnectClient(self)
 
 	def needAck(self, packet):
+		""" Tell that a packet needs an acknoledge. """
 		self.__waitAck_sema.acquire()
 		self.__waitAck[packet.id] = packet
 		self.__waitAck_sema.release()
 
 	def live(self):
+		""" Keep the connection alive :
+		Resend packet if needed,
+		clean old received packets,
+		send ping if needed.
+		"""
+		
 		# Resend packet which don't have received their ack yet
 		self.__waitAck_sema.acquire()
 		waitAckCopy = self.__waitAck.copy()
@@ -93,10 +136,10 @@ class UDP_Client(io.IO_Client):
 		# Send ping if needed
 		if self.send_ping: self.__pinger.live()
 
-	# Send packet
 	def send(self, packet):
+		""" Send packet to the client. """
 		self.io.send(packet, to=self)
 		
-	# Send binary data
 	def sendBinary(self, data):
+		""" Send binary datas the client. """
 		self.io.sendBinary(data, self)

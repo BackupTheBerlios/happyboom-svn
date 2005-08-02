@@ -1,4 +1,3 @@
-#from net import net_server
 from server_agent import *
 from stat import *
 from common import mailing_list
@@ -87,7 +86,7 @@ class BaseServer(object):
 			while self.__input_io.isRunning() and self.__view_io.isRunning():
 				self.__input_io.live()				
 				self.__view_io.live()				
-				time.sleep(0.010)
+				time.sleep(0.001)
 		except Exception, msg:
 			print "EXCEPTION IN IO THREAD :"
 			print msg

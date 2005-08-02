@@ -9,7 +9,32 @@ from net import io
 from udp_client import UDP_Client
 
 class IO_UDP(io.BaseIO):
+	""" IO for UDP transport.
+	@ivar packet_timeout: Try to send a packet until this timeout.
+	@type packet_timeout: C{float}
+	@ivar thread_sleep: Sleep time used in the thread.
+	@type thread_sleep: C{float}
+	@ivar __is_server: ??? 
+	@type __is_server: C{bool}
+	@ivar __server: The server (only used by clients, None else).
+	@type __server: ?
+	@ivar __running: Is the thread running ?
+	@type __running: C{bool}
+	@ivar __socket: The network socket.
+	@type __socket: C{socket}
+	@ivar __socket_open: Is the network socket L{__socket} opened ?
+	@type __socket_open: C{bool}
+	@ivar __addr: The IO network address (host, port).
+	@ivar __packet_id: ???
+	@type __packet_id: C{int}
+	@ivar __clients: List of clients connected to this IO.
+	@type __clients: C{list<L{IO_client<io.IO_Client>}>?}
+	@ivar __clients_sema: Semaphore used to access L{__clients}.
+	@type __clients_sema: C{threading.Semaphore}
+	"""
+	
 	def __init__(self, is_server=False):
+		""" Constructor. """
 		io.BaseIO.__init__(self)
 		self.packet_timeout = 1.000
 		self.thread_sleep = 0.010
@@ -25,8 +50,11 @@ class IO_UDP(io.BaseIO):
 		self.__clients = {}
 		self.__clients_sema = threading.Semaphore()
 
-	# Connect to host:port
 	def connect(self, host, port):
+		""" Connect to host:port 
+		@type host: C{str}
+		@type port: C{int}
+		"""
 		if host != "":
 			host = socket.gethostbyname(host)
 		else:
@@ -58,16 +86,18 @@ class IO_UDP(io.BaseIO):
 		# Call user event if needed
 		if self.on_connect != None: self.on_connect()
 
-	# Close connection
 	def disconnect(self):
+		""" Close connection. """
 		if not self.__socket_open: return
 		self.__socket.close()
 		self.__socket_open = False
 		if self.on_disconnect != None: self.on_disconnect()
 		self.stop()
 
-	# Disconnect a client.
 	def disconnectClient(self, client):
+		""" Disconnect a client.
+		@type client: C{L{IO_Client<io.IO_Client>}}
+		"""
 		self.__clients_sema.acquire()
 		if self.__clients.has_key(client.addr): del self.__clients[client.addr]
 		self.__clients_sema.release()
@@ -75,8 +105,11 @@ class IO_UDP(io.BaseIO):
 			print "Disconnect client %s" % (client.name)
 		if self.on_client_disconnect != None: self.on_client_disconnect(client)
 	
-	# Send a packet to the server or to all clients
 	def send(self, packet, to=None):
+		""" Send a packet to the server or to all clients.
+		@type packet: C{L{Packet<io.Packet>}}
+		@type to: C{L{IO_Client<io.IO_Client>}}
+		"""
 		if not self.__socket_open: return
 		first_send = (packet.sent == 0)
 		
@@ -109,16 +142,23 @@ class IO_UDP(io.BaseIO):
 		else:
 			self.__sendDataTo(packet, data, self.__server, need_ack)
 		
-	# Send binary data that doesn't need ack
 	def sendBinary(self, data, client):
+		""" Send binary data that doesn't need an acknoledge. 
+		@type data: C{str}
+		@type client: C{L{IO_Client<io.IO_Client>}}
+		"""		
 		if self.debug: print "Send data %s to %s (without ack)" % (data, client.name)
 		self.__socket.sendto(data, client.addr)	
 		
 		# Call user event if needed
 		if self.on_send != None: self.on_send(data)
 	
-	# Send binary data with ack to a client
 	def __sendDataTo(self, packet, data, client, need_ack):
+		""" Send binary data with an acknoledge to a client.
+		@type data: C{str}
+		@type client: C{L{IO_Client<io.IO_Client>}}
+		@type need_ack: C{bool}
+		"""
 		if self.debug: print "Send packet %s to %s" % (packet.toStr(), client.name)
 		self.__socket.sendto(data, client.addr)
 
@@ -128,9 +168,12 @@ class IO_UDP(io.BaseIO):
 		# Call user event if needed
 		if self.on_send != None: self.on_send(data)
 	
-	# Read a packet from the socket
-	# Returns None if there is not new data
 	def receive(self, max_size = 1024):
+		""" Read a packet from the socket.
+		Returns None if there is not new data.
+		@type max_size: C{int}
+		@rtype: C{L{Packet<io.Packet>}}
+		"""
 		if not self.__socket_open: return None
 
 		# Try to read data from the socket
@@ -143,8 +186,8 @@ class IO_UDP(io.BaseIO):
 		# New client ?
 		return self.__processRecvData(data, addr)
 
-	# Keep the connection alive
 	def live(self):				
+		""" Keep the connection alive. """
 		# Resend packets which don't have received their ack
 		for addr, client in self.clients.items(): # use internal copy for clients
 			client.live()							
@@ -176,8 +219,8 @@ class IO_UDP(io.BaseIO):
 		if self.on_lost_connection: self.on_lost_connection()
 		self.stop()
 	
-	# Function which should be called in a thread
 	def run_thread(self):
+		""" Function which should be called in a thread : call L{live()} with a sleep. """
 		try:
 			while self.__running:
 				self.live()				
@@ -263,8 +306,10 @@ class IO_UDP(io.BaseIO):
 		# Returns the new packet
 		return packet
 
-	# Send an ack for a packet
 	def __sendAck(self, packet):
+		""" Send an ack for a packet.
+		@type packet: C{L{Packet<io.Packet>}}
+		"""
 		# Write ack to socket
 		ack = io.Packet(skippable=True)
 		ack.type = io.Packet.PACKET_ACK
@@ -272,8 +317,10 @@ class IO_UDP(io.BaseIO):
 		#if self.debug: print "Send ACK %u." % (ack.id)
 		packet.recv_from.send(ack)
 
-	# Do something with a new packet
 	def __processNewPacket(self, packet):
+		""" Do something with a new packet
+		@type packet: C{L{Packet<io.Packet>}}
+		"""
 		if self.verbose:
 			print "New udp message : %s" % (packet.toStr())
 		if self.on_new_packet != None: self.on_new_packet(packet)		
@@ -305,9 +352,9 @@ class IO_UDP(io.BaseIO):
 		
 	#--- Properties -------------------------------------------------------------
 
-	name = property(__getName, __setName)
-	addr = property(__getAddr)
-	port = property(__getPort)
-	host = property(__getHost)
-	clients = property(__getClients)
-	max_clients = property(__getMaxClients)
+	name = property(__getName, __setName, doc="The IO name")
+	addr = property(__getAddr, doc="The IO addresse (host, port).")
+	port = property(__getPort, doc="The network port number.")
+	host = property(__getHost, doc="The network hostname.")
+	clients = property(__getClients, doc="List of clients.")
+	max_clients = property(__getMaxClients, doc="Maximum number of clients connected to the server.")
