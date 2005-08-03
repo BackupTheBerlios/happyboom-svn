@@ -1,0 +1,462 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>boomboom_client.bb_input.BoomBoomInput</title>
+  <link rel="stylesheet" href="epydoc.css" type="text/css"></link>
+</head>
+<body bgcolor="white" text="black" link="blue" vlink="#204080"
+      alink="#204080">
+
+<!-- =========== START OF NAVBAR =========== -->
+<table class="navbar" border="0" width="100%" cellpadding="0" bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="center">
+    <th class="navbar">&nbsp;&nbsp;&nbsp;<a class="navbar" href="trees.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+    <th class="navbar">&nbsp;&nbsp;&nbsp;<a class="navbar" href="indices.html">Index</a>&nbsp;&nbsp;&nbsp;</th>
+    <th class="navbar">&nbsp;&nbsp;&nbsp;<a class="navbar" href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+    <th class="navbar" align="right" width="100%">
+      <table border="0" cellpadding="0" cellspacing="0">
+      <tr><th class="navbar" align="center">
+        <p class="nomargin">
+          BoomBoom&nbsp;Client&nbsp;0.2
+      </p></th></tr></table>
+    </th>
+  </tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0">
+  <tr valign="top">
+    <td width="100%">
+      <font size="-1"><b class="breadcrumbs">
+        <a href="boomboom_client-module.html">Package&nbsp;boomboom_client</a> ::
+        <a href="boomboom_client.bb_input-module.html">Module&nbsp;bb_input</a> ::
+        Class&nbsp;BoomBoomInput
+      </b></font></br>
+    </td>
+    <td><table cellpadding="0" cellspacing="0">
+      <tr><td align="right"><font size="-2">[<a href="../private/boomboom_client.bb_input.BoomBoomInput-class.html">show&nbsp;private</a>&nbsp;|&nbsp;hide&nbsp;private]</font></td></tr>
+      <tr><td align="right"><font size="-2">[<a href="frames.html"target="_top">frames</a>&nbsp;|&nbsp;<a href="boomboom_client.bb_input.BoomBoomInput-class.html" target="_top">no&nbsp;frames</a>]</font></td></tr>
+    </table></td>
+</tr></table>
+
+<!-- =========== START OF CLASS DESCRIPTION =========== -->
+<h2 class="class">Class BoomBoomInput</h2>
+
+<pre class="base-tree">
+<a href="common.simple_event.EventLauncher-class.html"><code>EventLauncher</code></a> --+
+                |
+               <b>BoomBoomInput</b>
+</pre><br />
+
+<hr/>
+
+Class which manages &quot;input&quot; part of the network 
+connections.
+<hr/>
+
+
+<!-- =========== START OF METHOD SUMMARY =========== -->
+<table class="summary" border="1" cellpadding="3" cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="summary">
+  <th colspan="2">Method Summary</th></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">&nbsp;</font></td>
+  <td><code><span class="summary-sig"><a href="boomboom_client.bb_input.BoomBoomInput-class.html#__init__" class="summary-sig-name"><code>__init__</code></a>(<span class=summary-sig-arg>self</span>,
+          <span class=summary-sig-arg>host</span>,
+          <span class=summary-sig-arg>port</span>,
+          <span class=summary-sig-arg>name</span>,
+          <span class=summary-sig-arg>verbose</span>,
+          <span class=summary-sig-arg>debug</span>)</span></code>
+<br />
+BoomBoomInput constructor.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">&nbsp;</font></td>
+  <td><code><span class="summary-sig"><a href="boomboom_client.bb_input.BoomBoomInput-class.html#onConnect" class="summary-sig-name"><code>onConnect</code></a>(<span class=summary-sig-arg>self</span>)</span></code>
+<br />
+Handler called on network connection.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">&nbsp;</font></td>
+  <td><code><span class="summary-sig"><a href="boomboom_client.bb_input.BoomBoomInput-class.html#onDisconnect" class="summary-sig-name"><code>onDisconnect</code></a>(<span class=summary-sig-arg>self</span>)</span></code>
+<br />
+Handler called on network disconnection.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">&nbsp;</font></td>
+  <td><code><span class="summary-sig"><a href="boomboom_client.bb_input.BoomBoomInput-class.html#onLostConnection" class="summary-sig-name"><code>onLostConnection</code></a>(<span class=summary-sig-arg>self</span>)</span></code>
+<br />
+Handler called on losting network connection.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">&nbsp;</font></td>
+  <td><code><span class="summary-sig"><a href="boomboom_client.bb_input.BoomBoomInput-class.html#process_event" class="summary-sig-name"><code>process_event</code></a>(<span class=summary-sig-arg>self</span>,
+          <span class=summary-sig-arg>event</span>)</span></code>
+<br />
+Manages when a pygame event is caught.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">&nbsp;</font></td>
+  <td><code><span class="summary-sig"><a href="boomboom_client.bb_input.BoomBoomInput-class.html#process_event_active" class="summary-sig-name"><code>process_event_active</code></a>(<span class=summary-sig-arg>self</span>,
+          <span class=summary-sig-arg>event</span>)</span></code>
+<br />
+Manages when a pygame event is caught and interact with the 
+server.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">&nbsp;</font></td>
+  <td><code><span class="summary-sig"><a href="boomboom_client.bb_input.BoomBoomInput-class.html#processCmd" class="summary-sig-name"><code>processCmd</code></a>(<span class=summary-sig-arg>self</span>,
+          <span class=summary-sig-arg>cmd</span>)</span></code>
+<br />
+Sends only non empty-string command.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">&nbsp;</font></td>
+  <td><code><span class="summary-sig"><a href="boomboom_client.bb_input.BoomBoomInput-class.html#processPacket" class="summary-sig-name"><code>processPacket</code></a>(<span class=summary-sig-arg>self</span>,
+          <span class=summary-sig-arg>new_packet</span>)</span></code>
+<br />
+Bufferizes incomming packets.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">        <code>str</code>
+</font></td>
+  <td><code><span class="summary-sig"><a href="boomboom_client.bb_input.BoomBoomInput-class.html#readCmd" class="summary-sig-name"><code>readCmd</code></a>(<span class=summary-sig-arg>self</span>,
+          <span class=summary-sig-arg>timeout</span>)</span></code>
+<br />
+Reads incomming commands via the reception buffer.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">&nbsp;</font></td>
+  <td><code><span class="summary-sig"><a href="boomboom_client.bb_input.BoomBoomInput-class.html#runIo" class="summary-sig-name"><code>runIo</code></a>(<span class=summary-sig-arg>self</span>)</span></code>
+<br />
+Waits for a quit command from server.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">&nbsp;</font></td>
+  <td><code><span class="summary-sig"><a href="boomboom_client.bb_input.BoomBoomInput-class.html#sendCmd" class="summary-sig-name"><code>sendCmd</code></a>(<span class=summary-sig-arg>self</span>,
+          <span class=summary-sig-arg>cmd</span>)</span></code>
+<br />
+Sends a command to the network server.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">&nbsp;</font></td>
+  <td><code><span class="summary-sig"><a href="boomboom_client.bb_input.BoomBoomInput-class.html#serverChallenge" class="summary-sig-name"><code>serverChallenge</code></a>(<span class=summary-sig-arg>self</span>)</span></code>
+<br />
+Negociate initialisation with the network server.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">&nbsp;</font></td>
+  <td><code><span class="summary-sig"><a href="boomboom_client.bb_input.BoomBoomInput-class.html#start" class="summary-sig-name"><code>start</code></a>(<span class=summary-sig-arg>self</span>)</span></code>
+<br />
+Starts the input client : connection to the server, etc.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">&nbsp;</font></td>
+  <td><code><span class="summary-sig"><a href="boomboom_client.bb_input.BoomBoomInput-class.html#stop" class="summary-sig-name"><code>stop</code></a>(<span class=summary-sig-arg>self</span>)</span></code>
+<br />
+Stops the input client : disconnection from the server, etc.</td></tr>
+<tr bgcolor="#e8f0f8" class="group">
+  <th colspan="2">&nbsp;&nbsp;&nbsp;&nbsp;Inherited from EventLauncher</th></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">&nbsp;</font></td>
+  <td><code><span class="summary-sig"><a href="common.simple_event.EventLauncher-class.html#launchEvent" class="summary-sig-name"><code>launchEvent</code></a>(<span class=summary-sig-arg>self</span>,
+          <span class=summary-sig-arg>event_type</span>,
+          <span class=summary-sig-arg>content</span>)</span></code>
+<br />
+Launches a new event to the listeners.</td></tr>
+</table><br />
+
+
+<!-- =========== START OF INSTANCE VARIABLE SUMMARY =========== -->
+<table class="summary" border="1" cellpadding="3" cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="summary">
+  <th colspan="2">Instance Variable Summary</th></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1"><code>str</code></font></td>
+<td><b><a href="boomboom_client.bb_input.BoomBoomInput-class.html#host"><code>host</code></a></b>: Server hostname.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1"><code>str</code></font></td>
+<td><b><a href="boomboom_client.bb_input.BoomBoomInput-class.html#name"><code>name</code></a></b>: Name of the client (as known by the server).</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1"><code>int</code></font></td>
+<td><b><a href="boomboom_client.bb_input.BoomBoomInput-class.html#port"><code>port</code></a></b>: Server port for &quot;input&quot; connection.</td></tr>
+<tr bgcolor="#e8f0f8" class="group">
+  <th colspan="2">&nbsp;&nbsp;&nbsp;&nbsp;Inherited from EventLauncher</th></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1"><code><a href="common.simple_event.EventManager-class.html" 
+          class="link"><code>EventManager</code></a></code></font></td>
+<td><b><a href="common.simple_event.EventLauncher-class.html#manager"><code>manager</code></a></b>: The event manager instance.</td></tr>
+</table><br />
+
+
+<!-- =========== START OF METHOD DETAILS =========== -->
+<table class="details" border="1" cellpadding="3" cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="details">
+  <th colspan="2">Method Details</th></tr>
+</table>
+
+<a name="__init__"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">__init__</span>(<span class=sig-arg>self</span>,
+          <span class=sig-arg>host</span>,
+          <span class=sig-arg>port</span>=<span class=sig-default>12431</span>,
+          <span class=sig-arg>name</span>=<span class=sig-default>'-'</span>,
+          <span class=sig-arg>verbose</span>=<span class=sig-default>False</span>,
+          <span class=sig-arg>debug</span>=<span class=sig-default>False</span>)</span>
+    <br /><i>(Constructor)</i>
+  </h3>
+  BoomBoomInput constructor.
+  <dl><dt></dt><dd>
+    <dl><dt><b>Parameters:</b></dt>
+      <dd><code><b>host</b></code> -
+         Server hostname.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>str</code>)</i>
+      <dd><code><b>port</b></code> -
+         Server port for &quot;input&quot; connection.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>int</code>)</i>
+      <dd><code><b>name</b></code> -
+         Name of the client (as known by the server).
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>string</code>)</i>
+      <dd><code><b>verbose</b></code> -
+         Verbose mode flag.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>bool</code>)</i>
+      <dd><code><b>debug</b></code> -
+         Debug mode flag.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>bool</code>)</i>
+      </dd>
+    </dl>
+    <dl><dt><b>Overrides:</b></dt>
+      <dd><a href="common.simple_event.EventLauncher-class.html#__init__"><code>common.simple_event.EventLauncher.__init__</code></a></dd>
+    </dl>
+  </dd></dl>
+</td></tr></table>
+
+<a name="onConnect"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">onConnect</span>(<span class=sig-arg>self</span>)</span>
+  </h3>
+  Handler called on network connection.
+  <dl><dt></dt><dd>
+  </dd></dl>
+</td></tr></table>
+
+<a name="onDisconnect"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">onDisconnect</span>(<span class=sig-arg>self</span>)</span>
+  </h3>
+  Handler called on network disconnection.
+  <dl><dt></dt><dd>
+  </dd></dl>
+</td></tr></table>
+
+<a name="onLostConnection"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">onLostConnection</span>(<span class=sig-arg>self</span>)</span>
+  </h3>
+  Handler called on losting network connection.
+  <dl><dt></dt><dd>
+  </dd></dl>
+</td></tr></table>
+
+<a name="process_event"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">process_event</span>(<span class=sig-arg>self</span>,
+          <span class=sig-arg>event</span>)</span>
+  </h3>
+  Manages when a pygame event is caught.
+  <dl><dt></dt><dd>
+    <dl><dt><b>Parameters:</b></dt>
+      <dd><code><b>event</b></code> -
+         Pygame event.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>pygame.Event</code>)</i>
+      </dd>
+    </dl>
+  </dd></dl>
+</td></tr></table>
+
+<a name="process_event_active"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">process_event_active</span>(<span class=sig-arg>self</span>,
+          <span class=sig-arg>event</span>)</span>
+  </h3>
+  Manages when a pygame event is caught and interact with the 
+  server.
+  <dl><dt></dt><dd>
+    <dl><dt><b>Parameters:</b></dt>
+      <dd><code><b>event</b></code> -
+         Pygame event.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>pygame.Event</code>)</i>
+      </dd>
+    </dl>
+  </dd></dl>
+</td></tr></table>
+
+<a name="processCmd"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">processCmd</span>(<span class=sig-arg>self</span>,
+          <span class=sig-arg>cmd</span>)</span>
+  </h3>
+  Sends only non empty-string command.
+  <dl><dt></dt><dd>
+    <dl><dt><b>Parameters:</b></dt>
+      <dd><code><b>cmd</b></code> -
+         Command to send.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>str</code>)</i>
+      </dd>
+    </dl>
+  </dd></dl>
+</td></tr></table>
+
+<a name="processPacket"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">processPacket</span>(<span class=sig-arg>self</span>,
+          <span class=sig-arg>new_packet</span>)</span>
+  </h3>
+  Bufferizes incomming packets.
+  <dl><dt></dt><dd>
+    <dl><dt><b>Parameters:</b></dt>
+      <dd><code><b>new_packet</b></code> -
+         Incomming network packet.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>net.io.packet.Packet</code>)</i>
+      </dd>
+    </dl>
+  </dd></dl>
+</td></tr></table>
+
+<a name="readCmd"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">readCmd</span>(<span class=sig-arg>self</span>,
+          <span class=sig-arg>timeout</span>=<span class=sig-default>1.0</span>)</span>
+  </h3>
+  Reads incomming commands via the reception buffer.
+  <dl><dt></dt><dd>
+    <dl><dt><b>Parameters:</b></dt>
+      <dd><code><b>timeout</b></code> -
+         Timeout to unblock the function.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>float</code>)</i>
+      </dd>
+    </dl>
+    <dl><dt><b>Returns:</b></dt>
+      <dd>
+        Command read if timeout didn't perform.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>str</code>)</i>
+      </dd>
+    </dl>
+  </dd></dl>
+</td></tr></table>
+
+<a name="runIo"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">runIo</span>(<span class=sig-arg>self</span>)</span>
+  </h3>
+  Waits for a quit command from server.
+  <dl><dt></dt><dd>
+  </dd></dl>
+</td></tr></table>
+
+<a name="sendCmd"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">sendCmd</span>(<span class=sig-arg>self</span>,
+          <span class=sig-arg>cmd</span>)</span>
+  </h3>
+  Sends a command to the network server.
+  <dl><dt></dt><dd>
+    <dl><dt><b>Parameters:</b></dt>
+      <dd><code><b>cmd</b></code> -
+         Command to send.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>str</code>)</i>
+      </dd>
+    </dl>
+  </dd></dl>
+</td></tr></table>
+
+<a name="serverChallenge"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">serverChallenge</span>(<span class=sig-arg>self</span>)</span>
+  </h3>
+  Negociate initialisation with the network server.
+  <dl><dt></dt><dd>
+  </dd></dl>
+</td></tr></table>
+
+<a name="start"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">start</span>(<span class=sig-arg>self</span>)</span>
+  </h3>
+  Starts the input client : connection to the server, etc.
+  <dl><dt></dt><dd>
+  </dd></dl>
+</td></tr></table>
+
+<a name="stop"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">stop</span>(<span class=sig-arg>self</span>)</span>
+  </h3>
+  Stops the input client : disconnection from the server, etc.
+  <dl><dt></dt><dd>
+  </dd></dl>
+</td></tr></table>
+<br />
+
+
+<!-- =========== START OF INSTANCE VARIABLE DETAILS =========== -->
+<table class="details" border="1" cellpadding="3" cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="details">
+  <th colspan="2">Instance Variable Details</th></tr>
+</table>
+<table width="100%" class="var-details" bgcolor="#e0e0e0"><tr><td>
+<a name="host"></a>
+<h3>host</h3>
+Server hostname.
+<dl>
+  <dt></dt>
+  <dd>
+    <dl>
+      <dt><b>Type:</b></dt>
+      <dd>
+          <code>str</code>
+
+      </dd>
+    </dl>
+  </dd>
+</dl></td></tr></table>
+<table width="100%" class="var-details" bgcolor="#e0e0e0"><tr><td>
+<a name="name"></a>
+<h3>name</h3>
+Name of the client (as known by the server).
+<dl>
+  <dt></dt>
+  <dd>
+    <dl>
+      <dt><b>Type:</b></dt>
+      <dd>
+          <code>str</code>
+
+      </dd>
+    </dl>
+  </dd>
+</dl></td></tr></table>
+<table width="100%" class="var-details" bgcolor="#e0e0e0"><tr><td>
+<a name="port"></a>
+<h3>port</h3>
+Server port for &quot;input&quot; connection.
+<dl>
+  <dt></dt>
+  <dd>
+    <dl>
+      <dt><b>Type:</b></dt>
+      <dd>
+          <code>int</code>
+
+      </dd>
+    </dl>
+  </dd>
+</dl></td></tr></table>
+<br />
+
+
+<!-- =========== START OF NAVBAR =========== -->
+<table class="navbar" border="0" width="100%" cellpadding="0" bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="center">
+    <th class="navbar">&nbsp;&nbsp;&nbsp;<a class="navbar" href="trees.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+    <th class="navbar">&nbsp;&nbsp;&nbsp;<a class="navbar" href="indices.html">Index</a>&nbsp;&nbsp;&nbsp;</th>
+    <th class="navbar">&nbsp;&nbsp;&nbsp;<a class="navbar" href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+    <th class="navbar" align="right" width="100%">
+      <table border="0" cellpadding="0" cellspacing="0">
+      <tr><th class="navbar" align="center">
+        <p class="nomargin">
+          BoomBoom&nbsp;Client&nbsp;0.2
+      </p></th></tr></table>
+    </th>
+  </tr>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+  <tr>
+    <td align="left"><font size="-2">Generated by Epydoc 2.1 on Tue Aug  2 12:55:51 2005</font></td>
+    <td align="right"><a href="http://epydoc.sourceforge.net"
+                      ><font size="-2">http://epydoc.sf.net</font></a></td>
+  </tr>
+</table>
+</body>
+</html>
