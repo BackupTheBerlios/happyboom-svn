@@ -6,6 +6,7 @@ PROGRAM="BoomBoom client"
 import time
 import socket
 import sys
+import pygame
 from client import BoomBoomClient
 
 def usage(defval):
@@ -81,5 +82,6 @@ def main():
 		print "Program interrupted (CTRL+C)."
 		pass
 	client.stop()
+	pygame.quit()
 
 if __name__=="__main__": main()

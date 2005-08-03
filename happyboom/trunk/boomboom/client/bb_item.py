@@ -27,6 +27,7 @@ class BoomBoomItem(EventListener, EventLauncher):
         @param screen: Offscreen to draw in.
         @type screen: C{L{Window<bb_drawer.Window>}}
         """
+        if self.visual == None: return
         self.visual.draw(screen)
         
 

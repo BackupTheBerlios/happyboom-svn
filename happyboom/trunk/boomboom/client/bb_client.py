@@ -59,10 +59,14 @@ class BoomBoomClient(EventListener):
         # Create thread for input and display
         thread.start_new_thread(self.thread_display, ())
         thread.start_new_thread(self.thread_input, ())
-        
-        while 1:
+
+        quit = False
+        while not quit:
             # Wait for Keyboard Interrupt
             time.sleep(0.100)
+            self.__stoplock.acquire()
+            quit = self.__stopped
+            self.__stoplock.release()
         
     def stop(self):
         """  Stops the game client."""
@@ -77,7 +81,6 @@ class BoomBoomClient(EventListener):
         if self.__verbose: print "[CLIENT] Stopping client..."
         self.display.stop()
         self.input.stop()
-        pygame.quit()
     
     def evt_game_Stop(self, event):
         """ Stop event handler.
