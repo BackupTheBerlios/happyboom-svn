@@ -7,3 +7,13 @@ o Catch UDP Binding error
 o Limit number of UDP clients
 o IO_Client : should self.io be self.__io ? 
 o Add timeout when a client try to connect
+
+En français pour la suite et pour BoomBoom :
+o Ecrire un vrai protocole réseau
+o Ecrire un client texte en python
+o Ecrire un client 3D en C++
+o Un autre client 3D en Python pour Damien ?
+o Test de collision avec rectangle et/ou cercle
+o Réseau : Utiliser des canaux pour pouvoir partager une connexion Internet
+  entre view et input
+o Client 2D avec des thèmes graphiques
