@@ -33,3 +33,4 @@ It's a basic package of console tools. First it was a test for the kernel. But
 it should be compatible with new games. It can be used to display server stats
 for example :
   python console_view.py --stats
+
