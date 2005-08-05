@@ -74,7 +74,7 @@ class BoomBoomDisplay(EventLauncher, EventListener):
     def start(self):
         """ Starts the display client : connection to the server, etc. """
         # Try to connect to server
-        if self.__verbose: print "[DISPLAY] Trying to connect to server %s:%u" % (host, port)
+        if self.__verbose: print "[DISPLAY] Trying to connect to server %s:%u" % (self.host, self.port)
         self.__io.on_connect = self.onConnect
         self.__io.on_disconnect = self.onDisconnect
         self.__io.on_new_packet = self.processPacket
