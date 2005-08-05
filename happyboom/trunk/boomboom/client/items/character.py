@@ -35,6 +35,7 @@ class Character(BoomBoomItem):
         self.__id = id
         self.__name = name
         self.visual = VisualObject(os.path.join("data", "gorilla.png"))
+        self.active = False
         self.registerEvent(bb_events.characterMove)
         self.registerEvent(bb_events.activeCharacter)
         
@@ -48,6 +49,8 @@ class Character(BoomBoomItem):
         self.__x = int(x)
         self.__y = int(y)
         self.visual.move(self.__x, self.__y)
+        if self.active:
+            self.launchEvent(bb_events.activeCharAbs, self.__x)
         
     def evt_game_active_character(self, event):
         """ Active character event handler.
@@ -56,4 +59,6 @@ class Character(BoomBoomItem):
         @type event: C{L{common.simple_event.Event}}
         """
         if self.__id == int(event.content):
-            self.launchEvent(bb_events.activeCharAbs, self.__x)
+            self.active = True
+            if self.__x != None:
+                self.launchEvent(bb_events.activeCharAbs, self.__x)
