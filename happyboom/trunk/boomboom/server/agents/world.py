@@ -72,7 +72,7 @@ class World(BoomBoomAgent):
 			msg = msg + "%i,%i,%i,%i" % (b.x, b.y, b.width, b.height)
 		self.sendBroadcastMessage(BoomBoomMessage("world_create", (msg,)), "network")
 
-	def msg_find_place(self, x0, width, height):
+	def msg_character_search_place(self, x0, width, height):
 		if x0 < 0:
 			x0 = self.width + x0
 		else:
@@ -89,7 +89,7 @@ class World(BoomBoomAgent):
 				
 	def msg_projectile_move(self, x, y):
 		if self.hitGround(x, y):
-			self.sendBBMessage(BoomBoomMessage("hit_ground", (x, y)))
+			self.sendBBMessage("collision", x, y)
 
-	def msg_sync(self):
+	def msg_network_sync(self):
 		self.sync()

@@ -16,7 +16,8 @@ class BoomBoomAgent(ActionAgent):
 	def requestActions(self, type):
 		self.requestRole("%s_listener" %type)
 		
-	def sendBBMessage(self, message):
+	def sendBBMessage(self, action, *arg, **kw):
+		message = BoomBoomMessage("%s_%s" %(self.type, action), arg, kw)
 		self.sendBroadcastMessage(message, "%s_listener" %self.type)
 
 	def messageReceived(self, msg):

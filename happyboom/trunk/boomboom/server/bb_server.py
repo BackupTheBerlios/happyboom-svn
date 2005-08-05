@@ -179,7 +179,7 @@ class BoomBoomServer(BoomBoomAgent):
 		txt = "Welcome to new (display) client : %s" % (client.name)
 		self.sendText(txt)
 		if self.__verbose: print "[*] Display %s connected" % (client.name)
-		self.sendBBMessage(BoomBoomMessage("sync", ()))
+		self.sendBBMessage("sync")
 
 	def __do_openInput(self, client):
 		if self.__verbose: print "[*] Input %s try to connect ..." % (client.name)
@@ -257,7 +257,7 @@ class BoomBoomServer(BoomBoomAgent):
 		if re.compile("^chat:(.*)$").match(cmd) != None:
 			print "New chat message: %s" % (r.group(1))
 			self.sendNetworkMessage("chat_server", "new", r.group(1))
-		elif cmd in cmd_ok:	self.sendBroadcastMessage(BoomBoomMessage("new", (cmd,)), "command_manager")
+		elif cmd in cmd_ok:	self.sendBroadcastMessage(BoomBoomMessage("new_command", (cmd,)), "command_manager")
 		
 	def processInputs(self):
 		inputs = self.__inputs[:]
@@ -280,16 +280,16 @@ class BoomBoomServer(BoomBoomAgent):
 		for client in clients:
 			client.send (io.Packet(msg, skippable=skippable))
 						
-	def msg_next_character(self, char, team):
+	def msg_game_next_character(self, char, team):
 		if self.__debug: print "Next character : %s,%s" %(char, team)
 		self.nextChar = char
 						
-	def msg_next_turn(self):
+	def msg_game_next_turn(self):
 		if self.__debug: print "Next turn : %s" %self.nextChar
 		self.sendNetworkMessage("game", "next_turn")
 		self.sendNetworkMessage("game", "active_character", self.nextChar)
 		
-	def msg_hit_ground(self, x, y):
+	def msg_game_collision(self, x, y):
 		if self.__debug: print "Hit ground : %s,%s" %(x, y)
 		self.sendNetworkMessage("projectile", "hit_ground")
 	
@@ -301,11 +301,11 @@ class BoomBoomServer(BoomBoomAgent):
 		if self.__debug: print "Projectile activate : %s" %flag
 		self.sendNetworkMessage("projectile", "activate", "%u" %(flag))
 		
-	def msg_angle(self, a):
+	def msg_weapon_angle(self, a):
 		if self.__debug: print "Weapon angle : %s" %a
 		self.sendNetworkMessage("weapon", "angle", a)
 		
-	def msg_strength(self, s):
+	def msg_weapon_strength(self, s):
 		if self.__debug: print "Weapon strength : %s" %s
 		self.sendNetworkMessage("weapon", "force", s)
 		
@@ -321,6 +321,6 @@ class BoomBoomServer(BoomBoomAgent):
 		if self.__debug: print "New item : %s,%s" %(type, id)
 		self.__items.append((type, id))
 		
-	def msg_current_character(self, char, team):
+	def msg_game_current_character(self, char, team):
 		if self.__debug: print "Current character : %s,%s" %(char, team)
 		self.sendNetworkMessage("game", "active_character", char)

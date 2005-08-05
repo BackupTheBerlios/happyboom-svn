@@ -24,25 +24,25 @@ class Projectile(BoomBoomAgent):
 		self.requestActions("network")
 		self.sendBroadcastMessage(BoomBoomMessage("new_item", (self.type, self.id)), "network")
 
-	def msg_strength(self, arg):
+	def msg_weapon_strength(self, arg):
 		self.weapon_strength = int(arg) * 4
 		
-	def msg_angle(self, angle):
+	def msg_weapon_angle(self, angle):
 		self.weapon_angle = (-int(angle)) * math.pi / 180
 
-	def msg_new(self, cmd):
+	def msg_new_command(self, cmd):
 		if cmd == "shoot" and not self.active:
 			self.shoot()
 
-	def msg_active_coord(self, x, y):
+	def msg_character_active_coord(self, x, y):
 		self.start_pos = (x, y)
 
-	def msg_hit_ground(self, x, y):
+	def msg_world_collision(self, x, y):
 		self.setActive(False)
 
 	def setActive(self, active):
 		self.active = active
-		self.sendBBMessage(BoomBoomMessage("projectile_activate", (active,)))
+		self.sendBBMessage("activate", active)
 
 	def shoot(self):
 		if self.weapon_angle==None: return
@@ -59,7 +59,7 @@ class Projectile(BoomBoomAgent):
 	def move(self, x, y):
 		self.x = x
 		self.y = y
-		self.sendBBMessage(BoomBoomMessage("projectile_move", (x,y)))
+		self.sendBBMessage("move", x, y)
 
 	def live(self):
 		BoomBoomAgent.live(self)
@@ -72,5 +72,5 @@ class Projectile(BoomBoomAgent):
 	def sync(self):
 		self.setActive(self.active)
 
-	def msg_sync(self):
+	def msg_network_sync(self):
 		self.sync()

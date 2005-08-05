@@ -20,9 +20,9 @@ class Game(BoomBoomAgent):
 			self.current = (self.nextCharacter, self.nextTeam)
 		self.next_team_pos = team_pos
 		self.next_char_pos[self.nextTeam] = char_pos
-		self.sendBBMessage(BoomBoomMessage("next_character", (self.nextCharacter, self.nextTeam)))
+		self.sendBBMessage("next_character", self.nextCharacter, self.nextTeam)
 
-	def msg_sync(self):
+	def msg_network_sync(self):
 		self.sync()
 
 	def msg_new_character(self, character, team):
@@ -35,7 +35,7 @@ class Game(BoomBoomAgent):
 
 	def sync(self):
 		char, team = self.current
-		self.sendBroadcastMessage(BoomBoomMessage("current_character", (char, team)), "network")
+		self.sendBroadcastMessage(BoomBoomMessage("game_current_character", (char, team)), "network")
 
 	def __getNextCharacter(self):
 		return self.characters[self.nextTeam][self.next_char_pos[self.nextTeam]]
@@ -50,8 +50,8 @@ class Game(BoomBoomAgent):
 		cpos = (self.next_char_pos[self.teams[tpos]] + 1) % len(self.characters[self.teams[tpos]])
 		self.sendNextCharacter(cpos, tpos)
 
-	def msg_hit_ground(self, x, y):
-		self.sendBBMessage(BoomBoomMessage("next_turn", ()))
+	def msg_world_collision(self, x, y):
+		self.sendBBMessage("next_turn")
 		self.incCharacter()
 		
 	def msg_start(self):
@@ -59,5 +59,5 @@ class Game(BoomBoomAgent):
 
 	def launchGame(self):	
 		self.sendNextCharacter(0, 0)
-		self.sendBBMessage(BoomBoomMessage("next_turn", ()))
+		self.sendBBMessage("next_turn")
 		self.incCharacter()

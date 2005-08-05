@@ -16,17 +16,17 @@ class Weapon(BoomBoomAgent):
         self.requestActions("network")
         self.sendBroadcastMessage(BoomBoomMessage("new_item", (self.type, self.id)), "network")
 
-    def msg_next_character(self, char, team):
+    def msg_game_next_character(self, char, team):
         self.nextTeam = team
 
-    def msg_next_turn(self):
+    def msg_game_next_turn(self):
         self.last_values[self.currentTeam] = (self.angle, self.strength,)
         self.currentTeam = self.nextTeam
         angle, strength = self.last_values.get(self.currentTeam, (45, 50,))
         self.updateAngle(angle)
         self.updateStrength(strength)
 
-    def msg_new(self, cmd):
+    def msg_new_command(self, cmd):
         if cmd == "move_left":
             self.updateStrength (self.strength - 5)
         if cmd == "move_right":
@@ -40,17 +40,17 @@ class Weapon(BoomBoomAgent):
         if angle < -80: angle = -80
         elif 80 < angle: angle = 80
         self.angle = angle 
-        self.sendBBMessage(BoomBoomMessage("angle", (angle,)))
+        self.sendBBMessage("angle", angle)
 
     def updateStrength(self, strength):
         if strength < 10: strength = 10
         elif 100 < strength: strength = 100
         self.strength = strength
-        self.sendBBMessage(BoomBoomMessage("strength", (strength,)))
+        self.sendBBMessage("strength", strength)
 
     def sync(self):
         self.updateStrength(self.strength)
         self.updateAngle(self.angle)
 
-    def msg_sync(self):
+    def msg_network_sync(self):
         self.sync()

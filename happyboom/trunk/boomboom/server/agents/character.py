@@ -15,7 +15,7 @@ class Character(BoomBoomAgent):
 		BoomBoomAgent.born(self)
 		self.requestActions("game")
 		self.requestActions("network")
-		self.sendBroadcastMessage(BoomBoomMessage("find_place", (self.x, self.width, self.height)), "world")
+		self.sendBroadcastMessage(BoomBoomMessage("character_search_place", (self.x, self.width, self.height)), "world")
 		self.sendBroadcastMessage(BoomBoomMessage("new_character", (self.id, self.team)), "game")
 		self.sendBroadcastMessage(BoomBoomMessage("new_item", (self.type, self.id)), "network")
 
@@ -25,7 +25,7 @@ class Character(BoomBoomAgent):
 		self.y = y
 		self.sendBroadcastMessage(BoomBoomMessage("character_move", ("%u,%i,%i" % (self.id, self.x, self.y),)), "network")
 		if self.current:
-			self.sendBBMessage(BoomBoomMessage("active_coord", (self.x, self.y)))
+			self.sendBBMessage("active_coord", self.x, self.y)
 
 	def sync(self):
 		self.move(self.x, self.y, force=True)
@@ -33,15 +33,15 @@ class Character(BoomBoomAgent):
 	def msg_found_place(self, x, y):
 		self.move(x, y, True)
 		
-	def msg_next_character(self, char, team):
+	def msg_game_next_character(self, char, team):
 		if self.id == char:
 			self.next = True
 		
-	def msg_next_turn(self):
+	def msg_game_next_turn(self):
 		self.current = self.next
 		if self.current:
-			self.sendBBMessage(BoomBoomMessage("active_coord", (self.x, self.y)))
+			self.sendBBMessage("active_coord", self.x, self.y)
 		self.next = False
 		
-	def msg_sync(self):
+	def msg_network_sync(self):
 		self.sync()
