@@ -1,3 +1,14 @@
+2005-08-05
+	o Rewrite of the BoomBoom server (based on multi-agent-system)
+	o The server requires the PySMA library (see README)
+
+2005-08-03
+	o Rewrite of the BoomBoom client (based on event-system)
+	o The BoomBoom client source code is documented with Epydoc
+
+2005-08-02
+	o The 'net' package is documented with Epydoc
+
 2005-04-28
 	o Fix network client : use buffer to keep unfinished lines, and support
 	  wrong host name error

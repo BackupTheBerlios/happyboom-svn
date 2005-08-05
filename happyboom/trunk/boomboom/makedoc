@@ -1,1 +1,1 @@
-epydoc -o doc/api -n "BoomBoom Client 0.2" --private-css blue client common/
+epydoc $* -o doc/api -n "BoomBoom 0.2" --private-css blue client common net server
