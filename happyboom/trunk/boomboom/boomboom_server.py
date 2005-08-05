@@ -1,27 +1,27 @@
 #!/usr/bin/python
 # -*- coding: ISO-8859-1 -*-
-VERSION="0.0.0"
+VERSION="0.2.0"
 PROGRAM="BoomBoom"
 
-import time
-from boomboom_server import *
+from server import BoomBoomServer
 import getopt
 import sys
 
 def usage(defval):
 	print "%s server version %s" % (PROGRAM, VERSION)
 	print ""
-	print "Usage: %s [-v,--verbose] [-d,--debug] [-h,--help]" % (sys.argv[0])
+	print "Usage: %s [-v,--verbose] [-d,--debug] [-h,--help] [--version]" % (sys.argv[0])
 	print ""
 	print "Arguments :"
 	print "\t-h,--help         : Show this help"
+	print "\t--version         : Show the program version"
 	print "\t-v,--verbose      : Activate verbose mode"
 	print "\t-d,--debug        : Activate debug mode"
 	print ""
 	print "Other arguments :"
 	print "\t--max-input NB    : Max input clients (default %u)" % (defval["max-input"])
-	print "\t--max-view NB     : Max view clients (default %u)" % (defval["max-view"])
-	print "\t--view-port PORT  : Port number for view clients (default %u)" % (defval["view-port"])
+	print "\t--max-display NB     : Max display clients (default %u)" % (defval["max-display"])
+	print "\t--display-port PORT  : Port number for display clients (default %u)" % (defval["display-port"])
 	print "\t--input-port PORT : Port number for input clients (default %u)" % (defval["input-port"])
 
 def parseArgs(val):
@@ -30,9 +30,9 @@ def parseArgs(val):
 	
 	try:
 		short = "hdv"
-		long = ["debug", "verbose", "help", \
-			"max-input=", "max-view=", \
-			"view-port=", "input-port="]
+		long = ["debug", "verbose", "help", "version", \
+			"max-input=", "max-display=", \
+			"display-port=", "input-port="]
 		opts, args = getopt.getopt(sys.argv[1:], short, long)
 	except getopt.GetoptError:
 		usage(def_val)
@@ -43,35 +43,38 @@ def parseArgs(val):
 		sys.exit(2)
 		
 	for o, a in opts:
-		if o == "--help":
+		if o in ("-h", "--help"):
 			usage(def_val)
+			sys.exit()
+		if o == "--version":
+			print "%s server version %s" % (PROGRAM, VERSION)
 			sys.exit()
 		if o == "--input-port":
 			a = int(a)
-			if a == val["view-port"]:
-				print "Sorry, input port should be different than view port!"
+			if a == val["displayPort"]:
+				print "Sorry, input port should be different than display port!"
 			else:
-				val["input-port"] = a 			
-		if o == "--view-port":
+				val["inputPort"] = a 			
+		if o == "--display-port":
 			a = int(a)
-			if a == val["input-port"]:
-				print "Sorry, view port should be different than input port!"
+			if a == val["inputPort"]:
+				print "Sorry, display port should be different than input port!"
 			else:
-				val["view-port"] = a 
+				val["displayPort"] = a 
 		if o == "--max-input":
 			a = int(a)
 			if a < 1: 
 				a=1
 			elif 100 < a:
 				a = 100
-			val["max-input"] = a
-		if o == "--max-view":
+			val["maxInput"] = a
+		if o == "--max-display":
 			a = int(a)
 			if a < 1: 
 				a=1
 			elif 100 < a:
 				a = 100
-			val["max-view"] = a
+			val["maxDisplay"] = a
 		if o in ("-v", "--verbose"):
 			val["verbose"] = True
 		if o in ("-d", "--debug"):
@@ -80,26 +83,20 @@ def parseArgs(val):
 
 def main():
 	val = { \
-		"view-port": 12430, \
-		"input-port": 12431, \
-		"max-input": 4, \
-		"max-view": 4, \
+		"displayPort": 12430, \
+		"inputPort": 12431, \
+		"maxInput": 4, \
+		"maxDisplay": 4, \
 		"verbose": False,
 		"debug": False}
 	arg = parseArgs(val)
 	
-	server = BoomBoomServer()
-	server.setVerbose(arg["verbose"])
-	server.setDebug(arg["debug"])
+	server = BoomBoomServer(**arg)
 
-	server.start(arg)
 	try:
-		while server.quit==False:
-			server.live()
-			time.sleep(0.010)
+		server.start()
 	except KeyboardInterrupt:
 		print "Program interrupted (CTRL+C)."
-		pass
 	server.stop()
 	print "Server quit."
 
