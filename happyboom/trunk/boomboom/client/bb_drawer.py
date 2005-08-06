@@ -82,7 +82,7 @@ class Window:
             self.surface = pygame.Surface((width,height))
         else:
             self.type = "window"
-            self.surface = pygame.display.set_mode((width,height))
+            self.surface = pygame.display.set_mode((width,height), pygame.HWSURFACE | pygame.DOUBLEBUF)
         self.pos = (0,0)
         self.view_pos = (0,0)
         self.scale = 1

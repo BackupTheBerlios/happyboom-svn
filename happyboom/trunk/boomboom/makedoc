@@ -1,1 +1,2 @@
+mkdir doc
 epydoc $* -o doc/api -n "BoomBoom 0.2" --private-css blue client common net server
