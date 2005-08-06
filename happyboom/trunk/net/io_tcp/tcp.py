@@ -47,7 +47,7 @@ class IO_TCP(io.BaseIO):
 		io.Packet.use_tcp = True
 
 	def connect(self, host, port):
-	""" Connect to host:port """
+		""" Connect to host:port """
 		max_connection = 50
 	
 		self.__addr = (host, port,)
@@ -71,7 +71,7 @@ class IO_TCP(io.BaseIO):
 		io.BaseIO.connect(self, host, port)
 
 	def disconnect(self):
-	""" Close connection """
+		""" Close connection """
 		self.__clients_sema.acquire()
 		clients = self.__clients.copy()
 		self.__clients_sema.release()
@@ -81,7 +81,7 @@ class IO_TCP(io.BaseIO):
 		self.stop()
 
 	def disconnectClient(self, client):
-	""" Disconnect a client. """
+		""" Disconnect a client. """
 		self.__clients_sema.acquire()
 		if  self.__clients.has_key(client.addr): del self.__clients[client.addr]
 		self.__clients_sema.release()
@@ -91,9 +91,9 @@ class IO_TCP(io.BaseIO):
 		if self.__server == client: self.disconnect()
 	
 	def send(self, packet, to=None):
-	""" Send a packet to the server or to all clients
-	@type packet: Packet
-	"""
+		""" Send a packet to the server or to all clients
+		@type packet: Packet
+		"""
 		if not self.__running: return
 		
 		# Read binary version of the packet
@@ -112,10 +112,10 @@ class IO_TCP(io.BaseIO):
 			self.__server.sendBinary(data)
 
 	def live(self):				
-	""" Keep the connection alive :
-	- Get clients new packets
-	- Process packets (eg. ping/pong)
-	"""
+		""" Keep the connection alive :
+		- Get clients new packets
+		- Process packets (eg. ping/pong)
+		"""
 		clients = self.clients
 		for client_addr, client in clients.items():
 			data = client.receiveNonBlocking()
@@ -134,7 +134,7 @@ class IO_TCP(io.BaseIO):
 			if self.on_new_packet: self.on_new_packet(packet)
 	
 	def run_thread(self):
-	""" Function which should be called in a thread. """
+		""" Function which should be called in a thread. """
 		try:
 			while self.__running:
 				self.live()				

@@ -17,15 +17,15 @@ class TCP_Client(io.IO_Client):
 		self.on_receive = None
 
 	def send(self, packet):
-	""" Send a packet to the client.
-	@type packet: Packet
-	"""
+		""" Send a packet to the client.
+		@type packet: Packet
+		"""
 		self.sendBinary( packet.pack() )
 	
 	def sendBinary(self, data):
-	""" Send binary datas to the client.
-	@type data: str
-	"""
+		""" Send binary datas to the client.
+		@type data: str
+		"""
 		if not self.connected: return
 		self.__socket.send(data)
 
@@ -33,7 +33,7 @@ class TCP_Client(io.IO_Client):
 		if self.on_send != None: self.on_send(data)
 
 	def receiveNonBlocking(self, max_size=1024):
-	""" Non blocking read on the socket. """
+		""" Non blocking read on the socket. """
 		if not self.connected: return
 		try:
 			self.__socket.setblocking(0)
@@ -48,7 +48,7 @@ class TCP_Client(io.IO_Client):
 		return self.__processRecvData(data)
 
 	def receiveBlocking(self, max_size=1024):
-	""" Blocking read on the socket. """
+		""" Blocking read on the socket. """
 		if not self.connected: return
 		try:
 			self.__socket.setblocking(1)
@@ -63,7 +63,7 @@ class TCP_Client(io.IO_Client):
 		return self.__processRecvData(data)
 
 	def disconnect(self):
-	""" Disconned the client : close the socket. """
+		""" Disconned the client : close the socket. """
 		self.__socket.close()
 		io.IO_Client.disconnect(self)
 
