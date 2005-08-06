@@ -25,6 +25,7 @@ class IO_UDP(io.BaseIO):
 	@ivar __socket_open: Is the network socket L{__socket} opened ?
 	@type __socket_open: C{bool}
 	@ivar __addr: The IO network address (host, port).
+	@type __addr: C{(string, string,)}
 	@ivar __packet_id: ???
 	@type __packet_id: C{int}
 	@ivar __clients: List of clients connected to this IO.

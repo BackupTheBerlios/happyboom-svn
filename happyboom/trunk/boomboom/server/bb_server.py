@@ -295,7 +295,7 @@ class BoomBoomServer(BoomBoomAgent):
 	
 	def msg_projectile_move(self, x, y):
 		if self.__debug: print "Projectile move : %s,%s" %(x, y)
-		self.sendNetworkMessage("projectile", "move", "%u,%u" %(x,y), True)
+		self.sendNetworkMessage("projectile", "move", "%i,%i" %(x,y), True)
 		
 	def msg_projectile_activate(self, flag):
 		if self.__debug: print "Projectile activate : %s" %flag

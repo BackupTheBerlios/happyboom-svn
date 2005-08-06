@@ -12,6 +12,25 @@ from net import io
 from server_waiter import NetworkServerWaiter
 
 class IO_TCP(io.BaseIO):
+	""" IO for TCP transport
+	@ivar packet_timeout: Timeout of packets (in seconds)
+	@type packet_timeout: C{float}
+	@ivar thread_sleep: Sleep time used in the thread (in seconds).
+	@type thread_sleep: C{float}
+	@ivar __is_server: ??? 
+	@type __is_server: C{bool}
+	@ivar __waiter: Class which wait for clients.
+	@type __waiter: NetworkServerWaiter
+	@ivar __addr: The IO network address (host, port).
+	@type __addr: C{(string, string,)}
+	@ivar __clients: List of clients connected to this IO.
+	@type __clients: C{list<L{IO_client<io.IO_Client>}>?}
+	@ivar __clients_sema: Semaphore used to access L{__clients}.
+	@type __clients_sema: C{threading.Semaphore}
+	@ivar __running: Is the thread running ?
+	@type __running: C{bool}
+	"""
+	
 	def __init__(self, is_server=False):
 		io.BaseIO.__init__(self)
 		self.packet_timeout = 1.000
@@ -27,8 +46,8 @@ class IO_TCP(io.BaseIO):
 		self.__running = True
 		io.Packet.use_tcp = True
 
-	# Connect to host:port
 	def connect(self, host, port):
+	""" Connect to host:port """
 		max_connection = 50
 	
 		self.__addr = (host, port,)
@@ -51,8 +70,8 @@ class IO_TCP(io.BaseIO):
 		if self.on_connect != None: self.on_connect()
 		io.BaseIO.connect(self, host, port)
 
-	# Close connection
 	def disconnect(self):
+	""" Close connection """
 		self.__clients_sema.acquire()
 		clients = self.__clients.copy()
 		self.__clients_sema.release()
@@ -61,8 +80,8 @@ class IO_TCP(io.BaseIO):
 		if self.on_disconnect != None: self.on_disconnect()
 		self.stop()
 
-	# Disconnect a client.
 	def disconnectClient(self, client):
+	""" Disconnect a client. """
 		self.__clients_sema.acquire()
 		if  self.__clients.has_key(client.addr): del self.__clients[client.addr]
 		self.__clients_sema.release()
@@ -71,8 +90,10 @@ class IO_TCP(io.BaseIO):
 		if self.on_client_disconnect != None: self.on_client_disconnect (client)
 		if self.__server == client: self.disconnect()
 	
-	# Send a packet to the server or to all clients
 	def send(self, packet, to=None):
+	""" Send a packet to the server or to all clients
+	@type packet: Packet
+	"""
 		if not self.__running: return
 		
 		# Read binary version of the packet
@@ -90,8 +111,11 @@ class IO_TCP(io.BaseIO):
 		else:
 			self.__server.sendBinary(data)
 
-	# Keep the connection alive
 	def live(self):				
+	""" Keep the connection alive :
+	- Get clients new packets
+	- Process packets (eg. ping/pong)
+	"""
 		clients = self.clients
 		for client_addr, client in clients.items():
 			data = client.receiveNonBlocking()
@@ -109,8 +133,8 @@ class IO_TCP(io.BaseIO):
 			if self.debug: print "Received %s:%u => \"%s\"" % (client.host, client.port, packet.data)
 			if self.on_new_packet: self.on_new_packet(packet)
 	
-	# Function which should be called in a thread
 	def run_thread(self):
+	""" Function which should be called in a thread. """
 		try:
 			while self.__running:
 				self.live()				
