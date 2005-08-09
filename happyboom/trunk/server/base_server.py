@@ -8,8 +8,8 @@ import threading
 import random
 from net import net_buffer
 from net import io
-from net import io_udp
-#from net import io_tcp
+#from net import io_udp
+from net import io_tcp
 import traceback
 
 class BaseServer(object):
@@ -18,10 +18,10 @@ class BaseServer(object):
 	def __init__(self):
 		BaseServer.instance = self
 		self.agents = []
-		self.__view_io = io_udp.IO_UDP(is_server=True)
-		self.__input_io = io_udp.IO_UDP(is_server=True)
-		#self.__view_io = io_tcp.IO_TCP(is_server=True)
-		#self.__input_io = io_tcp.IO_TCP(is_server=True)
+#		self.__view_io = io_udp.IO_UDP(is_server=True)
+#		self.__input_io = io_udp.IO_UDP(is_server=True)
+		self.__view_io = io_tcp.IO_TCP(is_server=True)
+		self.__input_io = io_tcp.IO_TCP(is_server=True)
 		self.__inputs = []
 		self.mailing_list = mailing_list.MailingList()
 		self.net_mailing_list = {}

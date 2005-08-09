@@ -1,14 +1,14 @@
 from bb_agent import BoomBoomAgent, BoomBoomMessage
 from agents import Character, Projectile, Weapon, World, Game
-from net import io, io_udp, net_buffer
+from net import io, io_udp, io_tcp, net_buffer
 from pysma import Kernel, DummyScheduler
 import re, random, thread, traceback, time
 
 class BoomBoomServer(BoomBoomAgent):
 	def __init__(self, maxDisplay=2, displayPort=12430, maxInput=2, inputPort=12431, verbose=False, debug=False):
 		BoomBoomAgent.__init__(self, "network")
-		self.__display_io = io_udp.IO_UDP(is_server=True)
-		self.__input_io = io_udp.IO_UDP(is_server=True)
+		self.__display_io = io_tcp.IO_TCP(is_server=True)
+		self.__input_io = io_tcp.IO_TCP(is_server=True)
 		self.__input_buffer = net_buffer.NetBuffer()
 		self.__display_buffer = net_buffer.NetBuffer()
 		self.__input_protocol_version = "0.1.4"
