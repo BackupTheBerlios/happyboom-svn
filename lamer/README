@@ -1,0 +1,6 @@
+Hi, Lamer is a toolkit which can be used to list all password on a
+Linux computer. It decrypts each password.
+
+For each software, a "mod_<name>.sh" exists.
+
+Haypo
