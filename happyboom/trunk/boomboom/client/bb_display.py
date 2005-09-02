@@ -10,7 +10,7 @@ import bb_events
 from bb_drawer import BoomBoomDrawer
 from bb_constructor import BoomBoomConstructor
 from net import io
-from net import io_udp
+from net import io_udp, io_tcp
 import thread
 
 class BoomBoomDisplay(EventLauncher, EventListener):
@@ -60,7 +60,7 @@ class BoomBoomDisplay(EventLauncher, EventListener):
         self.port = port
         self.name = name
         self.__protocol_version = "0.1.4"
-        self.__io = io_udp.IO_UDP()
+        self.__io = io_tcp.IO_TCP()
         self.__verbose = verbose
         self.__io.verbose = verbose
         self.__debug = debug

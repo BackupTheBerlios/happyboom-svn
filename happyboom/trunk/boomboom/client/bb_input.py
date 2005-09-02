@@ -8,7 +8,7 @@ from common import simple_event
 from common.simple_event import EventLauncher
 import bb_events
 from net import io
-from net import io_udp
+from net import io_udp, io_tcp
 from net import net_buffer
 import thread, time, pygame
 
@@ -53,7 +53,7 @@ class BoomBoomInput(EventLauncher):
         self.host = host
         self.port = port
         self.name = name
-        self.__io = io_udp.IO_UDP()
+        self.__io = io_tcp.IO_TCP()
         self.__recv_buffer = net_buffer.NetBuffer()
         self.__verbose = verbose
         self.__io.verbose = verbose
