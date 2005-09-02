@@ -8,6 +8,9 @@ FROM __langue, __dictionnaire
 WHERE __dictionnaire.langue=__langue.id
   AND __langue.intitule='%s'
   AND __dictionnaire.intitule='%s'"""
+  
+    connexion = None
+    curseur = None
     
     def __init__(self):
         # Chargement du fichier de configuration
@@ -184,7 +187,9 @@ INDEX(etranger, francais)
             return False
         
     def __del__(self):
-        # fermeture du curseur
-        self.curseur.close()
-        # fermeture de la connexion
-        self.connexion.close()
+        if self.connexion != None:
+            if self.curseur != None:
+                # fermeture du curseur
+                self.curseur.close()
+            # fermeture de la connexion
+            self.connexion.close()
