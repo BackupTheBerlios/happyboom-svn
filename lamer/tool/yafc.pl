@@ -22,22 +22,22 @@ while (<FILE>) {
     next if (/^\#/ || /^$/);
 
     if ($server eq '') {
-	# Ligne du serveur
-	@mots = split ' ',$_;
-	$server = @mots[1];
+        # Ligne du serveur
+        @mots = split ' ',$_;
+        $server = @mots[1];
     } else {
-	# Ligne du user+pass
-	if (/^ +login (.*) password (.*)$/) { 
-	    $user=$1; 
-	    $pass=$2;
-	    affiche(); 
-	} if (/^ +anonymous$/) { 
-	    $user="anonymous"; 
-	    $pass="";
-	    affiche(); 
-	} else { 
-	    print ("Ligne non reconnue : $_\n"); 
-	}
+        # Ligne du user+pass
+        if (/^ +login (.*) password (.*)$/) { 
+            $user=$1; 
+            $pass=$2;
+            affiche(); 
+        } if (/^ +anonymous$/) { 
+            $user="anonymous"; 
+            $pass="";
+            affiche(); 
+        } else { 
+            print ("Ligne non reconnue : $_\n"); 
+        }
     }
     
 }

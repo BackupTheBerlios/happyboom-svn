@@ -1,8 +1,6 @@
 #!/bin/sh
 
 export MOD=gftp
-DST=export/
-mkdir -p $DST
 IN=~/.gftp/bookmarks
 DESCRAMBLE=tool/gftp_descramble
 
@@ -14,4 +12,4 @@ fi
 
 tool/common.sh
 
-tool/gftp_bookmark.pl $IN | tee $DST/$MOD
+tool/gftp_bookmark.pl $IN

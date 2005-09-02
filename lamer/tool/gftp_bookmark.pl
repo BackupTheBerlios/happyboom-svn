@@ -28,7 +28,9 @@ sub affiche {
     $pass = urlEncode($pass);
 
     # Affiche le FTP
-    print ("ftp://$user:$pass\@$server:$port/\n");
+    print ("ftp://$user:$pass\@$server");
+    print (":$port") if ($port != 0 && $port != 21);
+    print ("/\n");
 }
 
 $i = 1;
