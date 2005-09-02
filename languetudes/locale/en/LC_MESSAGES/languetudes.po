@@ -1,0 +1,192 @@
+# Languetudes : outil d'apprentissage de vocabulaire.
+# Copyright (C) 2005 Damien Boucard <damien POINT boucard AROBE tchoy POINT net>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 0.2\n"
+"POT-Creation-Date: 2005-09-02 22:03+CEST\n"
+"PO-Revision-Date: 2005-09-02 22:00+CEST\n"
+"Last-Translator: Damien Boucard <damien POINT boucard AROBE tchoy POINT net>\n"
+"Language-Team: English\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: pygettext.py 1.5\n"
+
+
+#: tkinter.py:11
+msgid "Languetudes"
+msgstr "Langstudy"
+
+#: tkinter.py:12
+msgid "fran\303\247ais"
+msgstr "english"
+
+#: tkinter.py:19
+msgid "Langue : aucune"
+msgstr "Language : none"
+
+#: tkinter.py:32
+msgid "Langue : %s"
+msgstr "Language : %s"
+
+#: tkinter.py:43
+msgid "Dictionnaires"
+msgstr "Dictionaries"
+
+#: tkinter.py:49
+msgid "Version"
+msgstr "Translation into English"
+
+#: tkinter.py:54
+msgid "Th\303\250me"
+msgstr "Translation from English"
+
+#: tkinter.py:59
+msgid "Sortie"
+msgstr "Exit"
+
+#: tkinter.py:69 tkinter.py:76 tkinter.py:86
+msgid "Aucune langue selectionn\303\251e"
+msgstr "No language selected"
+
+#: tkinter.py:69 tkinter.py:76 tkinter.py:86
+msgid "Veuillez d'abord choisir une langue."
+msgstr "Please choose a language first."
+
+#: tkinter.py:79 tkinter.py:89
+msgid "Aucun dictionnaire selectionn\303\251"
+msgstr "No dictionary selected"
+
+#: tkinter.py:79 tkinter.py:89
+msgid "Veuillez d'abord choisir un ou plusieurs dictionnaires."
+msgstr "Please choose one or more dictionaries first."
+
+#: tkinter.py:97
+msgid "Choisir une langue"
+msgstr "Choose a language"
+
+#: tkinter.py:102
+msgid "Annuler"
+msgstr "Cancel"
+
+#: tkinter.py:122 tkinter.py:201 tkinter.py:291
+msgid "Ajouter"
+msgstr "Add"
+
+#: tkinter.py:134
+msgid "Veuillez indiquer un nom de langue dans le champ de texte."
+msgstr "Please enter a language name into the text field."
+
+#: tkinter.py:134 tkinter.py:139
+msgid "Nom de langue incorrect"
+msgstr "Incorrect language name"
+
+#: tkinter.py:139
+msgid "Le nom de langue saisi est d\303\251j\303\240 dans la liste."
+msgstr "The entered language name is already in the list."
+
+#: tkinter.py:150
+msgid "dictionnaires"
+msgstr "dictionaries"
+
+#: tkinter.py:157 tkinter.py:265 tkinter.py:341
+msgid "Fermer"
+msgstr "Close"
+
+#: tkinter.py:171
+msgid "Sel"
+msgstr "Sel"
+
+#: tkinter.py:178
+msgid "\303\211dit"
+msgstr "Edit"
+
+#: tkinter.py:183
+msgid "Voir"
+msgstr "See"
+
+#: tkinter.py:188
+msgid "Supp"
+msgstr "Rem"
+
+#: tkinter.py:232
+msgid "Confirmation de la suppression"
+msgstr "Removal confirmation"
+
+#: tkinter.py:232
+msgid "\303\212tes-vous certain de vouloir supprimer le dictionnaire intitul\303\251 \"%s\" ?"
+msgstr "Are you sure to remove the dictionary entitled \"%s\" ?"
+
+#: tkinter.py:241
+msgid "Veuillez indiquer un nom au dictionnaire dans le champ de texte."
+msgstr "Please enter a dictionary name in the text field."
+
+#: tkinter.py:241 tkinter.py:246
+msgid "Nom de dictionnaire incorrect"
+msgstr "Incorrect dictionary name"
+
+#: tkinter.py:246
+msgid "Un dictionnaire existant porte d\303\251j\303\240 ce nom. Veuillez en taper un autre."
+msgstr "An existing dictionary already has this title. Please enter another one."
+
+#: tkinter.py:300 tkinter.py:304
+msgid "Libell\303\251 incorrect"
+msgstr "Incorrect label"
+
+#: tkinter.py:300 tkinter.py:304
+msgid "Veuillez remplir tous les champs de cette bo\303\256te de dialogue."
+msgstr "Please fill all the fields of this dialog box."
+
+#: tkinter.py:309
+msgid "Ce couple a d\303\251j\303\240 \303\251t\303\251 entr\303\251. Vous ne pouvez pas faire de doublons."
+msgstr "This tuple has already been entered. Duplicate entries are not allowed."
+
+#: tkinter.py:309 tkinter.py:315 tkinter.py:320
+msgid "Doublons d\303\251tect\303\251s"
+msgstr "Duplicate entries detected"
+
+#: tkinter.py:315 tkinter.py:320
+msgid "Le mot %s \"%s\" est d\303\251j\303\240 dans le dictionnaire. \303\212tes-vous certain de l'associer \303\240 un second mot %s ?"
+msgstr "The %s word \"%s\" is already in the dictionary. Are you sure to link it to a second %s word ?"
+
+#: tkinter.py:398
+msgid "M.A.J"
+msgstr "UPDATE"
+
+#: tkinter.py:421
+msgid "Confirmation suppression"
+msgstr "Removal confirmation"
+
+#: tkinter.py:421
+msgid "\303\212tes-vous certain de vouloir supprimer le couple de mot \"%s\" / \"%s\" ?"
+msgstr "Are you sure to remove the tuple \"%s\" / \"%s\" ?"
+
+#: tkinter.py:453
+msgid "version"
+msgstr "translation into English"
+
+#: tkinter.py:458 tkinter.py:516
+msgid "Terminer"
+msgstr "Finish"
+
+#: tkinter.py:464 tkinter.py:522
+msgid "Score"
+msgstr "Score"
+
+#: tkinter.py:488 tkinter.py:546
+msgid "Valider"
+msgstr "Validate"
+
+#: tkinter.py:497 tkinter.py:555
+msgid "Faux. La bonne traduction est : \"%s\""
+msgstr "Wrong. The correct answer is : \"%s\""
+
+#: tkinter.py:497 tkinter.py:555
+msgid "Mauvaise r\303\251ponse"
+msgstr "Wrong answer"
+
+#: tkinter.py:511
+msgid "th\303\250me"
+msgstr "translation from English"
+

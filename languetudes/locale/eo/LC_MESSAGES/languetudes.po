@@ -1,0 +1,188 @@
+# Languetudes : outils d'apprentissage de vocabulaire.
+# Copyright (C) 2005 Damien Boucard <damien POINT boucard AROBE tchoy POINT net>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 0.2\n"
+"POT-Creation-Date: 2005-09-02 23:16+CEST\n"
+"PO-Revision-Date: 2005-09-02 23:20+CEST\n"
+"Last-Translator: Damien Boucard <damien POINT boucard AROBE tchoy POINT net>\n"
+"Language-Team: Esperanto\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: pygettext.py 1.5\n"
+
+
+#: tkinter.py:14
+msgid "Languetudes"
+msgstr "Lingvostudoj"
+
+#: tkinter.py:15
+msgid "fran\303\247ais"
+msgstr "esperante"
+
+#: tkinter.py:22
+msgid "Langue : aucune"
+msgstr "Lingvo : nenio"
+
+#: tkinter.py:35
+msgid "Langue : %s"
+msgstr "Lingvo : %s"
+
+#: tkinter.py:46
+msgid "Dictionnaires"
+msgstr "Vortaroj"
+
+#: tkinter.py:52
+msgid "Version"
+msgstr "Detraduko"
+
+#: tkinter.py:57
+msgid "Th\303\250me"
+msgstr "Altraduko"
+
+#: tkinter.py:62
+msgid "Sortie"
+msgstr "Eliro"
+
+#: tkinter.py:72 tkinter.py:79 tkinter.py:89
+msgid "Aucune langue selectionn\303\251e"
+msgstr "Neniu elekta lingvo"
+
+#: tkinter.py:72 tkinter.py:79 tkinter.py:89
+msgid "Veuillez d'abord choisir une langue."
+msgstr "Antaŭe bonvolu elekti lingvon."
+
+#: tkinter.py:82 tkinter.py:92
+msgid "Aucun dictionnaire selectionn\303\251"
+msgstr "Nenio elekta vortaro"
+
+#: tkinter.py:82 tkinter.py:92
+msgid "Veuillez d'abord choisir un ou plusieurs dictionnaires."
+msgstr "Antaŭe bonvolu elekti unu aŭ plurajn vortarojn."
+
+#: tkinter.py:100
+msgid "Choisir une langue"
+msgstr "Elektu lingvon"
+
+#: tkinter.py:105
+msgid "Annuler"
+msgstr "Nuligi"
+
+#: tkinter.py:125 tkinter.py:204 tkinter.py:294
+msgid "Ajouter"
+msgstr "Almeti"
+
+#: tkinter.py:137
+msgid "Veuillez indiquer un nom de langue dans le champ de texte."
+msgstr "Bonvolu enigi lingvan nomon en la teksta kampo."
+
+#: tkinter.py:137 tkinter.py:142
+msgid "Nom de langue incorrect"
+msgstr "Erara lingva nomo"
+
+#: tkinter.py:142
+msgid "Le nom de langue saisi est d\303\251j\303\240 dans la liste."
+msgstr "La enigita lingva nomo jam estas en la listo."
+
+#: tkinter.py:153
+msgid "dictionnaires"
+msgstr "vortaroj"
+
+#: tkinter.py:160 tkinter.py:268 tkinter.py:344
+msgid "Fermer"
+msgstr "Fermi"
+
+#: tkinter.py:174
+msgid "Sel"
+msgstr "Elekt"
+
+#: tkinter.py:181
+msgid "\303\211dit"
+msgstr "Eldon"
+
+#: tkinter.py:186
+msgid "Voir"
+msgstr "Vid"
+
+#: tkinter.py:191
+msgid "Supp"
+msgstr "Forig"
+
+#: tkinter.py:235
+msgid "\303\212tes-vous certain de vouloir supprimer le dictionnaire intitul\303\251 \"%s\" ?"
+msgstr "Ĉu vi estas certa forigi la vortaron titola \"%s\" ?"
+
+#: tkinter.py:235 tkinter.py:424
+msgid "Confirmation de la suppression"
+msgstr "Konfirmo de la forigo"
+
+#: tkinter.py:244
+msgid "Veuillez indiquer un nom au dictionnaire dans le champ de texte."
+msgstr "Bonvolu enigi vortara nomo en la teksta kampo."
+
+#: tkinter.py:244 tkinter.py:249
+msgid "Nom de dictionnaire incorrect"
+msgstr "Erara vortara nomo"
+
+#: tkinter.py:249
+msgid "Un dictionnaire existant porte d\303\251j\303\240 ce nom. Veuillez en taper un autre."
+msgstr "Ekzistanta vortaro jam havas tiu nomo. Bonvolu enigi alion."
+
+#: tkinter.py:303 tkinter.py:307
+msgid "Libell\303\251 incorrect"
+msgstr "Erara vortigo"
+
+#: tkinter.py:303 tkinter.py:307
+msgid "Veuillez remplir tous les champs de cette bo\303\256te de dialogue."
+msgstr "Bonvolu plenigi cxiujn kampojn de tiu invitilo."
+
+#: tkinter.py:312
+msgid "Ce couple a d\303\251j\303\240 \303\251t\303\251 entr\303\251. Vous ne pouvez pas faire de doublons."
+msgstr "Tiu paro jam estis enigita. Vi ne povas fari duoblojn"
+
+#: tkinter.py:312 tkinter.py:318 tkinter.py:323
+msgid "Doublons d\303\251tect\303\251s"
+msgstr "Eltrova duobloj"
+
+#: tkinter.py:318 tkinter.py:323
+msgid "Le mot %s \"%s\" est d\303\251j\303\240 dans le dictionnaire. \303\212tes-vous certain de l'associer \303\240 un second mot %s ?"
+msgstr "La %s vorto \"%s\" jam estas en la vortaro. Ĉu vi estas certa de kunligi ĝin kun duan %s vorton ?"
+
+#: tkinter.py:401
+msgid "M.A.J"
+msgstr "ĝisdatig"
+
+#: tkinter.py:424
+msgid "\303\212tes-vous certain de vouloir supprimer le couple de mot \"%s\" / \"%s\" ?"
+msgstr "Ĉu vi estas certa forigi la vortan paron \"%s\" / \"%s\" ?"
+
+#: tkinter.py:456
+msgid "version"
+msgstr "detraduko"
+
+#: tkinter.py:461 tkinter.py:519
+msgid "Terminer"
+msgstr "Fini"
+
+#: tkinter.py:467 tkinter.py:525
+msgid "Score"
+msgstr "Poentaro"
+
+#: tkinter.py:491 tkinter.py:549
+msgid "Valider"
+msgstr "Validigi"
+
+#: tkinter.py:500 tkinter.py:558
+msgid "Faux. La bonne traduction est : \"%s\""
+msgstr "Malĝusta. La ĝusta tradukto estas : \"%s\""
+
+#: tkinter.py:500 tkinter.py:558
+msgid "Mauvaise r\303\251ponse"
+msgstr "Malĝusta respondo"
+
+#: tkinter.py:514
+msgid "th\303\250me"
+msgstr "Altraduko"
+
