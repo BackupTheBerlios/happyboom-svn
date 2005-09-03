@@ -155,7 +155,7 @@ INDEX(etranger, francais)
         for nom in dicos:
             dico_id = self.getDicoId(langue, nom)
             requete = requete + u"SELECT francais, etranger FROM dico%s UNION " %dico_id
-            requete = "%s ORDER BY RAND() LIMIT 1" %(requete[:-7])
+        requete = "%s ORDER BY RAND() LIMIT 1" %(requete[:-7])
         self.curseur.execute(requete.encode("utf-8"))
         result = self.curseur.fetchall()[0]
         result["francais"] = result["francais"].replace("\\\\", "\\").replace("\\'", "'").replace('\\"', '"')
