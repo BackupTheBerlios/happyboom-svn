@@ -271,7 +271,7 @@ class Editer(Toplevel):
         self.btnQuit.grid(row=0, columnspan=2)
         
         self.lblFrancais = Label(self)
-        self.lblFrancais["text"] = langue
+        self.lblFrancais["text"] = application_language
         self.lblFrancais.grid(row=1, column=0)
         
         self.txtFrancais = Entry(self)
