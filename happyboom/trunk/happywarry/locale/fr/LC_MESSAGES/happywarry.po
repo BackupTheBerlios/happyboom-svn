@@ -1,0 +1,26 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: HappyWarry\n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: 2005-09-05 01:56+0100\n"
+"Last-Translator: Victor STINNER <victor.stinner@haypocalc.com>\n"
+"Language-Team: Victor Stinner <victor.stinner@haypocalc.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: French\n"
+"X-Poedit-Country: FRANCE\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+#: happywarry-server.py:27
+msgid "Server started."
+msgstr "Le serveur est lancé."
+
+#: happywarry-server.py:30
+msgid "Program interrupted (CTRL+C)."
+msgstr "Programme interrompu (CTRL+C)."
+
+#: happywarry-server.py:32
+msgid "Server quit."
+msgstr "Le serveur est arrêté."
+
