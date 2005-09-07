@@ -455,7 +455,7 @@ void GREYCstoration::compute_LIC(int &counter)
 		cimg_mapXY(dest,x,y) 
 		{
 			counter++;
-			if (image.use_progress && !((counter)%150)) 
+			if (image.use_progress && !((counter)%100000)) 
 			{
 				gdouble progress = counter;
 				progress /= (gdouble)dest.width*dest.height*nb_iter*(180/dtheta);
