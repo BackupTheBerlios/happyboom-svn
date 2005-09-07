@@ -1,0 +1,20 @@
+2005-03-18  Victor STINNER  <victor.stinner@haypocalc.com>
+
+        * Version 0.1.2
+        * Use table and notebook for dialog
+
+2005-03-12  Victor STINNER  <victor.stinner@haypocalc.com>
+
+        * Version 0.1.1
+        * Dialog reorganized with better parameters names.
+        * Fix plugin entry in Gimp menu (Greycstoration -> GREYCstoration).
+        * Don't use CImg interface (keyboard/mouse) which remove X11 and
+          pthread dependencies (or Win32 dependencies)
+        * Change default values (p1=0.1 and sigma=1.4)
+
+2005-03-11  Victor STINNER  <victor.stinner@haypocalc.com>
+
+        * Version 0.1, first public release.
+        * Support image restoration.
+        * Plug-in dialog have all parameters needed and a preview view.
+
