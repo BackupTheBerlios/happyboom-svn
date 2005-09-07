@@ -1,0 +1,6 @@
+HappyWarry is a warri game (also knows as Awele) which use HappyBoom kernel.
+
+To try this game, you have to compile gettext messages using this command:
+  make mo
+
+See http://www.happyboom.org/HappyWarry to get more informations.
