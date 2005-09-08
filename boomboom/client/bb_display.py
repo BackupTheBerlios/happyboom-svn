@@ -76,12 +76,14 @@ class BoomBoomDisplay(EventLauncher, EventListener):
         # Try to connect to server
         if self.__verbose: print "[DISPLAY] Trying to connect to server %s:%u" % (self.host, self.port)
         self.__io.on_connect = self.onConnect
+        self.__io.on_connection_fails = self.onConnectionFails
         self.__io.on_disconnect = self.onDisconnect
         self.__io.on_new_packet = self.processPacket
         self.__io.on_lost_connection = self.onLostConnection
         self.__io.connect(self.host, self.port)
+        if not self.__io.is_ready: return
         thread.start_new_thread(self.__io.run_thread, ())
-        
+    
         BoomBoomConstructor()
         print "==== BoomBoom ===="
         self.drawer.start()
@@ -108,6 +110,10 @@ class BoomBoomDisplay(EventLauncher, EventListener):
     def onConnect(self):
         """ Handler called on network connection. """
         if self.__verbose: print "[DISPLAY] Connected to server"
+        
+    def onConnectionFails(self):
+        """ Handler called when network connection fails. """
+        print "[DISPLAY] Fail to connect to the server"
 
     def onDisconnect(self):
         """ Handler called on network disconnection. """

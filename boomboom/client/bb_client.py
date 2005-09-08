@@ -64,9 +64,7 @@ class BoomBoomClient(EventListener):
         while not quit:
             # Wait for Keyboard Interrupt
             time.sleep(0.100)
-            self.__stoplock.acquire()
-            quit = self.__stopped
-            self.__stoplock.release()
+            quit = self.is_stopped
         
     def stop(self):
         """  Stops the game client."""
@@ -95,7 +93,7 @@ class BoomBoomClient(EventListener):
             self.display.start()
         except:
             traceback.print_exc()
-            self.stop()
+        self.stop()
         
     def thread_input(self):
         """ Thread handler for the "input" part."""
@@ -103,4 +101,11 @@ class BoomBoomClient(EventListener):
             self.input.start()
         except:
             traceback.print_exc()
-            self.stop()
+        self.stop()
+
+    def __isStopped(self):
+        self.__stoplock.acquire()
+        stop = self.__stopped
+        self.__stoplock.release()
+        return stop
+    is_stopped = property(__isStopped)

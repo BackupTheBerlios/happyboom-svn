@@ -68,10 +68,12 @@ class BoomBoomInput(EventLauncher):
         # Try to connect to server
         if self.__verbose: print "[INPUT] Trying to connect to server %s:%s" % (self.host, self.port)
         self.__io.on_connect = self.onConnect
+        self.__io.on_connection_fails = self.onConnectionFails
         self.__io.on_disconnect = self.onDisconnect
         self.__io.on_lost_connection = self.onLostConnection
         self.__io.on_new_packet = self.processPacket
         self.__io.connect(self.host, self.port)
+        if not self.__io.is_ready: return
         thread.start_new_thread( self.__io.run_thread, ())
         
         stopped = False
@@ -179,7 +181,11 @@ class BoomBoomInput(EventLauncher):
             
     def onConnect(self):
         """ Handler called on network connection. """
-        if self.__verbose: print "[INPUT] Connected to server"
+        if self.__verbose: print "[INPUT] Connected to the server"
+        
+    def onConnectionFails(self):
+        """ Handler called when network connection fails. """
+        print "[INPUT] Fail to connect to the server"
             
     def onDisconnect(self):
         """ Handler called on network disconnection. """

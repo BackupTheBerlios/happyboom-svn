@@ -8,11 +8,13 @@ PROGRAM="HappyWarry"
 import gettext
 
 def init():
-    # Add APIBoom to PYTHONPATH ("../" today, but should be improved)
+    global log
+
+    # Add HappyBoom to PYTHONPATH ("../" today, but should be improved)
     import sys, os
     file_dir = os.path.dirname(__file__)
-    apiboomdir = os.path.join(file_dir, "..")
-    sys.path.append(apiboomdir)
+    happyboomdir = os.path.join(file_dir, "../happyboom/trunk")
+    sys.path.append(happyboomdir)
 
     # Get user directory 
     from common.log import log
@@ -39,6 +41,8 @@ def init():
     gettext.install('happywarry', localedir, unicode=1)
 
 def main():
+    global log
+
     # Initialize the application
     init()
     
