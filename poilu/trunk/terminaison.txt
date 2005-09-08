@@ -1,5 +1,5 @@
 r:(er(re)?|ier)$
-or:(aur(es?)?|or[te]?)$
+or:(aur(es?)?|or[tes]?)$
 aite:(aite?|et(te)?s?|ètes?)$
 ouin:(oin[g]?|ouin)$
 oua:oi([exst]|gts?|ent)?$

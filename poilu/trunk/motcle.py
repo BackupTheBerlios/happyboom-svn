@@ -9,14 +9,10 @@ def unicode2term(str):
 
 class motcle_poilu:
     def __init__(self):
-		print "init motcle."
 		self.insulte = dict()
 		self.regex = []
-		print "regex = ", self.regex
 		self.charge_regex()
-		print "regex = ", self.regex
 		self.charge()
-		print "regex = ", self.regex
 
     def echo(self, message):
         print message
@@ -51,6 +47,7 @@ class motcle_poilu:
 		
     def charge(self):
         f = file("insulte.txt","r")
+        self.insulte = {}
         for ligne in f:
 			ligne = unicode(ligne.strip(), "utf8")
 			regs = re.compile("^(.+):(.+)$").search(ligne)
@@ -58,30 +55,23 @@ class motcle_poilu:
         f.close()
 
     def charge_regex(self):
-        print "Charge les regex"
         self.regex = []
         f = file("motcle_regex.txt","r")
         for ligne in f:
             ligne = unicode(ligne.strip(), "utf8")
             regs = re.compile("^(.+):(.+)$").search(ligne)
             if regs != None: 
-                print "Ajoute ", ligne
                 regex = re.compile(regs.group(2))
                 self.regex.append( (regs.group(1), regex,) )
         f.close()
 
     def calcule_cle(self, str):
-        print "regex = ", self.regex
-        print "la"
         for item in self.regex:
-            r = regex.search(item[1])
+            r = item[1].search(str)
             if r != None: return item[0] 
         return None
 
     def reponse(self, str):
-        print "regex = ", self.regex
-        print "Self = ", self
-        print "str = ", str
         cle = self.calcule_cle(str)
         if cle==None: return None
         if not self.insulte.has_key(cle): return None
