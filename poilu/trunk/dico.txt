@@ -65,7 +65,8 @@ abdominaux
 cakos
 blaireaux
 chalumeau
-dinosaures
+orteils
+oreilles
 cul
 dahu
 poilu
@@ -76,5 +77,4 @@ genou
 toutou
 minou
 roudoudou
-orteils
-oreilles
+dinosaures

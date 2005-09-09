@@ -31,7 +31,7 @@ class TestBot(SingleServerIRCBot):
         self.utf8_chan = utf8_channel
         self.dico = dico_poilu(self)
         self.motcle = motcle_poilu()
-        self.taux_reponse = 20
+        self.taux_reponse = 100
         self.welcome = u"Salut"
 
     def on_nicknameinuse(self, c, e):
@@ -64,6 +64,7 @@ class TestBot(SingleServerIRCBot):
         self.echou(u"- recharge_insult      : recharge insulte.txt")
         self.echou(u"- recharge_motcle      : recharge motcle_regex.txt")
         self.echou(u"- join #chan / leave #chan : joint/quitte le canal #<chan>")
+        self.echou(u"- nick xxx : change de surnom")
         self.echou(u"- backup               : sauve toutes les données sur le disque dur")
         self.echou(u"- utf-8 / iso          : passe en UTF-8 / iso-8859-1")
         self.echou(u"- muet                 : liste des caractères muets")
@@ -161,7 +162,7 @@ class TestBot(SingleServerIRCBot):
                 self.echou(u"Ajoute la rime %s" %(regs.group(1)))
             return True
             
-        regs = re.compile("^dit (#[^ ]+) (.+)$", re.IGNORECASE).search(cmd)
+        regs = re.compile("^dit ([^ ]+) (.+)$", re.IGNORECASE).search(cmd)
         if regs != None:
             self.send_privmsgu(regs.group(1), regs.group(2))
             return True
@@ -251,6 +252,11 @@ class TestBot(SingleServerIRCBot):
             self.connection.leave(self.channel)
             return True
              
+        regs = re.compile("^nick (.*)$", re.IGNORECASE).search(cmd)
+        if regs != None:
+            self.connection.nick(regs.group(1))
+            return True
+            
         regs = re.compile("^join (#.*)$", re.IGNORECASE).search(cmd)
         if regs != None:
             self.channel = regs.group(1) 
