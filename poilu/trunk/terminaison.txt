@@ -1,4 +1,6 @@
-r:(er(re)?|ier)$
+ied:(ied[s]?|sier)$
+ier:ier(re)?s?$
+r:(er(re)?|ère)$
 or:(aur(es?)?|or[tes]?)$
 aite:(aite?|et(te)?s?|ètes?)$
 ouin:(oin[g]?|ouin)$
@@ -6,7 +8,7 @@ oua:oi([exst]|gts?|ent)?$
 ien:ien[ts]?$
 a:(a[st]?|à)$
 è:(è[ts]?|ai([ets]|ent)?|aï)$
-é:(ied[s]?|ée?s?|ez)$
+er:(ée?s?|ez|cd)$
 an:(en(s|ts?)?|an([dg]|ts?)?)$
 is:is$
 ou:(oo|ou[setx]?)$

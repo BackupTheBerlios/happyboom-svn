@@ -19,15 +19,20 @@ thorax
 moustiques
 comique
 loup
+nez
+néné
 meules
 poing
 coin
 babouin
 marsouin
+pierre
 chien
 croutes
-pubis
+pieds
+gosier
 docteur
+pubis
 poignet
 mollet
 superettes
@@ -61,13 +66,8 @@ cakos
 blaireaux
 chalumeau
 dinosaures
-pieds
-nez
-néné
-gosier
 cul
 dahu
-pointu
 poilu
 tout nu
 crépu

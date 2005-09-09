@@ -7,23 +7,7 @@
 # Commandes privées
 # -----------------
 #
-#   rime <mot>           : ajoute un mot au dictionnaire des rimes
-#   derime <mot>         : supprime un mot du dictinnaire des rimes
-#   dit #chan (...)      : fait parler le bot
-#   liste rimes <mot>    : liste toutes les rimes connues pour le nom donné
-#   recharge_muet        : recharge muet.txt
-#   recharge_terminaison : recharge terminaison.txt
-#   recharge_insult      : charge insulte.txt
-#   recharge_motcle      : charge motcle_regex.txt
-#   join #<chan>         : joindre le canal #<chan>
-#   backup               : sauve toutes les données sur le disque dur
-#   utf-8                : passe en UTF-8
-#   iso                  : passe en iso-xxx
-#   muet                 : liste des caractères muets
-#   taux_reponse         : affiche le taux de réponse
-#   taux_reponse xx      : fixe le taux de réponse (en pourcent), 0% : ne
-#                          répond jamais, 100% répond chaque fois qu'il trouve
-#                          une rime
+#  Tapez "aide" pour obtenir l'aide ;-) (ou voir la fonction aide ci-dessous)
 #
 # Commandes publiques 
 # -------------------
@@ -76,13 +60,13 @@ class TestBot(SingleServerIRCBot):
         self.echou(u"- dit #chan (...)      : fait parler le bot")
         self.echou(u"- recharge_muet        : recharge muet.txt")
         self.echou(u"- recharge_terminaison : recharge terminaison.txt")
-        self.echou(u"- recharge_insult      : charge insulte.txt")
-        self.echou(u"- recharge_motcle      : charge motcle_regex.txt")
+        self.echou(u"- recharge_dico        : recharge dico.txt")
+        self.echou(u"- recharge_insult      : recharge insulte.txt")
+        self.echou(u"- recharge_motcle      : recharge motcle_regex.txt")
         self.echou(u"- join #chan / leave #chan : joint/quitte le canal #<chan>")
         self.echou(u"- backup               : sauve toutes les données sur le disque dur")
         self.echou(u"- utf-8 / iso          : passe en UTF-8 / iso-8859-1")
         self.echou(u"- muet                 : liste des caractères muets")
-        self.echou(u"- taux_reponse         : affiche le taux de réponse")
         self.echou(u"- taux_reponse xxx     : fixe le taux de réponse (en pourcent)")
 
 
@@ -220,15 +204,11 @@ class TestBot(SingleServerIRCBot):
                 if taux<0: taux=0
                 if 100<taux: taux=100
                 self.taux_reponse = taux
-                self.echou(u"Taux réponse = %s" % self.taux_reponse)
+                self.echou(u"Taux réponse = %s%%" % self.taux_reponse)
                 return True
             except:
                 self.echou(u"%s n'est pas un taux valide" %(regs.group(1)))
             
-        if cmd=="taux_reponse":
-            self.echo ("Taux réponse = %s" %(self.taux_reponse) )
-            return True
-
         if cmd=="muet":
             self.echou(self.dico.muet)
             return True
@@ -238,9 +218,16 @@ class TestBot(SingleServerIRCBot):
             self.dico.charge_muet()
             return True
             
+        if (cmd == "recharge_dico"):
+            self.echo("(recharge dico.txt)")
+            self.dico.charge_dico()
+            return True
+            
         if (cmd == "recharge_terminaison"):
-            self.echo("(recharge terminaison.txt)")
+            self.echo("(sauve dico, recharge terminaison.txt puis dico.txt)")
+            self.dico.sauve()
             self.dico.charge_regex()
+            self.dico.charge_dico()
             return True
             
         if (cmd == "recharge_motcle"):
@@ -308,6 +295,7 @@ def main():
     try:
         bot.start()
     except KeyboardInterrupt:
+        bot.dico.sauve()
         print "Interrompu (CTRL+C)."
 
 if __name__ == "__main__":

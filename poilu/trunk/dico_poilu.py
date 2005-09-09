@@ -57,6 +57,7 @@ class dico_poilu:
 
     def charge_dico(self):
         f = file("dico.txt","r")
+        self.dico = {}
         for ligne in f:
             ligne = unicode(ligne.strip(), "utf8")
             if ligne != '': self.ajoute_terme(ligne)
