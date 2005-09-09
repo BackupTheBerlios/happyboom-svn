@@ -19,8 +19,7 @@ class dico_poilu:
         self.charge_dico()
 
     def echo(self, message):
-        print message
-#        self.bot.echo(message)
+        self.bot.echo(message)
         
     def ajoute_terme(self, terme):
         cle = self.terminaison(terme)
@@ -37,7 +36,7 @@ class dico_poilu:
         if fin==None: return None
         if not self.dico.has_key(fin): return None
         if not terme in self.dico[fin]: return None
-        self.echo ("Supprime le mot %s" %(terme))
+        self.echo("Supprime le mot %s" %(terme))
         self.dico[fin].remove(terme)
         return True
 
@@ -50,9 +49,13 @@ class dico_poilu:
     def sauve(self):
         self.echo ("Sauve le dico.")
         f = file("dico.txt", "w")
+        dico = []
         for key in self.dico:
             for terme in self.dico[key]: 
-                f.write ("%s\n" %(terme.encode("utf-8")))
+                dico.append(terme)
+        dico.sort()
+        for item in dico:
+            f.write ("%s\n" %(item.encode("utf-8")))
         f.close()
 
     def charge_dico(self):

@@ -55,20 +55,21 @@ class TestBot(SingleServerIRCBot):
 
     def aide(self):
         self.echou(u"Commandes :")
-        self.echou(u"- liste rimes <mot>    : liste des rimes pour la terminaison du mot spécifié")
-        self.echou(u"- rime mot / derime mot : ajoute/supprime un mot du dictinnaire")
-        self.echou(u"- dit #chan (...)      : fait parler le bot")
-        self.echou(u"- recharge_muet        : recharge muet.txt")
-        self.echou(u"- recharge_terminaison : recharge terminaison.txt")
-        self.echou(u"- recharge_dico        : recharge dico.txt")
-        self.echou(u"- recharge_insult      : recharge insulte.txt")
-        self.echou(u"- recharge_motcle      : recharge motcle_regex.txt")
+        self.echou(u"- liste rimes <mot>        : liste des rimes pour la terminaison du mot spécifié")
+        self.echou(u"- rime mot / derime mot    : ajoute/supprime un mot du dictinnaire")
+        self.echou(u"- terminaison mot          : affiche la terminaison du mot")
+        self.echou(u"- dit #chan ... / dit nick ... : fait parler le bot")
+        self.echou(u"- recharge_muet            : recharge muet.txt")
+        self.echou(u"- recharge_terminaison     : recharge terminaison.txt")
+        self.echou(u"- recharge_dico            : recharge dico.txt")
+        self.echou(u"- recharge_insult          : recharge insulte.txt")
+        self.echou(u"- recharge_motcle          : recharge motcle_regex.txt")
         self.echou(u"- join #chan / leave #chan : joint/quitte le canal #<chan>")
-        self.echou(u"- nick xxx : change de surnom")
-        self.echou(u"- backup               : sauve toutes les données sur le disque dur")
-        self.echou(u"- utf-8 / iso          : passe en UTF-8 / iso-8859-1")
-        self.echou(u"- muet                 : liste des caractères muets")
-        self.echou(u"- taux_reponse xxx     : fixe le taux de réponse (en pourcent)")
+        self.echou(u"- nick xxx                 : change de surnom")
+        self.echou(u"- backup                   : sauve toutes les données sur le disque dur")
+        self.echou(u"- utf-8 / iso              : passe en UTF-8 / iso-8859-1")
+        self.echou(u"- muet                     : liste des caractères muets")
+        self.echou(u"- taux_reponse xxx         : fixe le taux de réponse (en pourcent)")
 
 
     def on_privmsg(self, c, e):
@@ -255,6 +256,16 @@ class TestBot(SingleServerIRCBot):
         regs = re.compile("^nick (.*)$", re.IGNORECASE).search(cmd)
         if regs != None:
             self.connection.nick(regs.group(1))
+            return True
+            
+        regs = re.compile("^terminaison (.*)$", re.IGNORECASE).search(cmd)
+        if regs != None:
+            mot = regs.group(1) 
+            term = self.dico.terminaison(mot)
+            if term != None:
+                self.echou(u"Terminaison de %s : %s" % (mot, term))
+            else:
+                self.echou(u"Terminaison de %s : (aucune)" % mot)
             return True
             
         regs = re.compile("^join (#.*)$", re.IGNORECASE).search(cmd)

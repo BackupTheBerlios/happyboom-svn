@@ -1,14 +1,14 @@
-ied:(ied[s]?|sier)$
-ier:ier(re)?s?$
-r:(er(re)?|ère)$
+ied:(ied[s]?|[ps]ier)$
+air:(ier(re)?s?|erre|ère|aire|ert)$
 or:(aur(es?)?|or[tes]?)$
-aite:(aite?|et(te)?s?|ètes?)$
+ai:(et|è)$
+aite:(aite?|ettes?|ètes?)$
 ouin:(oin[g]?|ouin)$
 oua:oi([exst]|gts?|ent)?$
 ien:ien[ts]?$
 a:(a[st]?|à)$
 è:(è[ts]?|ai([ets]|ent)?|aï)$
-er:(ée?s?|ez|cd)$
+er:(ée?s?|ez|cd|er)$
 an:(en(s|ts?)?|an([dg]|ts?)?)$
 is:is$
 ou:(oo|ou[setx]?)$
@@ -32,3 +32,4 @@ ir:ir[e]?$
 op:opp?(es?)?$
 ap:ap[p]?(es?)?$
 te:tes?$
+ouf:ouf(fe)?s?$
