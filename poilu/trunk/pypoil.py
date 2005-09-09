@@ -69,6 +69,23 @@ class TestBot(SingleServerIRCBot):
             cmd=unicode(cmd, "iso-8859-1")
         return cmd.strip() 
 
+    def aide(self):
+        self.echou(u"Commandes :")
+        self.echou(u"- liste rimes <mot>    : liste des rimes pour la terminaison du mot spécifié")
+        self.echou(u"- rime mot / derime mot : ajoute/supprime un mot du dictinnaire")
+        self.echou(u"- dit #chan (...)      : fait parler le bot")
+        self.echou(u"- recharge_muet        : recharge muet.txt")
+        self.echou(u"- recharge_terminaison : recharge terminaison.txt")
+        self.echou(u"- recharge_insult      : charge insulte.txt")
+        self.echou(u"- recharge_motcle      : charge motcle_regex.txt")
+        self.echou(u"- join #chan / leave #chan : joint/quitte le canal #<chan>")
+        self.echou(u"- backup               : sauve toutes les données sur le disque dur")
+        self.echou(u"- utf-8 / iso          : passe en UTF-8 / iso-8859-1")
+        self.echou(u"- muet                 : liste des caractères muets")
+        self.echou(u"- taux_reponse         : affiche le taux de réponse")
+        self.echou(u"- taux_reponse xxx     : fixe le taux de réponse (en pourcent)")
+
+
     def on_privmsg(self, c, e):
         cmd = self.get_command(e)
         self.do_priv_command(cmd) 
@@ -112,11 +129,10 @@ class TestBot(SingleServerIRCBot):
             self.connection.privmsg(nick, message.encode("iso-8859-1"))
 
     def echo(self, message):
-        print "%s" %( message )
-        self.send_privmsg(self.god, message)
+        self.echou(message.decode("iso-8859-1"))
     
     def echou(self, message):
-        print "%s" %( unicode2term(message) )
+        print unicode2term(message)
         self.send_privmsgu(self.god, message)
 
     def before_dying(self):
@@ -135,6 +151,10 @@ class TestBot(SingleServerIRCBot):
     def do_priv_command(self, cmd):
         c = self.connection
 
+        if cmd == "aide":
+            self.aide()
+            return True
+            
         if cmd == "disconnect":
             self.disconnect()
             return True
@@ -236,6 +256,12 @@ class TestBot(SingleServerIRCBot):
         if (cmd == "backup"):
             self.dico.sauve()
             self.echo("backup done.")
+            return True
+            
+        regs = re.compile("^leave (#.*)$", re.IGNORECASE).search(cmd)
+        if regs != None:
+            self.channel = regs.group(1) 
+            self.connection.leave(self.channel)
             return True
              
         regs = re.compile("^join (#.*)$", re.IGNORECASE).search(cmd)

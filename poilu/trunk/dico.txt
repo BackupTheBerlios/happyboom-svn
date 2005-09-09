@@ -60,6 +60,7 @@ abdominaux
 cakos
 blaireaux
 chalumeau
+dinosaures
 pieds
 nez
 néné
@@ -75,4 +76,5 @@ genou
 toutou
 minou
 roudoudou
-dinosaures
+orteils
+oreilles

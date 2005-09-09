@@ -5,7 +5,8 @@ import re
 import random
 
 def unicode2term(str): 
-	return str.encode("latin-1")
+    import sys
+    return str.encode(sys.stdout.encoding)
 
 class dico_poilu:
     def __init__(self, bot):
@@ -20,7 +21,7 @@ class dico_poilu:
     def echo(self, message):
         print message
 #        self.bot.echo(message)
-		
+        
     def ajoute_terme(self, terme):
         cle = self.terminaison(terme)
         if cle==None: return None

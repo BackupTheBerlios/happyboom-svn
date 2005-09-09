@@ -9,12 +9,13 @@ a:(a[st]?|à)$
 é:(ied[s]?|ée?s?|ez)$
 an:(en(s|ts?)?|an([dg]|ts?)?)$
 is:is$
+ou:(oo|ou[setx]?)$
 o:(au[xt]?|o[st]?|eaux?)$
-ou:ou[setx]?$
 on:on([st]?|ds?)$
 in:(in[ts]?|ein|ains?)$
 eu:eu[xs]?$
 u:[uû][slt]?$
+eil:(eil(le)?s?|a[iï]e)$
 i:i([et]|ls?)?$
 el:el(le)?s?$
 ic:i(c|ke?|que)s?$
