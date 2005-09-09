@@ -13,6 +13,7 @@ o:(au[xt]?|o[st]?|eaux?)$
 ou:ou[setx]?$
 on:on([st]?|ds?)$
 in:(in[ts]?|ein|ains?)$
+eu:eu[xs]?$
 u:[uû][slt]?$
 i:i([et]|ls?)?$
 el:el(le)?s?$
@@ -21,7 +22,7 @@ eul:eul(es?)?$
 oup:oupe?$
 exe:ex(es?)?$
 ax:ax$
-oul:(oules?|ool)$
+oul:(oul(e|es)?)$
 eur:eur$
 in:(aim|in)s?$
 ir:ir[e]?$

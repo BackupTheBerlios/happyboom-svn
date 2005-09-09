@@ -7,20 +7,23 @@
 # Commandes privées
 # -----------------
 #
-#   rime <mot>        : ajoute un mot au dictionnaire des rimes
-#   derime <mot>      : supprime un mot du dictinnaire des rimes
-#   liste rimes <mot> : liste toutes les rimes connues pour le nom donné
-#   reload_regex      : recharge les regex pour les rimes
-#   reload_answer     : charge insultes.txt
-#   reload_keywords   : charge mot.txt
-#   join <chan>       : joindre le canal <chan> (ne pas oublier le préfixe #)
-#   backup            : sauve toutes les données sur le disque dur
-#   utf-8             : passe en UTF-8
-#   iso               : passe en iso-xxx
-#   muet              : liste des caractères muets
-#   taux_reponse      : affiche le taux de réponse
-#   taux_reponse xx   : fixe le taux de réponse (en pourcent), 0% : ne répond
-#                       jamais, 100% répond chaque fois qu'il trouve une rime
+#   rime <mot>           : ajoute un mot au dictionnaire des rimes
+#   derime <mot>         : supprime un mot du dictinnaire des rimes
+#   dit #chan (...)      : fait parler le bot
+#   liste rimes <mot>    : liste toutes les rimes connues pour le nom donné
+#   recharge_muet        : recharge muet.txt
+#   recharge_terminaison : recharge terminaison.txt
+#   recharge_insult      : charge insulte.txt
+#   recharge_motcle      : charge motcle_regex.txt
+#   join #<chan>         : joindre le canal #<chan>
+#   backup               : sauve toutes les données sur le disque dur
+#   utf-8                : passe en UTF-8
+#   iso                  : passe en iso-xxx
+#   muet                 : liste des caractères muets
+#   taux_reponse         : affiche le taux de réponse
+#   taux_reponse xx      : fixe le taux de réponse (en pourcent), 0% : ne
+#                          répond jamais, 100% répond chaque fois qu'il trouve
+#                          une rime
 #
 # Commandes publiques 
 # -------------------
@@ -71,11 +74,12 @@ class TestBot(SingleServerIRCBot):
         self.do_priv_command(cmd) 
 
     def on_pubmsg(self, c, e):
+        self.channel = e.target()
         nick = nm_to_n(e.source())
         cmd = self.get_command(e)
 
         # Commande pour le bot
-        regs = re.compile("^"+self.connection.get_nickname()+"[:,] *(.*)$", re.IGNORECASE).search(cmd)
+        regs = re.compile("^"+self.connection.get_nickname()+"[:,>]? *(.*)$", re.IGNORECASE).search(cmd)
         if regs != None:
             if nick==self.god and self.do_priv_command(regs.group(1)): return
             self.do_pub_command(nick, regs.group(1))
@@ -153,6 +157,11 @@ class TestBot(SingleServerIRCBot):
                 self.echou(u"Ajoute la rime %s" %(regs.group(1)))
             return True
             
+        regs = re.compile("^dit (#[^ ]+) (.+)$", re.IGNORECASE).search(cmd)
+        if regs != None:
+            self.send_privmsgu(regs.group(1), regs.group(2))
+            return True
+            
         if cmd == "utf8":
             if self.utf8_chan==False: self.echo("Passe en UTF-8")
             self.utf8_chan = True
@@ -191,6 +200,7 @@ class TestBot(SingleServerIRCBot):
                 if taux<0: taux=0
                 if 100<taux: taux=100
                 self.taux_reponse = taux
+                self.echou(u"Taux réponse = %s" % self.taux_reponse)
                 return True
             except:
                 self.echou(u"%s n'est pas un taux valide" %(regs.group(1)))
@@ -203,18 +213,23 @@ class TestBot(SingleServerIRCBot):
             self.echou(self.dico.muet)
             return True
 
-        if (cmd == "reload_regex"):
-            self.echo("(recharge les regex)")
+        if (cmd == "recharge_muet"):
+            self.echo("(recharge muet.txt)")
+            self.dico.charge_muet()
+            return True
+            
+        if (cmd == "recharge_terminaison"):
+            self.echo("(recharge terminaison.txt)")
             self.dico.charge_regex()
             return True
             
-        if (cmd == "reload_keywords"):
-            self.echo("(recharge les mot-clés)")
+        if (cmd == "recharge_motcle"):
+            self.echo("(recharge motcle_regex.txt)")
             self.motcle.charge_regex()
             return True
             
-        if (cmd == "reload_answer"):
-            self.echo("(recharge les insultes)")
+        if (cmd == "recharge_insulte"):
+            self.echo("(recharge insulte.txt)")
             self.motcle.charge()
             return True
             
@@ -223,7 +238,7 @@ class TestBot(SingleServerIRCBot):
             self.echo("backup done.")
             return True
              
-        regs = re.compile("^join (.*)$", re.IGNORECASE).search(cmd)
+        regs = re.compile("^join (#.*)$", re.IGNORECASE).search(cmd)
         if regs != None:
             self.channel = regs.group(1) 
             self.connection.join(self.channel)
@@ -249,9 +264,13 @@ def main():
         
     channel = sys.argv[2]
     regs = re.compile("^(.*):utf8$").search(channel)
+    regsiso = re.compile("^(.*):iso$").search(channel)
     if regs != None:
         utf8 = True
         channel = regs.group(1)
+    elif regsiso != None:
+        channel = regsiso.group(1)
+        utf8 = False
     else:
         utf8 = False
     
@@ -259,7 +278,7 @@ def main():
 
     print "Creation de TestBot ..."
     bot = TestBot(channel, utf8, nickname, server, port)
-    print "Lance TestBot ..."
+    print "Lance le bot ... (salon %s, serveur %s, port %s)" % (channel, server, port)
     try:
         bot.start()
     except KeyboardInterrupt:

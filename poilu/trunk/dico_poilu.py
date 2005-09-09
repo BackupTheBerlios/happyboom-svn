@@ -72,6 +72,7 @@ class dico_poilu:
 
     def charge_muet(self):
         f = file("muet.txt","r")
+        self.muet = " "
         for ligne in f:
             ligne = unicode(ligne.strip(), "latin-1")
             self.muet += ligne

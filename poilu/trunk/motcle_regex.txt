@@ -1,1 +1,1 @@
-mdr:(mdr|lo+l|ptdr+)
+mdr:([Mm]dr|lo+l|ptdr+)
