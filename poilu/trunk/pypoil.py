@@ -43,13 +43,9 @@ class TestBot(SingleServerIRCBot):
 
     def get_command(self, e): 
         cmd = e.arguments()[0]
-        if self.utf8_chan: 
-            try:
-                cmd=unicode(cmd, "utf-8")
-            except:
-                self.echo("Etês-vous sûr d'être en UTF-8 ?")
-                cmd=unicode(cmd, "latin-1")
-        else:
+        try:
+            cmd=unicode(cmd, "utf-8")
+        except:
             cmd=unicode(cmd, "iso-8859-1")
         return cmd.strip() 
 
@@ -67,7 +63,7 @@ class TestBot(SingleServerIRCBot):
         self.echou(u"- join #chan / leave #chan : joint/quitte le canal #<chan>")
         self.echou(u"- nick xxx                 : change de surnom")
         self.echou(u"- backup                   : sauve toutes les données sur le disque dur")
-        self.echou(u"- utf-8 / iso              : passe en UTF-8 / iso-8859-1")
+        self.echou(u"- utf-8 / iso              : parle en UTF-8 / iso-8859-1")
         self.echou(u"- muet                     : liste des caractères muets")
         self.echou(u"- taux_reponse xxx         : fixe le taux de réponse (en pourcent)")
 
@@ -174,7 +170,7 @@ class TestBot(SingleServerIRCBot):
             return True
 
         if cmd == "iso":
-            if self.utf8_chan==True: self.echo("Passe en ISO-XXXX-X")
+            if self.utf8_chan==True: self.echo("Passe en ISO-8859-1")
             self.utf8_chan = False 
             return True
             

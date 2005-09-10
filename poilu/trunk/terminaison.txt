@@ -1,3 +1,4 @@
+gue:gues?$
 ied:(ied[s]?|[ps]ier)$
 air:(ier(re)?s?|erre|ère|aire|ert)$
 or:(aur(es?)?|or[tes]?)$

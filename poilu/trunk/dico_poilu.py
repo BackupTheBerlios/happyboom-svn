@@ -18,6 +18,9 @@ class dico_poilu:
         self.charge_muet()
         self.charge_dico()
 
+    def echou(self, message):
+        self.bot.echou(message)
+        
     def echo(self, message):
         self.bot.echo(message)
         
@@ -36,7 +39,7 @@ class dico_poilu:
         if fin==None: return None
         if not self.dico.has_key(fin): return None
         if not terme in self.dico[fin]: return None
-        self.echo("Supprime le mot %s" %(terme))
+        self.echou(u"Supprime le mot %s" %(terme))
         self.dico[fin].remove(terme)
         return True
 
@@ -89,7 +92,7 @@ class dico_poilu:
             fin = item[0]
             expr = item[1]
             if re.compile(expr).search(str) != None: return fin
-        self.echo ("Je n'ai pas trouvé la terminaison de \"%s\" !" %( unicode2term(str) ))
+        self.echou(u"Je n'ai pas trouvé la terminaison de \"%s\" !" %( str ))
         return None 
 
     def reponse(self, str):
