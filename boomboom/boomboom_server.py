@@ -30,8 +30,8 @@ def parseArgs(val):
     try:
         short = "hdv"
         long = ["debug", "verbose", "help", "version", \
-            "max-input=", "max-display=", \
-            "display-port=", "input-port="]
+            "max-clients=",
+            "client-port="]
         opts, args = getopt.getopt(sys.argv[1:], short, long)
     except getopt.GetoptError:
         usage(def_val)
@@ -48,32 +48,15 @@ def parseArgs(val):
         if o == "--version":
             print "%s server version %s" % (PROGRAM, VERSION)
             sys.exit()
-        if o == "--input-port":
-            a = int(a)
-            if a == val["displayPort"]:
-                print "Sorry, input port should be different than display port!"
-            else:
-                val["inputPort"] = a             
-        if o == "--display-port":
-            a = int(a)
-            if a == val["inputPort"]:
-                print "Sorry, display port should be different than input port!"
-            else:
-                val["displayPort"] = a 
-        if o == "--max-input":
+        if o == "--client-port":
+            val["client_port"] = int(a)
+        if o == "--max-clients":
             a = int(a)
             if a < 1: 
-                a=1
+                a = 1
             elif 100 < a:
                 a = 100
-            val["maxInput"] = a
-        if o == "--max-display":
-            a = int(a)
-            if a < 1: 
-                a=1
-            elif 100 < a:
-                a = 100
-            val["maxDisplay"] = a
+            val["max_clients"] = a
         if o in ("-v", "--verbose"):
             val["verbose"] = True
         if o in ("-d", "--debug"):
@@ -81,23 +64,25 @@ def parseArgs(val):
     return val
 
 def run():
-    # Add HappyBoom to PYTHONPATH ("../" today, but should be improved)
+    # Add HappyBoom to PYTHONPATH
     import sys, os
     file_dir = os.path.dirname(__file__)
-    happyboomdir = os.path.join(file_dir, "../happyboom/trunk")
+    happyboomdir = os.path.join(file_dir, "..", "happyboom", "trunk")
     sys.path.append(happyboomdir)
     
+    # Add HappyBoom/server to PYTHONPATH
+    happyboomserverdir = os.path.join(happyboomdir, "server")
+    sys.path.append(happyboomserverdir)
+    
     val = { \
-        "displayPort": 12430, \
-        "inputPort": 12431, \
-        "maxInput": 4, \
-        "maxDisplay": 4, \
+        "input_port": 12430,
+        "max_clients": 4,
         "verbose": False,
         "debug": False}
     arg = parseArgs(val)
     
     from server import BoomBoomServer
-    server = BoomBoomServer(**arg)
+    server = BoomBoomServer(arg)
 
     try:
         server.start()
