@@ -15,6 +15,7 @@
 #   casse toi        : Le bot se déconnecte
 #
 
+import types
 import string, random, re
 from ircbot import SingleServerIRCBot
 from irclib import nm_to_n, nm_to_h, ip_numstr_to_quad, ip_quad_to_numstr
@@ -99,14 +100,18 @@ class TestBot(SingleServerIRCBot):
         return
             
     def send_privmsg(self, nick, message):
+        if type(nick)==types.UnicodeType:
+            nick = nick.encode("ascii")
         if self.utf8_chan: 
             self.connection.privmsg(nick, message.decode("latin-1").encode("utf-8"))
         else:
             self.connection.privmsg(nick, message)
             
     def send_privmsgu(self, nick, message):
+        if type(nick)==types.UnicodeType:
+            nick = nick.encode("ascii")
         if self.utf8_chan: 
-            self.connection.privmsg(nick, message.encode("utf-8"))
+            self.connection.privmsg(nick, message.encode("UTF-8"))
         else:
             self.connection.privmsg(nick, message.encode("iso-8859-1"))
 
@@ -161,6 +166,7 @@ class TestBot(SingleServerIRCBot):
             
         regs = re.compile("^dit ([^ ]+) (.+)$", re.IGNORECASE).search(cmd)
         if regs != None:
+            dit=regs.group(2)
             self.send_privmsgu(regs.group(1), regs.group(2))
             return True
             
