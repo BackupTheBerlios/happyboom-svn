@@ -27,7 +27,7 @@ class ProtocolEvent:
         self.__params_array.append(param)
         return param
 
-    def getParamsType(self):
+    def getParamTypes(self):
         types = []
         for param in self.__params_array:
             types.append(param.type)
@@ -50,32 +50,49 @@ class ProtocolFeature:
         self.protocol = protocol
         self.name = name
         self.id = id
-        self.__events = {}
+        self.__evtnames = {}
+        self.__evtids = {}
 
     def addEvent(self, name, id):
         # Check if no other event have the same identifier
-        for event in self.__events.values():
-            if event.id==id:
-                raise ProtocolException( \
-                    "Events %s.%s and %s.%s have the same identifier (%s)." \
-                    % (self.name, event.name, self.name, name, id))
+        event = self.__evtids.get(id, None)
+        if event != None:
+            raise ProtocolException( \
+                "Events %s.%s and %s.%s have the same identifier (%s)." \
+                % (self.name, event.name, self.name, name, id))
+        # Check if no other event have the same name
+        event = self.__evtnames.get(name, None)
+        if event != None:
+            raise ProtocolException( \
+                "Events %s[%s] and %s[%s] have the same name (%s)." \
+                % (self.name, event.id, self.name, id, name))
 
         # Add the new event 
         event = ProtocolEvent(self, name, id)
-        self.__events[name] = event
+        self.__evtnames[name] = event
+        self.__evtids[id] = event
         return event
 
-    def getEvent(self, event):
-        if not self.__events.has_key(event):
+    def getEvent(self, name):
+        event = self.__evtnames.get(name, None)
+        if event == None:
             raise ProtocolException( \
                 "The protocol %s has no event %s.%s(...)." 
-                % (self.protocol.name, self.name, event))
-        return self.__events[event]
+                % (self.protocol.name, self.name, name))
+        return self.__evtnames[name]
+
+    def __getitem__(self, id):
+        event = self.__evtids.get(id, None)
+        if event == None:
+            raise ProtocolException( \
+                "The protocol %s has no event %s[%s](...)." 
+                % (self.protocol.name, self.name, id))
+        return self.__evtids[id]
 
     def __str__(self):
         first = True
         out = ""
-        for event in self.__events.values():
+        for event in self.__evtnames.values():
             if first:
                 first = False
             else:
@@ -87,32 +104,49 @@ class Protocol:
     def __init__(self, name, version):
         self.name = name
         self.version = version
-        self.__features = {}
+        self.__featnames = {}
+        self.__featids = {}
 
     def addFeature(self, name, id):
         # Check if no other feature have the same identifier
-        for feature in self.__features.values():
-            if feature.id==id:
-                raise ProtocolException( \
-                    "Features %s and %s have the same identifier (%s)." \
-                    % (feature.name, name, id))
+        feature = self.__featnames.get(name, None)
+        if feature != None:
+            raise ProtocolException( \
+                "Features %s and %s have the same identifier (%s)." \
+                % (feature.name, name, id))
+        # Check if no other feature have the same name
+        feature = self.__featids.get(id, None)
+        if feature != None:
+            raise ProtocolException( \
+                "Features %s and %s have the same name (%s)." \
+                % (feature.id, id, name))
 
         # Add the new feature
         feature = ProtocolFeature(self, name, id)
-        self.__features[name] = feature
+        self.__featnames[name] = feature
+        self.__featids[id] = feature
         return feature
 
-    def getFeature(self, feature):
-        if not self.__features.has_key(feature):
+    def getFeature(self, name):
+        feature = self.__featnames.get(name, None)
+        if feature == None:
             raise ProtocolException( \
                 "The protocol %s has no feature %s." \
-                % (self.name, feature))
-        return self.__features[feature]
+                % (self.name, name))
+        return feature
 
+    def __getitem__(self, id):
+        feature = self.__featids.get(id, None)
+        if  feature == None:
+            raise ProtocolException( \
+                "The protocol %s has no feature %s." \
+                % (self.name, id))
+        return feature
+        
     def __str__(self):
         out = ""
         first = True
-        for feature in self.__features.values():
+        for feature in self.__featnames.values():
             if first:
                 first = False
             else:

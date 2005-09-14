@@ -36,7 +36,7 @@ class Gateway(Agent):
             if not packer.checkType(types[i], args[i]):
                 raise ProtocolException( \
                     "Parameter %u of event %s should be of type %s (and not %s)." \
-                    % (i, event, types[i], type(args[i])))
+                    % (i, e, types[i], type(args[i])))
         data = packer.pack(f.id, e.id, types, args)
         return Packet(data)
             

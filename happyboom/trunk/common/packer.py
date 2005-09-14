@@ -38,7 +38,7 @@ def pack(func, event, types, values):
     """
 
     assert len(types) == len(values), "Lengths of types and args have to be the same."
-    out = struct.pack("!ii", func, event)
+    out = struct.pack("!HH", func, event)
 
     #TODO: Fix this :-)
     for i in range(len(values)):
@@ -70,16 +70,18 @@ def unpackInt(data):
     i = struct.calcsize(fmt)
     return (struct.unpack(fmt, data[:i]), data[i:])
 
-def unpack(data):
+def unpack(data, protocol):
     """
     Unpack binary string to arguments.
     """
-    fmt = "!BB"
+    fmt = "!HH"
     i = struct.calcsize(fmt)
-    feat, evt = struct.unpack(fmt, data[:i])
+    feat_id, evt_id = struct.unpack(fmt, data[:i])
     data = data[i:]
     args = []
-    for type in getArgTypes(feat, evt):
+    feat = protocol.getFeature(feat_id)
+    evt = feat.getEvent(evt_id)
+    for type in evt.getParamTypes():
         if type=="int":
             arg, tail = unpackInt(data)
         elif type=="bin":
@@ -88,4 +90,4 @@ def unpack(data):
             raise PackerException("Wrong argument type: %s" % type)
         args.append(arg)
         data = tail
-    return (feat, evt, args)
+    return (fea.namet, evt.name, args)
