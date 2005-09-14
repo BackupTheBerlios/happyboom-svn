@@ -10,7 +10,7 @@ class Weapon(BoomBoomAgent):
         self.nextTeam = None
 
     def born(self):
-    	BoomBoomAgent.born(self)
+        BoomBoomAgent.born(self)
         self.requestRole("command_manager")
         self.requestActions("game")
         self.requestActions("network")

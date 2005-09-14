@@ -70,9 +70,13 @@ def run():
     happyboomdir = os.path.join(file_dir, "..", "happyboom", "trunk")
     sys.path.append(happyboomdir)
     
-    # Add HappyBoom/server to PYTHONPATH
-    happyboomserverdir = os.path.join(happyboomdir, "server")
-    sys.path.append(happyboomserverdir)
+    # Add HappyBoom/common to PYTHONPATH
+#    happyboomserverdir = os.path.join(happyboomdir, "common")
+#    sys.path.append(happyboomserverdir)
+    
+     # Add HappyBoom/server to PYTHONPATH
+#    happyboomserverdir = os.path.join(happyboomdir, "server")
+#    sys.path.append(happyboomserverdir)
     
     val = { \
         "input_port": 12430,

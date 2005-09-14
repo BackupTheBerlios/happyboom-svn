@@ -1,6 +1,6 @@
-from agents import Character, Projectile, Weapon, World, Game
-from base_server import HappyBoomServer, HappyBoomGateway, HappyBoomMessage
+from happyboom.server.base_server import HappyBoomServer, HappyBoomGateway, HappyBoomMessage
 from pysma import Kernel
+from agents import Character, Projectile, Weapon, World, Game
 
 class BoomBoomGateway(HappyBoomGateway):
     def __init__(self, server, arg):
@@ -15,6 +15,7 @@ class BoomBoomGateway(HappyBoomGateway):
         self.requestActions("projectile")
 
     def start(self):
+        HappyBoomGateway.start(self)
         if self._verbose: print "[*] Creating agents"
         self.addAgent(Game(debug=self._debug))
         self.addAgent(World(debug=self._debug))
