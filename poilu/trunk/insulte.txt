@@ -1,1 +1,9 @@
 mdr:Ta gueule grosse vache !
+asp:"dot NET" çapucpalibre
+oracle:Oracle çapucpalibre, PostgreSQL c'est libre au moins!
+java:Java çapucpalibre, utilisez Python !
+mirc:mIrc çapucpalibre, utilisez Xchat, bitchx, irsii ou autre !
+apple:Apple ---> Mangez des pommes !
+clanlib:ClanLib c'est affreux, n'utilisez pas cette bibliothèque !
+troll:Troll detected !!! :)
+windows:Windows çapucpalibre, utilisez Linux ou *BSD !

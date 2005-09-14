@@ -1,1 +1,9 @@
 mdr:([Mm]dr|lo+l|ptdr+)
+asp:(ASP|\.(NET|Net))
+oracle:[Oo]racle
+java:[Jj]ava
+mirc:(mI|mi)rc
+apple:[Aa]pple
+clanlib:(ClanLib|clanlib)
+troll:([Mm]andrake|[Gg]entoo|utf-8)
+windows:([Ww]indows)

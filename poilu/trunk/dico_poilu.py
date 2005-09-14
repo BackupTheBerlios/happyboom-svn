@@ -87,7 +87,7 @@ class dico_poilu:
         f.close()
 
     def terminaison(self, str):
-        str = unicode.rstrip(str, self.muet)
+        str = unicode.rstrip(str.lower(), self.muet)
         for item in self.regex:
             fin = item[0]
             expr = item[1]

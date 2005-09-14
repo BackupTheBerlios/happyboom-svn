@@ -3,6 +3,7 @@
 
 import re
 import random
+import codecs
 
 def unicode2term(str): 
 	return str.encode("latin-1")
@@ -10,7 +11,7 @@ def unicode2term(str):
 class motcle_poilu:
     def __init__(self):
 		self.insulte = dict()
-		self.regex = []
+		self.regex = dict() 
 		self.charge_regex()
 		self.charge()
 
@@ -50,25 +51,27 @@ class motcle_poilu:
         self.insulte = {}
         for ligne in f:
 			ligne = unicode(ligne.strip(), "utf8")
-			regs = re.compile("^(.+):(.+)$").search(ligne)
+			regs = re.compile("^([^:]+):(.+)$").search(ligne)
 			if regs != None: self.ajoute(regs.group(1), regs.group(2))
         f.close()
 
     def charge_regex(self):
-        self.regex = []
-        f = file("motcle_regex.txt","r")
+        f = codecs.open("motcle_regex.txt","r","utf8")
+        self.regex = dict()
         for ligne in f:
-            ligne = unicode(ligne.strip(), "utf8")
-            regs = re.compile("^(.+):(.+)$").search(ligne)
+            ligne = ligne.strip()
+            regs = re.compile("^([^:]+):(.+)$").search(ligne)
             if regs != None: 
                 regex = re.compile(regs.group(2))
-                self.regex.append( (regs.group(1), regex,) )
+                self.regex[regs.group(1)] = regex
+            else:
+                print "La ligne \"%s\" de motcle_regex.txt n'a pas été comprise !" % ligne
         f.close()
 
     def calcule_cle(self, str):
-        for item in self.regex:
-            r = item[1].search(str)
-            if r != None: return item[0] 
+        for key,regex in self.regex.items():
+            r = regex.search(str)
+            if r != None: return key 
         return None
 
     def reponse(self, str):

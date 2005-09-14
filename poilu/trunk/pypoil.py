@@ -34,6 +34,8 @@ class TestBot(SingleServerIRCBot):
         self.motcle = motcle_poilu()
         self.taux_reponse = 100
         self.welcome = u"Salut"
+        self.reponse_motcle = True
+        self.reponse_dico = True
 
     def on_nicknameinuse(self, c, e):
         c.nick(c.get_nickname() + "_")
@@ -59,7 +61,6 @@ class TestBot(SingleServerIRCBot):
         self.echou(u"- recharge_muet            : recharge muet.txt")
         self.echou(u"- recharge_terminaison     : recharge terminaison.txt")
         self.echou(u"- recharge_dico            : recharge dico.txt")
-        self.echou(u"- recharge_insult          : recharge insulte.txt")
         self.echou(u"- recharge_motcle          : recharge motcle_regex.txt")
         self.echou(u"- join #chan / leave #chan : joint/quitte le canal #<chan>")
         self.echou(u"- nick xxx                 : change de surnom")
@@ -67,7 +68,8 @@ class TestBot(SingleServerIRCBot):
         self.echou(u"- utf-8 / iso              : parle en UTF-8 / iso-8859-1")
         self.echou(u"- muet                     : liste des caractères muets")
         self.echou(u"- taux_reponse xxx         : fixe le taux de réponse (en pourcent)")
-
+        self.echou(u"- reponse_dico             : active/désactive la réponse du dico")
+        self.echou(u"- reponse_motcle           : active/désactive la réponse des mot-clés")
 
     def on_privmsg(self, c, e):
         cmd = self.get_command(e)
@@ -90,9 +92,9 @@ class TestBot(SingleServerIRCBot):
             return
             
         # Sinon, cherche une rime
-        cmd = cmd.lower()
-        reponse = self.dico.reponse(cmd)
-        if reponse==None: reponse = self.motcle.reponse(cmd)
+        reponse = None
+        if reponse==None and self.reponse_dico: reponse = self.dico.reponse(cmd)
+        if reponse==None and self.reponse_motcle: reponse = self.motcle.reponse(cmd)
         if reponse==None: return
         
         if self.taux_reponse <= random.uniform(0,101): return
@@ -201,6 +203,18 @@ class TestBot(SingleServerIRCBot):
                     %(regs.group(1), ", ".join(termes)))
             return True
             
+        regs = re.compile("^reponse_dico$", re.IGNORECASE).search(cmd)
+        if regs != None:
+            self.reponse_dico = not self.reponse_dico
+            self.echou(u"Réponse par dico : %s"  % self.reponse_dico)
+            return True
+            
+        regs = re.compile("^reponse_motcle$", re.IGNORECASE).search(cmd)
+        if regs != None:
+            self.reponse_motcle = not self.reponse_motcle
+            self.echou(u"Réponse par mot-clé : %s"  % self.reponse_motcle)
+            return True
+            
         regs = re.compile("^taux_reponse (.*)$", re.IGNORECASE).search(cmd)
         if regs != None:
             try:
@@ -237,9 +251,6 @@ class TestBot(SingleServerIRCBot):
         if (cmd == "recharge_motcle"):
             self.echo("(recharge motcle_regex.txt)")
             self.motcle.charge_regex()
-            return True
-            
-        if (cmd == "recharge_insulte"):
             self.echo("(recharge insulte.txt)")
             self.motcle.charge()
             return True
