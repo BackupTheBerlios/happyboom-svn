@@ -1,16 +1,20 @@
+from happyboom.common.protocol import ProtocolException
+from happyboom.common.log import log
+
 class Client:
     """
     High-level class for a client in the server.
     """
 
-    def __init__(self, io_client, client_manager):
+    def __init__(self, io_client, gateway, client_manager):
         self.__io = io_client
         self.__client_manager = client_manager
+        self.__gateway = gateway
         self.signature = None
 
     # Stop client: close socket.
     def stop(self):
-        self.__io.stop()
+        self.__io.disconnect()
 
     # Read a message from network stack
     # Blocking function, returns None after timeout seconds (no data)
@@ -23,5 +27,9 @@ class Client:
 
     # Send a HappyBoom message to the client (see L{sendPacket})
     def sendNetMsg(self, func, event, *args):
-        packet = self.__gateway.createMsgTuple(func, event, args)
+        try:
+            packet = self.__gateway.createMsg(func, event, *args)
+        except ProtocolException, err:
+            log.error(err)
+            return
         self.__io.send(packet)

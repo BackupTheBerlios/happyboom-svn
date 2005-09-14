@@ -1,7 +1,8 @@
 from happyboom.net import io, io_udp, io_tcp, net_buffer
-import thread, time
 from happyboom.common.log import log
 from happyboom.common.thread import getBacktrace
+from happyboom.server.client import Client
+import thread, time
 
 class ClientManager(object):
     def __init__(self, arg): 
@@ -17,6 +18,7 @@ class ClientManager(object):
         self.__supported_features = {}
         self.__clients = []
         self.__clients_sema = thread.allocate_lock()
+        self.gateway = None
         
     def recvClientPacket(self, packet):
         self.__buffer.append(packet.recv_from.addr, packet)
@@ -56,12 +58,14 @@ class ClientManager(object):
 
     def closeClient(self, client):
         if self.__verbose:
-            log.info("Client %s disconnected." % client.name)
+            log.info("Client %s disconnected." % client)
         
-        txt = "Client %s (display) leave us." % (client.name)
-        self.__gateway.sendText(txt)
-        
-        client.sendMsg("presentation", "bye", "utf8", u"Lost connection")
+        txt = "Client %s leave us." % client
+        self.gateway.sendText(txt)
+       
+        # TODO: get client of type Client for the client of type ClientIO to send
+        # him bye
+#        client.sendNetMsg("presentation", "bye", "utf8", u"Lost connection")
         
     def __clientChallenge(self, client, func):
         try:
@@ -91,28 +95,28 @@ class ClientManager(object):
         return r
 
     def __do_openClient(self, io_client):
-        log.info("[*] Display %s try to connect ..." % (client.name))
-        client = ClientSocket(io_client, self)
+        log.info("[*] Display %s try to connect ..." % io_client)
+        client = Client(io_client, self.gateway, self)
         
 #        self.__buffer.clear(client.addr)
        
         # Check protocol version (max: wait 200ms)
-        answer = self.readClientAnswer(client, 0.200)
-        if answer != self.__gateway.protocol_version:
+        answer = client.read(0.200)
+        if answer != self.gateway.protocol_version:
             # If it isn't the right version, send presention.bye(...)
             txt = u"Sorry, you don't have same protocol version (%s VS %s)" \
-                % (answer, self.__gateway.protocol_version)
-            client.sendMsg("presentation", "bye", "utf8", txt)
+                % (answer, self.gateway.protocol_version)
+            client.sendNetMsg("presentation", "bye", "utf8", txt)
 
             # Wait 0.5s and then disconnect the client
             time.sleep(0.500)
-            client.disconnect()
+            client.stop()
             return
             
         # Send protocol version with "hello()"
         client.signature = self.generateSignature()        
         client.send("presentation", "hello", \
-            "bin", self.__gateway.protocol_version, \
+            "bin", self.gateway.protocol_version, \
             "bin", signature)
          
         # Read features (max: wait 1sec)
@@ -124,7 +128,7 @@ class ClientManager(object):
         self.__clients_sema.release() 
 
         txt = "Welcome to new (display) client : %s" % (client.name)
-        self.__gateway.sendText(txt)
+        self.gateway.sendText(txt)
         log.info("[*] Display %s connected" % (client.name))
         self.sendBBMessage("sync")
 

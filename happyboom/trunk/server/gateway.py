@@ -1,8 +1,9 @@
 from happyboom.common import packer 
 from happyboom.server.agent import Agent
-from pysma import Kernel, DummyScheduler
 from happyboom.common.protocol import loadProtocol, ProtocolException
 from happyboom.net.io import Packet
+from happyboom.common.log import log
+from pysma import Kernel, DummyScheduler
 import struct
 
 class Gateway(Agent):
@@ -56,12 +57,16 @@ class Gateway(Agent):
 
     def sendText(self, txt, client=None):
         if client != None:
-            client.sendMsg("agent_manager", "Text", txt)
+            client.sendMsg("chat", "message", txt)
         else:
-            self.sendNetMsg("agent_manager", "Text", txt)
+            self.sendNetMsg("chat", "message", txt)
 
     def sendNetMsg(self, feature, event, *args):
-        packet = self.createMsg(feature, event, *args)
+        try:
+            packet = self.createMsg(feature, event, *args)
+        except ProtocolException, err:
+            log.error(err)
+            return
         clients = self.__client_manager.supported_features.get(feature, ())
         for client in clients:
             client.sendPacket(packet)

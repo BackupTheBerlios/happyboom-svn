@@ -42,4 +42,5 @@ class Server(HBServer):
     def __init__(self, protocol, arg):
         manager = ClientManager(arg)
         gateway = Gateway(protocol, manager, arg)
+        manager.gateway = gateway
         HBServer.__init__(self, gateway, arg)

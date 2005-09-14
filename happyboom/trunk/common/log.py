@@ -38,7 +38,7 @@ class Log:
         @return: C{str}
         """
         if level==Log.LOG_WARN: return "[warn]"
-        if level==Log.LOG_ERROR: return "[error]"
+        if level==Log.LOG_ERROR: return "[err] "
         return "[info]"
 
     def new_message(self, level, str):
@@ -57,12 +57,12 @@ class Log:
             self.__buffer[level] = [str]
         else:
             self.__buffer[level].append(str)
-        print str
+        prefix = self.getLevelPrefix(level)            
+        print "%s %s" % (prefix, str)
         if self.__file:
             self.__file.write(u"%s - %s %s\n" \
                 % (time.strftime("%Y-%M-%d %H:%M:%S"),
-                   self.getLevelPrefix(level),
-                   str))
+                   prefix, str))
 
     def info(self, str):
         """

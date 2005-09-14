@@ -32,4 +32,10 @@
       <param type="int" name="angle" />
     </event>
   </feature>
+  
+  <feature name="chat" id="5">
+    <event name="mesage" id="1">
+      <param type="utf8" name="text" />
+    </event>
+  </feature>
 </protocol>
