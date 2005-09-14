@@ -71,6 +71,7 @@ class World(Agent):
             if len(msg) != 0: msg = msg + ";"
             msg = msg + "%i,%i,%i,%i" % (b.x, b.y, b.width, b.height)
         self.sendBroadcastMessage(Message("world_create", (msg,)), "network")
+        self.sendNetMsg("world", "create", m)
 
     def msg_character_search_place(self, x0, width, height):
         if x0 < 0:
@@ -90,6 +91,7 @@ class World(Agent):
     def msg_projectile_move(self, x, y):
         if self.hitGround(x, y):
             self.sendBBMessage("collision", x, y)
+            self.sendNetMsg("projectile", "hitGround")
 
     def msg_network_sync(self):
         self.sync()

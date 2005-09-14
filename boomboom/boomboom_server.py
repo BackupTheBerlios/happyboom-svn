@@ -95,7 +95,6 @@ def run():
     except KeyboardInterrupt:
         pass
     server.stop()
-    print "Server quit."
 
 def main():
     try:

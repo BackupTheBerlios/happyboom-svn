@@ -21,6 +21,7 @@
     <event name="activate" id="1">
       <param type="int" name="on" />
     </event>
+    <event name="hitGround" id="2" />
   </feature>
   
   <feature name="weapon" id="4">

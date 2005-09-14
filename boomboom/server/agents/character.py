@@ -26,18 +26,13 @@ class Character(Agent):
         self.sendBroadcast(Message("character_move", ("%u,%i,%i" % (self.id, self.x, self.y),)), "network")
         if self.current:
             self.send("active_coord", self.x, self.y)
-            self.sendNetMsg("character", "move", \
-                "int", self.id, "int", self.x, "int", self.y)
+            self.sendNetMsg("character", "move", self.id, self.x, self.y)
 
     def sync(self):
         self.move(self.x, self.y, force=True)
 
     def msg_found_place(self, x, y):
         self.move(x, y, True)
-        
-    def msg_game_next_character(self, char, team):
-        if self.id == char:
-            self.next = True
         
     def msg_game_next_turn(self):
         self.current = self.next

@@ -5,6 +5,7 @@ from happyboom.server.base_server import \
 from pysma import Kernel
 from bb_agent import Message
 from agents import Character, Projectile, Weapon, World, Game
+from happyboom.common.log import log
 
 class Gateway(HBGateway):
     def __init__(self, protocol, manager, arg):
@@ -20,7 +21,7 @@ class Gateway(HBGateway):
 
     def start(self):
         HBGateway.start(self)
-        if self._verbose: print "[*] Creating agents"
+        if self._verbose: log.info("[*] Creating agents")
         self.addAgent(Game(self, debug=self._debug))
         self.addAgent(World(self, debug=self._debug))
         self.addAgent(Character(self, 100, 1, debug=self._debug))
@@ -30,29 +31,13 @@ class Gateway(HBGateway):
         self.sendBroadcastMessage(Message("start", ()), "game")
                         
     def msg_game_next_character(self, char, team):
-        if self._debug: print "Next character : %s,%s" %(char, team)
+        if self._debug: log.info("Next character : %s,%s" %(char, team))
         self.nextChar = char
                         
-    def msg_game_collision(self, x, y):
-        if self._debug: print "Hit ground : %s,%s" %(x, y)
-        self.sendNetMsg("projectile", "hit_ground")
-    
-    def msg_world_create(self, m):
-        if self._debug: print "World create : %s" %m
-        self.sendNetMsg("world", "create", m)
-        
-    def msg_character_move(self, m):
-        if self._debug: print "Character move : %s" %m
-        self.sendNetMsg("character", "move", m)
-        
     def msg_new_item(self, type, id):
-        if self._debug: print "New item : %s,%s" %(type, id)
+        if self._debug: log.info("New item : %s,%s" %(type, id))
         self.__items.append((type, id))
         
-    def msg_game_current_character(self, char, team):
-        if self._debug: print "Current character : %s,%s" %(char, team)
-        self.sendNetMsg("game", "active_character", char)
-
 class Server(HBServer):
     def __init__(self, protocol, arg):
         manager = ClientManager(arg)
