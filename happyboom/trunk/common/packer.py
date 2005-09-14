@@ -48,13 +48,34 @@ def pack(func, event, args):
     return out        
 
 def unpackBin(data):
-    return struct.unpack("!Hs", data)[1]
+    fmt = "!H"
+    i = struct.calcsize(fmt)
+    strlen, data = struct.unpack(fmt, data[:i]), data[i:]
+    fmt = "!%ss" %(strlen)
+    i = struct.calcsize(fmt)
+    return (struct.unpack(fmt, data[:i]), data[i:])
     
 def unpackInt(data):
-    return struct.pack("!i", data)[0]
+    fmt = "!i"
+    i = struct.calcsize(fmt)
+    return (struct.unpack(fmt, data[:i]), data[i:])
 
 def unpack(data):
     """
     Unpack binary string to arguments.
     """
-    
+    fmt = "!BB"
+    i = struct.calcsize(fmt)
+    feat, evt = struct.unpack(fmt, data[:i])
+    data = data[i:]
+    args = []
+    for type in getArgTypes(feat, evt):
+        if type=="int":
+            arg, tail = unpackInt(data)
+        elif type=="bin":
+            arg, tail = unpackBin(data)
+        else:
+            raise PackerException("Wrong argument type: %s" % type)
+        args.append(arg)
+        data = tail
+    return (feat, evt, args)
