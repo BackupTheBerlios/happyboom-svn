@@ -41,12 +41,14 @@ class Weapon(Agent):
         elif 80 < angle: angle = 80
         self.angle = angle 
         self.send("angle", angle)
+        self.sendNetMsg("weapon", "setAngle", angle)
 
     def updateStrength(self, strength):
         if strength < 10: strength = 10
         elif 100 < strength: strength = 100
         self.strength = strength
         self.send("strength", strength)
+        self.sendNetMsg("weapon", "setStrength", strength)
 
     def sync(self):
         self.updateStrength(self.strength)

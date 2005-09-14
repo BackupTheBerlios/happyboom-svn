@@ -1,14 +1,34 @@
 <?xml version="1.0"?>
-<protocol game="BoomBoom" version="0.2">
-  <func name="game" id="1">
+<protocol name="BoomBoom" version="0.2">
+  <feature name="game" id="1">
     <event name="start" id="1" />
     <event name="stop" id="2" />
-  </func>
-  <func name="character" id="4">
-    <event name="move" id="1">
-      <param name="id" type="int" />
-      <param name="x" type="int" />
-      <param name="y" type="int" />
+    <event name="setActiveCharacter" id="3">
+      <param type="int" name="player" />
     </event>
-  </func>
+    <event name="nextTurn" id="4" />
+  </feature>
+  
+  <feature name="character" id="2">
+    <event name="move" id="1">
+      <param type="int" name="id" />
+      <param type="int" name="x" />
+      <param type="int"  name="y"/>
+    </event>
+  </feature>
+  
+  <feature name="projectile" id="3">
+    <event name="activate" id="1">
+      <param type="int" name="on" />
+    </event>
+  </feature>
+  
+  <feature name="weapon" id="4">
+    <event name="setAngle" id="1">
+      <param type="int" name="angle" />
+    </event>
+    <event name="setStrength" id="2">
+      <param type="int" name="angle" />
+    </event>
+  </feature>
 </protocol>

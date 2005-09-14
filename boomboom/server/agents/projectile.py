@@ -43,6 +43,7 @@ class Projectile(Agent):
     def setActive(self, active):
         self.active = active
         self.sendBBMessage("activate", active)
+        self.sendNetMsg("projectile", "activate", 0) 
 
     def shoot(self):
         if self.weapon_angle==None: return
@@ -60,6 +61,7 @@ class Projectile(Agent):
         self.x = x
         self.y = y
         self.sendBBMessage("move", x, y)
+        self.sendNetMsg("projectile", "move", x, y)
 
     def live(self):
         Agent.live(self)

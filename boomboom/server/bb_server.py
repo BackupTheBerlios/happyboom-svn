@@ -33,29 +33,10 @@ class Gateway(HBGateway):
         if self._debug: print "Next character : %s,%s" %(char, team)
         self.nextChar = char
                         
-    def msg_game_next_turn(self):
-        if self._debug: print "Next turn : %s" %self.nextChar
-        
     def msg_game_collision(self, x, y):
         if self._debug: print "Hit ground : %s,%s" %(x, y)
         self.sendNetMsg("projectile", "hit_ground")
     
-    def msg_projectile_move(self, x, y):
-        if self._debug: print "Projectile move : %s,%s" %(x, y)
-        self.sendNetMsg("projectile", "move", "%i,%i" %(x,y), True)
-        
-    def msg_projectile_activate(self, flag):
-        if self._debug: print "Projectile activate : %s" %flag
-        self.sendNetMsg("projectile", "activate", "%u" %(flag))
-        
-    def msg_weapon_angle(self, a):
-        if self._debug: print "Weapon angle : %s" %a
-        self.sendNetMsg("weapon", "angle", a)
-        
-    def msg_weapon_strength(self, s):
-        if self._debug: print "Weapon strength : %s" %s
-        self.sendNetMsg("weapon", "force", s)
-        
     def msg_world_create(self, m):
         if self._debug: print "World create : %s" %m
         self.sendNetMsg("world", "create", m)

@@ -17,30 +17,32 @@ class Game(Agent):
 
     def msg_new_character(self, character):
         self.characters.append(character)
-        if self.current == None: self.current = 0 
+        if self.current == None:
+            self.setCurrent(0)
 
     def sync(self):
         self.sendBroadcast(Message("game_current_character", self.current), "network")
 
-    def incCharacter(self):
-        tpos = (self.next_team_pos + 1) % 2
-        cpos = (self.next_char_pos[self.teams[tpos]] + 1) % len(self.characters[self.teams[tpos]])
-        self.sendNextCharacter(cpos, tpos)
+    def setCurrent(self, current):
+        self.current = current
+        self.sendNetMsg("game", "setActiveCharacter", current)
+
+    def nextCharacter(self):
+        new = (self.current + 1) % len(self.characters)
+        self.setCurrent(new)
 
     def nextTurn(self):
         self.send("next_turn")
-        self.sendNetMsg("game", "next_turn")
-        self.sendNetMsg("game", "active_character", \
-            "int", self.current)
+        self.sendNetMsg("game", "nextTurn")
+        self.sendNetMsg("game", "setActiveCharacter", self.current)
 
     def msg_world_collision(self, x, y):
         self.nextTurn()
-        self.incCharacter()
+        self.nextCharacter()
         
     def msg_start(self):
         self.launchGame()
 
     def launchGame(self):    
-        self.sendNextCharacter(0, 0)
+        self.setCurrent(self.current)
         self.nextTurn()
-        self.incCharacter()

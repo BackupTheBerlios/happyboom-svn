@@ -16,7 +16,7 @@ class Character(Agent):
         self.requestActions("game")
         self.requestActions("network")
         self.sendBroadcast(Message("character_search_place", (self.x, self.width, self.height)), "world")
-        self.sendBroadcast(Message("new_character", (self.id, self.team)), "game")
+        self.sendBroadcast(Message("new_character", (self,)), "game")
         self.sendBroadcast(Message("new_item", (self.type, self.id)), "network")
 
     def move(self, x, y, force=False):
