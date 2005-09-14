@@ -1,5 +1,4 @@
-
-import threading
+import thread
 import time
 
 class NetBuffer:
@@ -14,7 +13,7 @@ class NetBuffer:
 		""" Constructor. """
 		self.blocking_read_sleep = 0.010
 		self.__buffer = {} 
-		self.__sema = threading.Semaphore()
+		self.__sema = thread.allocate_lock()
 
 	def clear(self, key):
 		""" Clear buffer. """

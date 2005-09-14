@@ -1,61 +1,69 @@
+# TODO: Check if it's always possible to send skippable packets
+
 from net import io, io_udp, io_tcp, net_buffer
 from pysma import Kernel, DummyScheduler, ActionAgent, ActionMessage
 import re, random, thread, traceback, time
+import types # maybe only used for assertions
+
+class HappyBoomClient:
+    """
+    High-level class for a client in the server.
+    """
+
+    def __init__(self, io_client, client_manager):
+        self.__io = io_client
+        self.__client_manager = client_manager
+        self.signature = None
+
+    # Stop client: close socket.
+    def stop(self):
+        self.__io.stop()
+
+    # Read a message from network stack
+    # Blocking function, returns None after timeout seconds (no data)
+    def read(self, timeout):
+        return self.__client_manager.readClientAnswer(self.__io, timeout)
+
+    # Send a network packet the the client socket
+    def sendPacket(self, packet):
+        self.__io.send(packet)
+
+    # Send a HappyBoom message to the client (see L{sendPacket})
+    def sendNetMsg(self, func, event, *args):
+        packet = self.__gateway.createMsgTuple(func, event, args)
+        self.__io.send(packet)
 
 class HappyBoomAgent(ActionAgent):
-	def __init__(self, type, **args):
-		ActionAgent.__init__(self, prefix="msg_")
-		self.type = type
-		self.__debug = args.get("debug", False)
+    """
+    SMA agent in HappyBoom.
+    """
+    def __init__(self, type, **args):
+        ActionAgent.__init__(self, prefix="msg_")
+        self.type = type
+        self.__debug = args.get("debug", False)
 
-	def born(self):
-		self.requestRole(self.type)
+    def born(self):
+        self.requestRole(self.type)
 
-	def requestActions(self, type):
-		self.requestRole("%s_listener" %type)
-		
-	def sendBBMessage(self, action, *arg, **kw):
-		message = BoomBoomMessage("%s_%s" %(self.type, action), arg, kw)
-		self.sendBroadcastMessage(message, "%s_listener" %self.type)
+    def requestActions(self, type):
+        self.requestRole("%s_listener" %type)
+        
+    def sendBBMessage(self, action, *arg, **kw):
+        message = BoomBoomMessage("%s_%s" %(self.type, action), arg, kw)
+        self.sendBroadcastMessage(message, "%s_listener" %self.type)
 
-	def messageReceived(self, msg):
-		if self.__debug:
-			print "Unhandled message : %s -- %s" %(type(self), msg)
+    def messageReceived(self, msg):
+        if self.__debug:
+            print "Unhandled message : %s -- %s" %(type(self), msg)
 
 class HappyBoomMessage(ActionMessage):
-	def __init__(self, action, arg, kw={}):
-		ActionMessage.__init__(self, action, arg, kw)
+    def __init__(self, action, arg, kw={}):
+        ActionMessage.__init__(self, action, arg, kw)
 
 # TODO: Use better name :-)
 class HappyBoomPackerException(Exception):
     def __init__(self, msg):
         Exception.__init__(self, msg)
-
-class HappyBoomPacker:
-    """
-    Pack arguments to binary string.
-    """
-    def __init__(self):
-        pass
-
-    def packUtf8(self, data):
-        return data.encode("utf-8")
-
-    def packBin(self, data):
-        return data
-
-    def pack(self, datalist):
-        out = ""
-        for type,data in datalist:
-            # TODO: Use dict instead of long if list
-            if type=="bin":
-                data = self.packBin(data)
-            elif type=="utf8":
-                data = self.packUtf8(data)
-            else:
-                raise HappyBoomPackerException("Wrong argument type: %s" % type)
-            out = out + data
-        return out        
 
 class HappyBoomGateway(HappyBoomAgent):
     def __init__(self, server, arg):
@@ -67,18 +75,16 @@ class HappyBoomGateway(HappyBoomAgent):
         Kernel().addAgent(DummyScheduler(sleep=0.01))
         self.packer = HappyBoomPacker()
 
-    # Convert a (role,type,arg) to string (to be sent throw network)
-    def createMsg(self, role, function, args=None):
-        if args != None:
-            return "%s:%s:%s" % (role, type, args)
-        else:
-            return "%s:%s" % (role, type)
-
-    def pack(self, datalist):
-        return self.packer.pack(datalist)
-
-    def sendMsgToClient(self, msg, client):
-        client.send(io.Packet(msg))
+    # Create a network packet for the event func.event(args) where
+    # args is a tuple
+    def createMsgTuple(self, func, event, args):
+        data = self.packer.pack(func, event, args)
+        return io.Packet(data)
+            
+    # Create a network packet for the event func.event(args), see
+    # L{self.createMsgTuple}
+    def createMsg(self, func, event, *args):
+        return self.createMsgTuple(func, event, args)
 
     def start(self):
         Kernel.instance.addAgent(self)
@@ -88,16 +94,15 @@ class HappyBoomGateway(HappyBoomAgent):
 
     def sendText(self, txt, client=None):
         if client != None:
-            msg = self.createMsg("agent_manager", "Text", txt)
-            client.send(io.Packet(msg))
+            client.sendMsg("agent_manager", "Text", txt)
         else:
-            self.sendNetworkMessage("agent_manager", "Text", txt)
+            self.sendNetMsg("agent_manager", "Text", txt)
 
-    def sendNetworkMessage(self, role, type, arg=None, skippable=False):
-        msg = self.createMsg(role, type, arg)
+    def sendMsg(self, func, event, *args):
+        packet = self.createMsgTuple(role, type, args, func)
         clients = self.__server.client_manager.supported_features.get(role, ())
         for client in clients:
-            client.send (io.Packet(msg, skippable=skippable))
+            client.sendPacket(packet)
 
 class HappyBoomClientManager(object):
     def __init__(self, server, gateway, arg): 
@@ -113,13 +118,16 @@ class HappyBoomClientManager(object):
         self.client_port = arg.get("client_port", 12430)
         self.__protocol_version = "0.1.4"
         self.__supported_features = {}
+        self.__clients = []
+        self.__clients_sema = thread.allocate_lock()
         
     def recvClientPacket(self, packet):
         self.__buffer.append(packet.recv_from.addr, packet)
 
     def stop(self):
-        self.__gateway.sendNetworkMessage("game", "Stop", skippable=True)
-        self.__io.stop()
+        self.__gateway.sendNetMsg("game", "stop")
+        for client in self.__clients:
+            client.stop()
 
     def process(self):
         pass
@@ -157,9 +165,7 @@ class HappyBoomClientManager(object):
         txt = "Client %s (display) leave us." % (client.name)
         self.__gateway.sendText(txt)
         
-        arg = self.__gateway.pack((("utf8", u"Lost connection"),))
-        msg = self.__gateway.createMsg("presentation", "bye", arg)
-        self.__gateway.sendMsgToClient(msg, client)
+        client.sendMsg("presentation", "bye", "utf8", u"Lost connection")
         
     def __clientChallenge(self, client, func):
         try:
@@ -190,8 +196,9 @@ class HappyBoomClientManager(object):
         r = random.randint(0,1000000)
         return r
 
-    def __do_openClient(self, client):
+    def __do_openClient(self, io_client):
         if self.__verbose: print "[*] Display %s try to connect ..." % (client.name)
+        client = HappyBoomClientSocket(io_client, self)
         
 #        self.__buffer.clear(client.addr)
        
@@ -201,8 +208,7 @@ class HappyBoomClientManager(object):
             # If it isn't the right version, send presention.bye(...)
             txt = u"Sorry, you don't have same protocol version (%s VS %s)" \
                 % (answer, self.__protocol_version)
-            msg = self.__gateway.createMsg("presentation", "bye", txt.encode("UTF-8"))
-            self.__gateway.sendMsgToClient(msg, client)
+            client.sendMsg("presentation", "bye", "utf8", txt)
 
             # Wait 0.5s and then disconnect the client
             time.sleep(0.500)
@@ -210,14 +216,18 @@ class HappyBoomClientManager(object):
             return
             
         # Send protocol version with "hello()"
-        signature = self.generateSignature()
-        arg = self.__gateway.pack("bin", self.__protocol_version,"bin", signature)
-        msg = self.__gateway.createMsg("presentation", "hello", arg)
-        self.__gateway.sendMsgToClient(msg, client)
+        client.signature = self.generateSignature()        
+        client.send("presentation", "hello", \
+            "bin", self.__protocol_version, \
+            "bin", signature)
          
         # Read features (max: wait 1sec)
-        answer = self.readClientAnswer(client, 1.0)
+        answer = client.read(1.0)
         #TODO: do something with answer :-)
+
+        self.__clients_sema.acquire() 
+        self.__clients.append(client)
+        self.__clients_sema.release() 
 
         txt = "Welcome to new (display) client : %s" % (client.name)
         self.__gateway.sendText(txt)
