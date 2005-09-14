@@ -36,7 +36,7 @@ class BoomBoomInput(EventLauncher):
     @type __stoplock: C{thread.lock}
     """
     
-    def __init__(self, host, port=12431, name="-", verbose=False, debug=False):
+    def __init__(self, arg):
         """ BoomBoomInput constructor.
         @param host: Server hostname.
         @type host: C{str}
@@ -49,16 +49,17 @@ class BoomBoomInput(EventLauncher):
         @param debug: Debug mode flag.
         @type debug: C{bool}
         """
+
         EventLauncher.__init__(self)
-        self.host = host
-        self.port = port
-        self.name = name
+        self.host = arg.get("host", "localhost")
+        self.port = arg.get("input_port", 12431)
+        self.name = arg.get("name", "no name")
         self.__io = io_tcp.IO_TCP()
         self.__recv_buffer = net_buffer.NetBuffer()
-        self.__verbose = verbose
-        self.__io.verbose = verbose
-        self.__debug = debug
-        self.__io.debug = debug
+        self.__verbose = arg.get("verbose", False)
+        self.__io.verbose = self.__verbose
+        self.__debug = arg.get("debug", False)
+        self.__io.debug = self.__debug
         self.__protocol_version = "0.1.4"
         self.__stopped = False
         self.__stoplock = thread.allocate_lock()

@@ -25,7 +25,7 @@ class BoomBoomClient(EventListener):
     @type __stoplock: C{thread.lock}
     """
     
-    def __init__(self, host, display_port, input_port, verbose=False, debug=False, max_fps=25):
+    def __init__(self, arg):
         """ BoomBoomClient constructor.
         @param host: Server hostname.
         @type host: C{str}
@@ -42,9 +42,9 @@ class BoomBoomClient(EventListener):
         """
         EventListener.__init__(self, prefix="evt_")
         
-        self.display = BoomBoomDisplay(host, display_port, verbose=verbose, debug=debug, max_fps=max_fps)
-        self.input = BoomBoomInput(host, input_port, verbose=verbose, debug=debug)
-        self.__verbose = verbose
+        self.display = BoomBoomDisplay(arg)
+        self.input = BoomBoomInput(arg)
+        self.__verbose = arg.get("verbose", False)
         self.__stopped = False
         self.__stoplock = thread.allocate_lock()
         

@@ -61,6 +61,17 @@ def parseArgs(val):
             val["debug"] = True
     return val
 
+def run(arg):
+    from client import BoomBoomClient
+    client = BoomBoomClient(arg)
+    try:
+        client.start()
+    except KeyboardInterrupt:
+        print "Program interrupted (CTRL+C)."
+        pass
+    client.stop()
+    print "Classic stop."
+
 def main():
     # Add HappyBoom to PYTHONPATH ("../" today, but should be improved)
     import sys, os
@@ -80,15 +91,8 @@ def main():
 
     # Create the client
     import pygame
-    from client import BoomBoomClient
-    client = BoomBoomClient(arg["host"], arg["view_port"], arg["input_port"],\
-                            arg["verbose"], arg["debug"], arg["max_fps"])
-    try:
-        client.start()
-    except KeyboardInterrupt:
-        print "Program interrupted (CTRL+C)."
-        pass
-    client.stop()
+    run(arg)
+    print "pygame.quit()"
     pygame.quit()
 
 if __name__=="__main__": main()

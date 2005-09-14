@@ -6,6 +6,7 @@ PROGRAM="BoomBoom"
 import getopt
 import sys
 from happyboom.common.protocol import loadProtocol
+from happyboom.common.log import log
 
 def usage(defval):
     print "%s server version %s" % (PROGRAM, VERSION)
@@ -64,42 +65,44 @@ def parseArgs(val):
             val["debug"] = True
     return val
 
-def run():
+def main():
     # Add HappyBoom to PYTHONPATH
     import sys, os
     file_dir = os.path.dirname(__file__)
     happyboomdir = os.path.join(file_dir, "..", "happyboom", "trunk")
     sys.path.append(happyboomdir)
     
-    # Add HappyBoom/common to PYTHONPATH
-#    happyboomserverdir = os.path.join(happyboomdir, "common")
-#    sys.path.append(happyboomserverdir)
-    
-     # Add HappyBoom/server to PYTHONPATH
-#    happyboomserverdir = os.path.join(happyboomdir, "server")
-#    sys.path.append(happyboomserverdir)
-    
+    # Get user directory 
+    from happyboom.common.file import getCreateHomeDir
+    logdir = getCreateHomeDir("boomboom")
+
+    # Setup log filename
+    from happyboom.common.log import log
+    if logdir != None:
+        logname = os.path.join(logdir, "server-log")    
+        log.setFilename(logname)
+   
+    # Read command line arguments
     val = { \
         "input_port": 12430,
         "max_clients": 4,
         "verbose": False,
         "debug": False}
     arg = parseArgs(val)
-    
+   
+    # Create BoomBoom server
     from server.bb_server import Server
     protocol = loadProtocol("protocol.xml")
     server = Server(protocol, arg)
 
+    # Main loop
     try:
         server.start()
     except KeyboardInterrupt:
+        log.info("Program interrupted (CTRL+C).")
         pass
+    
+    # Stop the server
     server.stop()
-
-def main():
-    try:
-        run()
-    except KeyboardInterrupt:
-        print "Program interrupted (CTRL+C)."
 
 if __name__=="__main__": main()
