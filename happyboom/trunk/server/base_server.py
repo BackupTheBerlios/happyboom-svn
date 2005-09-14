@@ -1,6 +1,7 @@
 # TODO: Check if it's always possible to send skippable packets
 
-from net import io, io_udp, io_tcp, net_buffer
+from happyboom.common.packer import HappyBoomPacker
+from happyboom.net import io, io_udp, io_tcp, net_buffer
 from pysma import Kernel, DummyScheduler, ActionAgent, ActionMessage
 import re, random, thread, traceback, time
 import types # maybe only used for assertions

@@ -3,7 +3,6 @@
 
 import time
 import thread
-import threading
 import socket
 import traceback
 import struct
@@ -27,7 +26,7 @@ class IO_TCP(io.BaseIO):
     @ivar __clients: List of clients connected to this IO.
     @type __clients: C{list<L{IO_client<io.IO_Client>}>?}
     @ivar __clients_sema: Semaphore used to access L{__clients}.
-    @type __clients_sema: C{threading.Semaphore}
+    @type __clients_sema: C{thread.lock}
     @ivar __running: Is the thread running ?
     @type __running: C{bool}
     """
@@ -43,7 +42,7 @@ class IO_TCP(io.BaseIO):
         self.__addr = None
         self.__clients = {}
         self.__server = None
-        self.__clients_sema = threading.Semaphore()
+        self.__clients_sema = thread.allocate_lock()
         self.__running = False 
         io.Packet.use_tcp = True
 
