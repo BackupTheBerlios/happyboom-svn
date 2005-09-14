@@ -46,10 +46,15 @@ def pack(func, event, args):
             raise PackerException("Wrong argument type: %s" % type)
         out = out + data
     return out        
+
+def unpackBin(data):
+    return struct.unpack("!Hs", data)[1]
     
+def unpackInt(data):
+    return struct.pack("!i", data)[0]
+
 def unpack(data):
     """
     Unpack binary string to arguments.
     """
-    # TODO
-    pass
+    
