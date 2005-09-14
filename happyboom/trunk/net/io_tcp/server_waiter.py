@@ -27,7 +27,7 @@ class NetworkServerWaiter(object):
             self.start(port, max_connection)
         except Exception, msg:
             log.error("EXCEPTION IN TCP SERVER WAITER!\n%s\n%s" \
-                % (msg, getBacktrace())
+                % (msg, getBacktrace()))
         self.__running = False 
         
     def clientConnect(self, client):

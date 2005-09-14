@@ -103,7 +103,7 @@ class Packet(object):
             format = "!I"
             size = struct.calcsize(format)
             if len(binary_data) <  size:
-                log.warning("Wrong network packet size from %s!" % (self.recv_from)
+                log.warning("Wrong network packet size from %s!" % self.recv_from)
                 return None
             data = struct.unpack(format, binary_data[:size])
             data_len = data[0]
@@ -113,7 +113,7 @@ class Packet(object):
             format = "!BBII"
             size = struct.calcsize(format)
             if len(binary_data) <  size:
-                log.warning("Wrong network packet size from %s!" % (self.recv_from)
+                log.warning("Wrong network packet size from %s!" % self.recv_from)
                 return None
             data = struct.unpack(format, binary_data[:size])
             self.type = data[0]
@@ -127,7 +127,7 @@ class Packet(object):
             format = "!%us" % (data_len)
             size = struct.calcsize(format)
             if len(binary_data) < size:
-                log.warning("Wrong network packet size from %s!" % (self.recv_from)
+                log.warning("Wrong network packet size from %s!" % self.recv_from)
                 return None
             data = struct.unpack(format, binary_data[:size]) 
             self.__data = data[0] 

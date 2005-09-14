@@ -233,7 +233,7 @@ class IO_UDP(io.BaseIO):
         except Exception, msg:
             log.error( \
                 "EXCEPTION IN UDP SERVER:\n%s\n%s" \
-                msg, getBacktrace())
+                % (msg, getBacktrace()))
             self.stop()
 
     def stop(self):
@@ -304,7 +304,7 @@ class IO_UDP(io.BaseIO):
         # This packet is already received ? Drop it!
         if client.alreadyReceived(packet.id):
             if self.debug:
-                log.warning("Drop packet %u (already received)" % packet.id))
+                log.warning("Drop packet %u (already received)" % packet.id)
             return None    
             
         client.receivePacket(packet)
