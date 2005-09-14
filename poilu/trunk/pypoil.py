@@ -262,8 +262,8 @@ class TestBot(SingleServerIRCBot):
             
         regs = re.compile("^leave (#.*)$", re.IGNORECASE).search(cmd)
         if regs != None:
-            self.channel = regs.group(1) 
-            self.connection.leave(self.channel)
+            self.channel = regs.group(1).encode("ascii")
+            self.connection.part(self.channel)
             return True
              
         regs = re.compile("^nick (.*)$", re.IGNORECASE).search(cmd)
