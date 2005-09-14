@@ -5,6 +5,7 @@ PROGRAM="BoomBoom"
 
 import getopt
 import sys
+from happyboom.common.protocol import loadProtocol
 
 def usage(defval):
     print "%s server version %s" % (PROGRAM, VERSION)
@@ -85,8 +86,9 @@ def run():
         "debug": False}
     arg = parseArgs(val)
     
-    from server import BoomBoomServer
-    server = BoomBoomServer(arg)
+    from server.bb_server import Server
+    protocol = loadProtocol("protocol.xml")
+    server = Server(protocol, arg)
 
     try:
         server.start()

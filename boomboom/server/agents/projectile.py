@@ -1,10 +1,10 @@
-from server.bb_agent import BoomBoomAgent, BoomBoomMessage
+from server.bb_agent import Agent, Message
 import time
 import math
 
-class Projectile(BoomBoomAgent):
-    def __init__(self, **args):
-        BoomBoomAgent.__init__(self, "projectile", **args)
+class Projectile(Agent):
+    def __init__(self, gateway, **args):
+        Agent.__init__(self, "projectile", gateway, **args)
         self.x, self.y = 0, 0
         self.start_pos = None
         self.active = False
@@ -15,14 +15,14 @@ class Projectile(BoomBoomAgent):
         self.mass = 10
 
     def born(self):
-        BoomBoomAgent.born(self)
+        Agent.born(self)
         self.requestRole("command_manager")
         self.requestActions("weapon")
         self.requestActions("character")
         self.requestActions("world")
         self.requestActions("game")
         self.requestActions("network")
-        self.sendBroadcastMessage(BoomBoomMessage("new_item", (self.type, self.id)), "network")
+        self.sendBroadcastMessage(Message("new_item", (self.type, self.id)), "network")
 
     def msg_weapon_strength(self, arg):
         self.weapon_strength = int(arg) * 4
@@ -62,7 +62,7 @@ class Projectile(BoomBoomAgent):
         self.sendBBMessage("move", x, y)
 
     def live(self):
-        BoomBoomAgent.live(self)
+        Agent.live(self)
         if self.active:
             dt = time.time() - self.time
             x = self.start_pos[0] +self.speed[0] * dt

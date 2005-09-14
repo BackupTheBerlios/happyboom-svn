@@ -1,4 +1,4 @@
-from server.bb_agent import BoomBoomAgent, BoomBoomMessage
+from server.bb_agent import Agent, Message
 import random
 
 class Building:
@@ -20,20 +20,20 @@ class Building:
         return True
 
 
-class World(BoomBoomAgent):
-    def __init__(self, **args):
-        BoomBoomAgent.__init__(self, "world", **args)
+class World(Agent):
+    def __init__(self, gateway, **args):
+        Agent.__init__(self, "world", gateway, **args)
         self.buildings = None
         self.height = 350
         self.width = 640
         self.generate()
 
     def born(self):
-        BoomBoomAgent.born(self)
+        Agent.born(self)
         self.requestActions("projectile")
         self.requestActions("game")
         self.requestActions("network")
-        self.sendBroadcastMessage(BoomBoomMessage("new_item", (self.type, self.id)), "network")
+        self.sendBroadcastMessage(Message("new_item", (self.type, self.id)), "network")
 
     def generate(self):
         width = self.width
@@ -70,7 +70,7 @@ class World(BoomBoomAgent):
         for b in self.buildings:
             if len(msg) != 0: msg = msg + ";"
             msg = msg + "%i,%i,%i,%i" % (b.x, b.y, b.width, b.height)
-        self.sendBroadcastMessage(BoomBoomMessage("world_create", (msg,)), "network")
+        self.sendBroadcastMessage(Message("world_create", (msg,)), "network")
 
     def msg_character_search_place(self, x0, width, height):
         if x0 < 0:
@@ -85,7 +85,7 @@ class World(BoomBoomAgent):
                 x = int(b.x + (b.width - width) / 2)
                 y = b.y - height
                 break
-        self.sendMessage(BoomBoomMessage("found_place", (x, y)), self.currentMessage.sender)
+        self.sendMessage(Message("found_place", (x, y)), self.currentMessage.sender)
                 
     def msg_projectile_move(self, x, y):
         if self.hitGround(x, y):

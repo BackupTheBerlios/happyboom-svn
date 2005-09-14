@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<protocol game="BoomBoom" version="0.2">
+  <func name="game" id="1">
+    <event name="start" id="1" />
+    <event name="stop" id="2" />
+  </func>
+  <func name="character" id="4">
+    <event name="move" id="1">
+      <param name="id" type="int" />
+      <param name="x" type="int" />
+      <param name="y" type="int" />
+    </event>
+  </func>
+</protocol>

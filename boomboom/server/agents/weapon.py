@@ -1,8 +1,8 @@
-from server.bb_agent import BoomBoomAgent, BoomBoomMessage
+from server.bb_agent import Agent, Message
 
-class Weapon(BoomBoomAgent):
-    def __init__(self, **args):
-        BoomBoomAgent.__init__(self, "weapon", **args)
+class Weapon(Agent):
+    def __init__(self, gateway, **args):
+        Agent.__init__(self, "weapon", gateway, **args)
         self.angle = None
         self.strength = None
         self.last_values = {}
@@ -10,11 +10,11 @@ class Weapon(BoomBoomAgent):
         self.nextTeam = None
 
     def born(self):
-        BoomBoomAgent.born(self)
+        Agent.born(self)
         self.requestRole("command_manager")
         self.requestActions("game")
         self.requestActions("network")
-        self.sendBroadcastMessage(BoomBoomMessage("new_item", (self.type, self.id)), "network")
+        self.sendBroadcast(Message("new_item", (self.type, self.id)), "network")
 
     def msg_game_next_character(self, char, team):
         self.nextTeam = team
@@ -40,13 +40,13 @@ class Weapon(BoomBoomAgent):
         if angle < -80: angle = -80
         elif 80 < angle: angle = 80
         self.angle = angle 
-        self.sendBBMessage("angle", angle)
+        self.send("angle", angle)
 
     def updateStrength(self, strength):
         if strength < 10: strength = 10
         elif 100 < strength: strength = 100
         self.strength = strength
-        self.sendBBMessage("strength", strength)
+        self.send("strength", strength)
 
     def sync(self):
         self.updateStrength(self.strength)
