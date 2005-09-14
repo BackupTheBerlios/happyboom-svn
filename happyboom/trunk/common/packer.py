@@ -46,3 +46,10 @@ def pack(func, event, args):
             raise PackerException("Wrong argument type: %s" % type)
         out = out + data
     return out        
+    
+def unpack(data):
+    """
+    Unpack binary string to arguments.
+    """
+    # TODO
+    pass
