@@ -5,8 +5,6 @@ PROGRAM="BoomBoom"
 
 import getopt
 import sys
-from happyboom.common.protocol import loadProtocol
-from happyboom.common.log import log
 
 def usage(defval):
     print "%s server version %s" % (PROGRAM, VERSION)
@@ -71,7 +69,7 @@ def main():
     file_dir = os.path.dirname(__file__)
     happyboomdir = os.path.join(file_dir, "..", "happyboom", "trunk")
     sys.path.append(happyboomdir)
-    
+
     # Get user directory 
     from happyboom.common.file import getCreateHomeDir
     logdir = getCreateHomeDir("boomboom")
@@ -92,6 +90,7 @@ def main():
    
     # Create BoomBoom server
     from server.bb_server import Server
+    from happyboom.common.protocol import loadProtocol
     protocol = loadProtocol("protocol.xml")
     server = Server(protocol, arg)
 

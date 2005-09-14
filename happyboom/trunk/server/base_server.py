@@ -13,7 +13,8 @@ class Server(object):
         self.__stopped = False
         self.__stoplock = thread.allocate_lock()
         self.__gateway = gateway 
-        gateway.server = self
+        self.__gateway.server = self
+        self.__gateway.client_manager.server = self
         random.seed()
         self.__items = []
         

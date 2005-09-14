@@ -3,6 +3,8 @@ stop = "game_Stop"
 nextTurn = "game_next_turn"
 activeCharacter = "game_active_character"
 
+shoot = "weapon_shoot"
+
 create = "agent_manager_Create"
 text = "agent_manager_Text"
 askVersion = "agent_manager_AskVersion"

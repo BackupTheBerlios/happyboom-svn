@@ -4,8 +4,7 @@
 @contact: See U{http://developer.berlios.de/projects/happyboom/}
 @version: 0.2
 """
-from common import simple_event
-from common.simple_event import EventListener
+from happyboom.common.simple_event import EventListener
 import bb_events
 import pygame, time
 

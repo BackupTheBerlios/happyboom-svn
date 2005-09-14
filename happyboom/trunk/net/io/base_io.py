@@ -31,6 +31,8 @@ class BaseIO(object):
     @type on_new_packet: C{function(L{Packet})}
     @ivar __name: The IO name.
     @type __name: C{str}
+    @ivar _running: Is the thread running ?
+    @type _running: C{bool}
     """
     
     def __init__(self, is_server=False):
@@ -41,6 +43,7 @@ class BaseIO(object):
         self.debug = False
         self.verbose = False 
         self._is_ready = False
+        self._running = False 
 
         # Events
         self.on_connect = None            # No argument
@@ -64,6 +67,7 @@ class BaseIO(object):
         """
         if self.__name==None:
             self.__name = "%s:%u" % (host, port)
+        self._running = True
 
     def disconnect(self):
         """ Close connection. """
@@ -97,10 +101,14 @@ class BaseIO(object):
     
     def stop(self):
         """ Stop the IO (close connections). """
-        pass
+        if not self._running: return
+        self._running = False
+        self.disconnect()
 
     def __str__(self):
         return self.__name
+    
+    def isRunning(self): return self._running
 
     #--- Private functions ------------------------------------------------------
 

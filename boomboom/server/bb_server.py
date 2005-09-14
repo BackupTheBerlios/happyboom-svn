@@ -1,3 +1,4 @@
+from happyboom.common.presentation import Presentation
 from happyboom.server.base_server import \
     Server as HBServer, \
     Gateway as HBGateway, \
@@ -8,8 +9,8 @@ from agents import Character, Projectile, Weapon, World, Game
 from happyboom.common.log import log
 
 class Gateway(HBGateway):
-    def __init__(self, protocol, manager, arg):
-        HBGateway.__init__(self, protocol, manager, arg)
+    def __init__(self, protocol, presentation, manager, arg):
+        HBGateway.__init__(self, protocol, presentation, manager, arg)
 
     def born(self):
         HBGateway.born(self)
@@ -41,6 +42,7 @@ class Gateway(HBGateway):
 class Server(HBServer):
     def __init__(self, protocol, arg):
         manager = ClientManager(arg)
-        gateway = Gateway(protocol, manager, arg)
+        presentation = Presentation(protocol, True)
+        gateway = Gateway(protocol, presentation, manager, arg)
         manager.gateway = gateway
         HBServer.__init__(self, gateway, arg)

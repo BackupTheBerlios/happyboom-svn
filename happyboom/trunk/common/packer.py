@@ -11,7 +11,7 @@ def checkType(datatype, data):
     elif datatype=="bin":
         return true
     elif datatype=="utf8":
-        return type(data)==types.unicode
+        return type(data)==types.UnicodeType
     else:
         raise PackerException("Wrong argument type: %s" % datatype)
 
@@ -23,10 +23,11 @@ def packInt(data):
     return struct.pack("!i", data)
     
 def packUtf8(data):
-    assert type(data)==types.unicode, "packUtf8 argument have to be Unicode"
+    assert type(data)==types.UnicodeType, "packUtf8 argument have to be an unicode string"
     return packBin(data.encode("utf-8"))
 
 def packBin(data):
+    assert type(data)==types.StringType, "packBin argument have to be a string"
     return struct.pack("!H%us" % len(data), len(data), data)
 
 def pack(func, event, types, values):
@@ -38,7 +39,7 @@ def pack(func, event, types, values):
     """
 
     assert len(types) == len(values), "Lengths of types and args have to be the same."
-    out = struct.pack("!HH", func, event)
+    out = struct.pack("!BB", func, event)
 
     #TODO: Fix this :-)
     for i in range(len(values)):
@@ -57,37 +58,40 @@ def pack(func, event, types, values):
         out = out + data
     return out        
 
-def unpackBin(data):
+def unpackBin(data):        
     fmt = "!H"
     i = struct.calcsize(fmt)
-    strlen, data = struct.unpack(fmt, data[:i]), data[i:]
-    fmt = "!%ss" %(strlen)
+    version_len, = struct.unpack(fmt, data[:i])
+    data = data[i:]
+    fmt = "!%us" %(version_len)
     i = struct.calcsize(fmt)
-    return (struct.unpack(fmt, data[:i]), data[i:])
-    
+    bin, = struct.unpack(fmt, data[:i])
+    return bin, data[i:]
+
+def unpackUtf8(data):
+    str, data = unpackBin(data)
+    str = unicode(str, "UTF-8")
+    return str, data
+ 
 def unpackInt(data):
     fmt = "!i"
     i = struct.calcsize(fmt)
-    return (struct.unpack(fmt, data[:i]), data[i:])
+    value = struct.unpack(fmt, data[:i])
+    return value, data[i:]
 
-def unpack(data, protocol):
+def unpack(data, feature_id, event_id, protocol):
     """
     Unpack binary string to arguments.
     """
-    fmt = "!HH"
-    i = struct.calcsize(fmt)
-    feat_id, evt_id = struct.unpack(fmt, data[:i])
-    data = data[i:]
+    feat = protocol.getFeatureById(feature_id)
+    evt = feat.getEventById(event_id)
     args = []
-    feat = protocol.getFeature(feat_id)
-    evt = feat.getEvent(evt_id)
     for type in evt.getParamTypes():
         if type=="int":
-            arg, tail = unpackInt(data)
+            arg, data = unpackInt(data)
         elif type=="bin":
-            arg, tail = unpackBin(data)
+            arg, data = unpackBin(data)
         else:
             raise PackerException("Wrong argument type: %s" % type)
         args.append(arg)
-        data = tail
-    return (fea.namet, evt.name, args)
+    return (feat.name, evt.name, args)

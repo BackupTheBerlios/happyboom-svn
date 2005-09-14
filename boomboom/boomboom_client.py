@@ -16,8 +16,7 @@ def usage(defval):
     print "\t--help            : Print this help"
     print "\t--version         : Print the software version"
     print "\t-h,--host HOST    : Server ip/name (default %s)" % (defval["host"])
-    print "\t--view-port PORT  : Server view port (default %u)" % (defval["view_port"])
-    print "\t--input-port PORT : Server input port (default %u)" % (defval["input_port"])
+    print "\t--port PORT       : Server port (default %u)" % (defval["port"])
     print "\t-d,--debug        : Enable debug mode"
     print "\t-v,--verbose      : Enable verbose mode"
     print "\t--max-fps MAX     : Set maximum frame par second (fps)"
@@ -44,10 +43,8 @@ def parseArgs(val):
             sys.exit()
         if o == "--version":
             print "%s version %s" % (PROGRAM, VERSION)
-        if o == "--input-port":
-            val["input_port"] = int(a)
-        if o == "--view-port":
-            val["view_port"] = int(a)
+        if o == "--port":
+            val["port"] = int(a)
         if o in ("-h", "--host",):
             val["host"] = a
         if o in ("-v", "--verbose",):
@@ -62,15 +59,19 @@ def parseArgs(val):
     return val
 
 def run(arg):
+    from happyboom.common.protocol import loadProtocol
     from client import BoomBoomClient
-    client = BoomBoomClient(arg)
+    from client.bb_display import BoomBoomDisplay
+
+    protocol = loadProtocol("protocol.xml")
+    display = BoomBoomDisplay(protocol, arg)
+    client = BoomBoomClient(display, arg)
     try:
         client.start()
     except KeyboardInterrupt:
         print "Program interrupted (CTRL+C)."
         pass
     client.stop()
-    print "Classic stop."
 
 def main():
     # Add HappyBoom to PYTHONPATH ("../" today, but should be improved)
@@ -81,8 +82,7 @@ def main():
  
     val = {
         "host": "127.0.0.1", \
-        "view_port": 12430, \
-        "input_port": 12431, \
+        "port": 12430, \
         "max_fps": 50, \
         "verbose": False, \
         "name": "-", \
@@ -92,7 +92,6 @@ def main():
     # Create the client
     import pygame
     run(arg)
-    print "pygame.quit()"
     pygame.quit()
 
 if __name__=="__main__": main()

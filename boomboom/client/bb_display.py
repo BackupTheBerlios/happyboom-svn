@@ -4,12 +4,13 @@
 @contact: See U{http://developer.berlios.de/projects/happyboom/}
 @version: 0.2
 """
-from common import simple_event
-from common.simple_event import EventLauncher, EventListener
+from happyboom.common.presentation import Presentation
+from happyboom.common.simple_event import EventLauncher, EventListener
 import bb_events
 from bb_drawer import BoomBoomDrawer
 from bb_constructor import BoomBoomConstructor
 from net import io
+from happyboom.net.io import Packet
 from net import io_udp, io_tcp
 import thread
 
@@ -38,7 +39,7 @@ class BoomBoomDisplay(EventLauncher, EventListener):
     @type __stoplock: C{thread.lock}
     """
     
-    def __init__(self, arg):
+    def __init__(self, protocol, arg):
         """ BoomBoomDisplay constructor.
         @param host: Server hostname.
         @type host: C{str}
@@ -55,11 +56,13 @@ class BoomBoomDisplay(EventLauncher, EventListener):
         """
         EventLauncher.__init__(self)
         EventListener.__init__(self, prefix="evt_")
+        self.launchEvent("x")
+        self.presentation = Presentation(protocol, False)
         self.drawer = BoomBoomDrawer(arg.get("max_fps", 25))
         self.host = arg.get("host", "localhost")
-        self.port = arg.get("display_port", 12430)
+        self.port = arg.get("port", 12430)
         self.name = arg.get("name", "no name")
-        self.__protocol_version = "0.1.4"
+        self.__protocol = protocol
         self.__io = io_tcp.IO_TCP()
         self.__verbose = arg.get("verbose", False)
         self.__io.verbose = self.__verbose
@@ -68,8 +71,7 @@ class BoomBoomDisplay(EventLauncher, EventListener):
         self.__stopped = False
         self.__stoplock = thread.allocate_lock()
         
-        self.registerEvent(bb_events.askVersion)
-        self.registerEvent(bb_events.askName)
+        self.registerEvent(bb_events.shoot)
         
     def start(self):
         """ Starts the display client : connection to the server, etc. """
@@ -78,13 +80,14 @@ class BoomBoomDisplay(EventLauncher, EventListener):
         self.__io.on_connect = self.onConnect
         self.__io.on_connection_fails = self.onConnectionFails
         self.__io.on_disconnect = self.onDisconnect
-        self.__io.on_new_packet = self.processPacket
+        self.__io.on_new_packet = self.presentation.processPacket
         self.__io.on_lost_connection = self.onLostConnection
         self.__io.connect(self.host, self.port)
         if not self.__io.is_ready: return
         thread.start_new_thread(self.__io.run_thread, ())
     
         BoomBoomConstructor()
+        self.__io.send(self.presentation.connectionPacket())
         print "==== BoomBoom ===="
         self.drawer.start()
         
@@ -93,7 +96,9 @@ class BoomBoomDisplay(EventLauncher, EventListener):
         self.__stoplock.acquire()
         self.__stopped = True
         self.__stoplock.release()
-        self.send("quit")
+        # TODO: clean "bye"
+        packet = self.presentation.disconnectionPacket(u"Quit.")
+        self.__io.send(packet)
         self.__io.stop()
         if self.__verbose: print "[DISPLAY] Stopped"
         
@@ -125,56 +130,18 @@ class BoomBoomDisplay(EventLauncher, EventListener):
         print "[DISPLAY] Lost connection with server"
         self.launchEvent(bb_events.stop)
     
-    def str2evt(self, str):
-        """ Utility method to convert incomming network message string to local event.
-        @param str: incomming network message string to convert.
-        @type str: C{str}
-        @return: A couple containing the event type and its optional argument for representing a local event to send.
-        @rtype: C{(str, str)}
-        """
-        import re
-        # Ugly regex to parse string
-        r = re.compile("^([^:]+):([^:]+)(:(.*))?$")
-        regs = r.match(str)
-        if regs == None: return (None, None)
-        role = regs.group(1)
-        type = regs.group(2)
-        if 2<regs.lastindex:
-            arg = regs.group(4)
-        else:
-            arg = None
-        event_type = "%s_%s" %(role, type)
-        return (event_type, arg)
-        
-    def processPacket(self, new_packet):
-        """ Processes incomming network packets (converts and launches local event).
-        @param new_packet: incomming network packet.
-        @type new_packet: C{net.io.packet.Packet}
-        """
-        event_type, arg = self.str2evt(new_packet.data)
-        if event_type != None: 
-            if self.__debug: print "Received message: type=%s arg=%s" %(event_type, arg)
-            self.launchEvent(event_type, arg)
-            
-    def send(self, str):
+    def send(self, feature, event, *args):
         """ Sends a string to the network server.
         @param str: String to send.
         @type str: C{str}
         """
-        p = io.Packet()
-        p.writeStr(str)
-        self.__io.send(p)
+        data = self.__protocol.createMsg(feature, event, *args)
+        data = self.presentation.sendMsg(data)
+        self.__io.send(Packet(data))
+
+    def evt_x(self, event):
+        print "x"
         
-    def evt_agent_manager_AskVersion(self, event):
-        """ AskVersion event handler (when server asks for client version).
-        @param event: Event with "agent_manager_AskVersion" type
-        @type event: C{L{common.simple_event.Event}}
-        """
-        self.send(self.__protocol_version)
-        
-    def evt_agent_manager_AskName(self, event):
-        """ AskName event handler (when server asks for client name).
-        @param event: Event with "agent_manager_AskName" type
-        @type event: C{L{common.simple_event.Event}}
-        """
-        self.send(self.name)
+    def evt_weapon_shoot(self, event):
+        print "Shoot aussi"
+        self.send("weapon", "shoot")

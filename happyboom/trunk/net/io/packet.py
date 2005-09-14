@@ -148,7 +148,7 @@ class Packet(object):
             data = struct.pack("!I", data_len)
         else:
             data = struct.pack("!BBII", 
-                self.type, self.skippable+0, self.id, data_len)
+                self.type, int(self.skippable), self.id, data_len)
         if data_len != 0:
             data = data + struct.pack("!%us" % data_len, self.__data)
         return data

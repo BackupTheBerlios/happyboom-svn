@@ -3,6 +3,7 @@ Tools to load HappyBoom protocol in Python from an XML description file.
 """
 
 import xml.dom.minidom
+from happyboom.common.packer import pack, checkType
 
 class ProtocolException(Exception):
     def __init__(self, msg):
@@ -85,7 +86,7 @@ class ProtocolFeature:
                 % (self.protocol.name, self.name, name))
         return self.__evtnames[name]
 
-    def __getitem__(self, id):
+    def getEventById(self, id):
         event = self.__evtids.get(id, None)
         if event == None:
             raise ProtocolException( \
@@ -105,11 +106,30 @@ class ProtocolFeature:
         return out
 
 class Protocol:
+    """
+    HappyBoom protocol utility.
+    version is unicode
+    """
     def __init__(self, name, version):
         self.name = name
         self.version = version
         self.__featnames = {}
         self.__featids = {}
+
+    def createMsg(self, feature, event, *args):
+        f = self.getFeature(feature)
+        e = f.getEvent(event)
+        types = e.getParamTypes()
+        if len(args) != len(types):
+            raise ProtocolException( \
+                "Wrong parameter count (%u) for the event %s." \
+                % (len(args), e))
+        for i in range(len(args)):
+            if not checkType(types[i], args[i]):
+                raise ProtocolException( \
+                    "Parameter %u of event %s should be of type %s (and not %s)." \
+                    % (i, f, types[i], type(args[i])))
+        return pack(f.id, e.id, types, args)
 
     def addFeature(self, name, id):
         # Check if no other feature have the same identifier
@@ -118,6 +138,7 @@ class Protocol:
             raise ProtocolException( \
                 "Features %s and %s have the same identifier (%s)." \
                 % (feature.name, name, id))
+                
         # Check if no other feature have the same name
         feature = self.__featids.get(id, None)
         if feature != None:
@@ -135,15 +156,15 @@ class Protocol:
         feature = self.__featnames.get(name, None)
         if feature == None:
             raise ProtocolException( \
-                "The protocol %s has no feature %s." \
+                "The protocol %s has no feature \"%s\"." \
                 % (self.name, name))
         return feature
 
-    def __getitem__(self, id):
+    def getFeatureById(self, id):
         feature = self.__featids.get(id, None)
         if  feature == None:
             raise ProtocolException( \
-                "The protocol %s has no feature %s." \
+                "The protocol %s has no feature with \"%s\" identifier." \
                 % (self.name, id))
         return feature
         

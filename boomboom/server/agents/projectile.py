@@ -1,4 +1,5 @@
 from server.bb_agent import Agent, Message
+from happyboom.common.log import log
 import time
 import math
 
@@ -30,8 +31,8 @@ class Projectile(Agent):
     def msg_weapon_angle(self, angle):
         self.weapon_angle = (-int(angle)) * math.pi / 180
 
-    def msg_new_command(self, cmd):
-        if cmd == "shoot" and not self.active:
+    def msg_weapon_shoot(self, cmd):
+        if not self.active:
             self.shoot()
 
     def msg_character_active_coord(self, x, y):
@@ -46,8 +47,10 @@ class Projectile(Agent):
         self.sendNetMsg("projectile", "activate", 0) 
 
     def shoot(self):
+        log.info("Shoot!")
         if self.weapon_angle==None: return
         if self.weapon_strength==None: return
+        if self.start_pos==None: return
         self.move(self.start_pos[0], self.start_pos[1])
         self.setActive(True)
         self.time = time.time()

@@ -6,7 +6,7 @@ import thread, time
 
 class ClientManager(object):
     def __init__(self, arg): 
-        self.__server = None 
+        self.server = None 
         self.__io = io_tcp.IO_TCP(is_server=True)
         self.__io.debug = arg.get("debug", False)
         self.__io.verbose = arg.get("verbose", False)
@@ -16,27 +16,28 @@ class ClientManager(object):
         self.max_clients = arg.get("max_clients", 2)
         self.client_port = arg.get("client_port", 12430)
         self.__supported_features = {}
-        self.__clients = []
-        self.__clients_sema = thread.allocate_lock()
+        self.__clients = {}
+        self.__clients_lock = thread.allocate_lock()
         self.gateway = None
+        self.presentation = None
         
     def recvClientPacket(self, packet):
         self.__buffer.append(packet.recv_from.addr, packet)
 
     def stop(self):
-        for client in self.__clients:
+        for client in self.__clients.values():
             client.stop()
 
     def process(self):
-        pass
-#        processInputs()
+        if not self.__io.isRunning():
+            self.server.stop()
 
     def start(self):
         if self.__verbose: log.info("[*] Starting server")
         self.__io.name = "server"
         self.__io.on_client_connect = self.openClient
         self.__io.on_client_disconnect = self.closeClient
-        self.__io.on_new_packet = self.recvClientPacket
+        self.__io.on_new_packet = self.presentation.processPacket
         self.__io.connect('', self.client_port)
         thread.start_new_thread(self.run_io_thread, ())
 
@@ -53,19 +54,23 @@ class ClientManager(object):
             self.__supported_features[role] = [client,]
         
     def openClient(self, client):
-        # TODO: Ne pas utiliser de thread ?!
-        thread.start_new_thread( self.__clientChallenge, (client,self.__do_openClient))
+        log.info("[*] Client %s try to connect ..." % client)
 
-    def closeClient(self, client):
-        if self.__verbose:
-            log.info("Client %s disconnected." % client)
-        
-        txt = "Client %s leave us." % client
-        self.gateway.sendText(txt)
-       
+    def removeClient(self, ioclient):
+        client = self.getClientByAddr(ioclient.addr)
+        if client == None: return
+        log.info("Disconnect client %s." % client)
+        self.gateway.sendText(u"Client %s leave us." % client)
+
+        self.__clients_lock.acquire() 
+        del self.__clients[ioclient.addr]
+        self.__clients_lock.release() 
+    
+    def closeClient(self, ioclient):
         # TODO: get client of type Client for the client of type ClientIO to send
         # him bye
 #        client.sendNetMsg("presentation", "bye", "utf8", u"Lost connection")
+        self.removeClient(ioclient)
         
     def __clientChallenge(self, client, func):
         try:
@@ -77,7 +82,7 @@ class ClientManager(object):
             self.stop()
 
     # Function which should be called in a thread
-    # TODO: Pourquoi c'est utilisé ça ?
+    # TODO: Why is this used?
     def run_io_thread(self):
         try:
             while self.__io.isRunning():
@@ -87,51 +92,30 @@ class ClientManager(object):
             log.error( \
                 "EXCEPTION IN IO THREAD :\n%s\n%s" \
                 % (msg, getBacktrace()))
-            self.stop()
+            self.server.stop()
 
-    def generateSignature(self, client):
+    def generateSignature(self, ioclient):
         import random
         r = random.randint(0,1000000)
         return r
 
-    def __do_openClient(self, io_client):
-        log.info("[*] Display %s try to connect ..." % io_client)
-        client = Client(io_client, self.gateway, self)
-        
-#        self.__buffer.clear(client.addr)
-       
-        # Check protocol version (max: wait 200ms)
-        answer = client.read(0.200)
-        if answer != self.gateway.protocol_version:
-            # If it isn't the right version, send presention.bye(...)
-            txt = u"Sorry, you don't have same protocol version (%s VS %s)" \
-                % (answer, self.gateway.protocol_version)
-            client.sendNetMsg("presentation", "bye", "utf8", txt)
+    def getClientByAddr(self, addr):
+        """ Returns None if no client matchs. """
+        self.__clients_lock.acquire() 
+        client = self.__clients.get(addr, None)
+        self.__clients_lock.release() 
+        return client
+    
+    def appendClient(self, client):
+        self.__clients_lock.acquire() 
+        self.__clients[client.addr] = client
+        self.__clients_lock.release() 
 
-            # Wait 0.5s and then disconnect the client
-            time.sleep(0.500)
-            client.stop()
-            return
-            
-        # Send protocol version with "hello()"
-        client.signature = self.generateSignature()        
-        client.send("presentation", "hello", \
-            "bin", self.gateway.protocol_version, \
-            "bin", signature)
-         
-        # Read features (max: wait 1sec)
-        answer = client.read(1.0)
-        #TODO: do something with answer :-)
-
-        self.__clients_sema.acquire() 
-        self.__clients.append(client)
-        self.__clients_sema.release() 
-
-        txt = "Welcome to new (display) client : %s" % (client.name)
+        txt = u"Welcome to new (display) client : %s" % client
         self.gateway.sendText(txt)
-        log.info("[*] Display %s connected" % (client.name))
-        self.sendBBMessage("sync")
-
+        log.info("[*] Display %s connected" % client)
+        self.gateway.send("sync")
+    
     def __getSupportedFeatures(self): return self.__supported_features
     supported_features = property(__getSupportedFeatures)
 

@@ -1,4 +1,4 @@
-from pysma import ActionAgent, ActionMessage
+from pysma import ActionAgent, ActionMessage as Message
 from happyboom.common.log import log
 
 class Agent(ActionAgent):
@@ -28,7 +28,3 @@ class Agent(ActionAgent):
     def messageReceived(self, msg):
         if self.__debug:
             log.warning("Unhandled message : %s -- %s" %(type(self), msg))
-
-class Message(ActionMessage):
-    def __init__(self, action, arg, kw={}):
-        ActionMessage.__init__(self, action, arg, kw)

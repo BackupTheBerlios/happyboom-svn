@@ -1,5 +1,4 @@
-from happyboom.common import packer 
-from happyboom.server.agent import Agent
+from happyboom.server.agent import Agent, Message
 from happyboom.common.protocol import loadProtocol, ProtocolException
 from happyboom.net.io import Packet
 from happyboom.common.log import log
@@ -7,10 +6,14 @@ from pysma import Kernel, DummyScheduler
 import struct
 
 class Gateway(Agent):
-    def __init__(self, protocol, client_manager, arg):
+    def __init__(self, protocol, presentation, client_manager, arg):
         Agent.__init__(self, self, "gateway")
         self.__protocol = protocol
-        self.__client_manager = client_manager
+        self.client_manager = client_manager
+        self.presentation = presentation
+        self.presentation.gateway = self 
+        self.presentation.client_manager = self.client_manager
+        self.client_manager.presentation = self.presentation
         self.__server = None 
         self._debug = arg.get("debug", False)
         self._verbose = arg.get("verbose", False)
@@ -19,41 +22,29 @@ class Gateway(Agent):
 
     def __setServer(self, server):
         self.__server = server
-        self.__client_manager.server = server
+        self.client_manager.server = server
     server = property(None, __setServer)
-
 
     # Create a network packet for the event feature.event(args)
     def createMsg(self, feature, event, *args):
-        f = self.__protocol.getFeature(feature)
-        e = f.getEvent(event)
-        types = e.getParamsType()
-        if len(args) != len(types):
-            raise ProtocolException( \
-                "Wrong parameter count (%u) for the event %s." \
-                % (len(args), e))
-        for i in range(len(args)):
-            if not packer.checkType(types[i], args[i]):
-                raise ProtocolException( \
-                    "Parameter %u of event %s should be of type %s (and not %s)." \
-                    % (i, e, types[i], type(args[i])))
-        data = packer.pack(f.id, e.id, types, args)
+        data = self.__protocol.createMsg(feature, event, *args)
+        data = self.presentation.sendMsg(data)
         return Packet(data)
             
     def start(self):
-        self.__client_manager.start()
+        self.client_manager.start()
         Kernel.instance.addAgent(self)
         
     def stop(self):
         self.sendNetMsg("game", "stop")
-        self.__client_manager.stop()
+        self.client_manager.stop()
         Kernel.instance.stopKernel()
 
     def process(self):
         # Stop server if the scheduler is dead
         if not self.__scheduler.alive:
             self.__server.stop()
-        self.__client_manager.process()
+        self.client_manager.process()
 
     def sendText(self, txt, client=None):
         if client != None:
@@ -61,13 +52,17 @@ class Gateway(Agent):
         else:
             self.sendNetMsg("chat", "message", txt)
 
+    def recvNetMsg(self, feature, event, *args):
+        message = Message("%s_%s" % (feature, event), args)
+        self.sendBroadcastMessage(message, "%s_listener" % feature)
+
     def sendNetMsg(self, feature, event, *args):
         try:
             packet = self.createMsg(feature, event, *args)
         except ProtocolException, err:
             log.error(err)
             return
-        clients = self.__client_manager.supported_features.get(feature, ())
+        clients = self.client_manager.supported_features.get(feature, ())
         for client in clients:
             client.sendPacket(packet)
 

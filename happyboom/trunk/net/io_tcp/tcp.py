@@ -7,12 +7,13 @@ import socket
 import traceback
 import struct
 from tcp_client import TCP_Client
-from net import io
+from happyboom.net.io.packet import Packet
+from happyboom.net.io.base_io import BaseIO
 from server_waiter import NetworkServerWaiter
 from happyboom.common.log import log
 from happyboom.common.thread import getBacktrace
 
-class IO_TCP(io.BaseIO):
+class IO_TCP(BaseIO):
     """
     IO for TCP transport.
     @ivar packet_timeout: Timeout of packets (in seconds)
@@ -29,12 +30,10 @@ class IO_TCP(io.BaseIO):
     @type __clients: C{list<L{IO_client<io.IO_Client>}>?}
     @ivar __clients_sema: Semaphore used to access L{__clients}.
     @type __clients_sema: C{thread.lock}
-    @ivar __running: Is the thread running ?
-    @type __running: C{bool}
     """
     
     def __init__(self, is_server=False):
-        io.BaseIO.__init__(self)
+        BaseIO.__init__(self)
         self.packet_timeout = 1.000
         self.thread_sleep = 0.010
 
@@ -45,8 +44,7 @@ class IO_TCP(io.BaseIO):
         self.__clients = {}
         self.__server = None
         self.__clients_sema = thread.allocate_lock()
-        self.__running = False 
-        io.Packet.use_tcp = True
+        Packet.use_tcp = True
 
     def connect(self, host, port):
         """ Connect to host:port """
@@ -79,9 +77,8 @@ class IO_TCP(io.BaseIO):
             self.__clients_sema.release()
 
         if self.on_connect != None: self.on_connect()
-        io.BaseIO.connect(self, host, port)
+        BaseIO.connect(self, host, port)
         self._is_ready = True
-        self.__running = True
 
     def disconnect(self):
         """ Close connection """
@@ -107,7 +104,7 @@ class IO_TCP(io.BaseIO):
         """ Send a packet to the server or to all clients
         @type packet: Packet
         """
-        if not self.__running: return
+        if not self._running: return
         
         # Read binary version of the packet
         data = packet.pack()
@@ -137,7 +134,7 @@ class IO_TCP(io.BaseIO):
 
     def __processData(self, client, data):
         while data != "":
-            packet = io.Packet()
+            packet = Packet()
             packet.recv_from = client
             data = packet.unpack(data)
             if not packet.isValid():
@@ -151,7 +148,7 @@ class IO_TCP(io.BaseIO):
     def run_thread(self):
         """ Function which should be called in a thread. """
         try:
-            while self.__running:
+            while self._running:
                 self.live()                
                 time.sleep(self.thread_sleep)
         except Exception, msg:
@@ -159,13 +156,6 @@ class IO_TCP(io.BaseIO):
                 "EXCEPTION DANS LE THREAD IO :\n%s\n%s"
                 % (msg, getBacktrace()))
         self.stop()
-
-    def stop(self):
-        if not self.__running: return
-        self.__running = False
-        self.disconnect()
-
-    def isRunning(self): return self.__running
 
     #--- Private functions ------------------------------------------------------
 

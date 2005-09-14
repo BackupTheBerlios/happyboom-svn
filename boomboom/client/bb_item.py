@@ -4,8 +4,7 @@
 @contact: See U{http://developer.berlios.de/projects/happyboom/}
 @version: 0.2
 """
-from common import simple_event
-from common.simple_event import EventListener, EventLauncher
+from happyboom.common.simple_event import EventListener, EventLauncher
 import bb_events
 import pygame
 
@@ -29,7 +28,6 @@ class BoomBoomItem(EventListener, EventLauncher):
         """
         if self.visual == None: return
         self.visual.draw(screen)
-        
 
 class VisualObject(object):
     """ Manage representation and transformation of an external image to be drawn into game screen.

@@ -1,7 +1,7 @@
 from happyboom.common.protocol import ProtocolException
 from happyboom.common.log import log
 
-class Client:
+class Client(object):
     """
     High-level class for a client in the server.
     """
@@ -11,6 +11,14 @@ class Client:
         self.__client_manager = client_manager
         self.__gateway = gateway
         self.signature = None
+
+    def __str__(self):
+        return self.__io.__str__()
+
+    def disconnect(self, reason):
+        packet = self.__gateway.presentation.disconnectionPacket(reason)
+        self.sendPacket(packet)
+        self.stop()        
 
     # Stop client: close socket.
     def stop(self):
@@ -33,3 +41,6 @@ class Client:
             log.error(err)
             return
         self.__io.send(packet)
+
+    def __getAddr(self): return self.__io.addr
+    addr = property(__getAddr)

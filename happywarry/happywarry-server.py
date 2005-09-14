@@ -17,27 +17,17 @@ def init():
     sys.path.append(happyboomdir)
 
     # Get user directory 
-    from common.log import log
-    if os.name=="nt":
-        home = os.environ['USERHOME']
-    else:
-        home = os.environ['HOME']
-
-    # Create happywarry directory if needed
-    logdir = os.path.join(home, ".happywarry")
-    try:
-        os.mkdir(logdir)
-    except OSError, err:
-        if err[0]==17: pass
-        logdir = None
+    from happyboom.common.file import getCreateHomeDir
+    logdir = getCreateHomeDir("happywarry")
 
     # Setup log filename
+    from happyboom.common.log import log
     if logdir != None:
         logname = os.path.join(logdir, "server-log")    
         log.setFilename(logname)
 
     # Setup gettext
-    localedir = os.path.join(file_dir, "./locale")
+    localedir = os.path.join(file_dir, "locale")
     gettext.install('happywarry', localedir, unicode=1)
 
 def main():

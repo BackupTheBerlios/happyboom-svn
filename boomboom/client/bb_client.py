@@ -4,10 +4,8 @@
 @contact: See U{http://developer.berlios.de/projects/happyboom/}
 @version: 0.2
 """
-from common import simple_event
-from common.simple_event import EventListener
+from happyboom.common.simple_event import EventListener
 import bb_events
-from bb_display import BoomBoomDisplay
 from bb_input import BoomBoomInput
 import thread, time, traceback, pygame
 
@@ -25,7 +23,7 @@ class BoomBoomClient(EventListener):
     @type __stoplock: C{thread.lock}
     """
     
-    def __init__(self, arg):
+    def __init__(self, display, arg):
         """ BoomBoomClient constructor.
         @param host: Server hostname.
         @type host: C{str}
@@ -42,7 +40,7 @@ class BoomBoomClient(EventListener):
         """
         EventListener.__init__(self, prefix="evt_")
         
-        self.display = BoomBoomDisplay(arg)
+        self.display = display
         self.input = BoomBoomInput(arg)
         self.__verbose = arg.get("verbose", False)
         self.__stopped = False
@@ -58,11 +56,10 @@ class BoomBoomClient(EventListener):
         
         # Create thread for input and display
         thread.start_new_thread(self.thread_display, ())
-        thread.start_new_thread(self.thread_input, ())
 
         quit = False
         while not quit:
-            # Wait for Keyboard Interrupt
+            self.input.process()
             time.sleep(0.100)
             quit = self.is_stopped
         
@@ -78,7 +75,6 @@ class BoomBoomClient(EventListener):
         
         if self.__verbose: print "[CLIENT] Stopping client..."
         self.display.stop()
-        self.input.stop()
     
     def evt_game_Stop(self, event):
         """ Stop event handler.
@@ -91,9 +87,14 @@ class BoomBoomClient(EventListener):
         """ Thread handler for the "display" part."""
         try:
             self.display.start()
-        except:
+        except Exception, msg:
+            print "EXCEPTION IN DISPLAY THREAD:\n%s" % msg
             traceback.print_exc()
-        self.stop()
+        try:
+            self.stop()
+        except Exception, msg:
+            print "EXCEPTION IN DISPLAY THREAD:\n%s" % msg
+            traceback.print_exc()
         
     def thread_input(self):
         """ Thread handler for the "input" part."""

@@ -64,9 +64,10 @@ class EventManager:
                 # No handle method found, raise error ?
                 if not obj.silent:
                     raise UnhandledEventError("%s has no method to handle %s" %(obj, event))
+        else:
+            print("Pas de event.type %s" % event.type)
 
 EventManager()
-
     
 class EventListener:
     """ Generic class for listening to events.

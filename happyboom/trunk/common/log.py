@@ -52,7 +52,7 @@ class Log:
         @param str: Message content.
         @type str: C{str}
         """
-        
+
         if not self.__buffer.has_key(level):
             self.__buffer[level] = [str]
         else:

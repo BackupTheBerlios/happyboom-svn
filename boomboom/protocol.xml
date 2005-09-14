@@ -25,10 +25,11 @@
   </feature>
   
   <feature name="weapon" id="4">
-    <event name="setAngle" id="1">
+    <event name="shoot" id="1" />
+    <event name="setAngle" id="2">
       <param type="int" name="angle" />
     </event>
-    <event name="setStrength" id="2">
+    <event name="setStrength" id="3">
       <param type="int" name="angle" />
     </event>
   </feature>
