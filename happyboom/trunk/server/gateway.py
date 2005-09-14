@@ -1,8 +1,9 @@
-from happyboom.common import packer
+from happyboom.common import packer 
 from happyboom.server.agent import Agent
 from pysma import Kernel, DummyScheduler
-from happyboom.common.protocol import loadProtocol
+from happyboom.common.protocol import loadProtocol, ProtocolException
 from happyboom.net.io import Packet
+import struct
 
 class Gateway(Agent):
     def __init__(self, protocol, client_manager, arg):
@@ -21,17 +22,23 @@ class Gateway(Agent):
     server = property(None, __setServer)
 
 
-    # Create a network packet for the event func.event(args) where
-    # args is a tuple
-    def createMsgTuple(self, func, event, args):
-        data = packer.pack(func, event, args)
+    # Create a network packet for the event feature.event(args)
+    def createMsg(self, feature, event, *args):
+        f = self.__protocol.getFeature(feature)
+        e = f.getEvent(event)
+        types = e.getParamsType()
+        if len(args) != len(types):
+            raise ProtocolException( \
+                "Wrong parameter count (%u) for the event %s." \
+                % (len(args), e))
+        for i in range(len(args)):
+            if not packer.checkType(types[i], args[i]):
+                raise ProtocolException( \
+                    "Parameter %u of event %s should be of type %s (and not %s)." \
+                    % (i, event, types[i], type(args[i])))
+        data = packer.pack(f.id, e.id, types, args)
         return Packet(data)
             
-    # Create a network packet for the event func.event(args), see
-    # L{self.createMsgTuple}
-    def createMsg(self, func, event, *args):
-        return self.createMsgTuple(func, event, args)
-
     def start(self):
         self.__client_manager.start()
         Kernel.instance.addAgent(self)
@@ -53,9 +60,9 @@ class Gateway(Agent):
         else:
             self.sendNetMsg("agent_manager", "Text", txt)
 
-    def sendNetMsg(self, func, event, *args):
-        packet = self.createMsgTuple(func, type, args)
-        clients = self.__client_manager.supported_features.get(func, ())
+    def sendNetMsg(self, feature, event, *args):
+        packet = self.createMsg(feature, event, *args)
+        clients = self.__client_manager.supported_features.get(feature, ())
         for client in clients:
             client.sendPacket(packet)
 

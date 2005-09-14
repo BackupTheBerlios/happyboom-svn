@@ -5,6 +5,16 @@ class PackerException(Exception):
     def __init__(self, msg):
         Exception.__init__(self, msg)
 
+def checkType(datatype, data):
+    if datatype=="int":
+        return (type(data) == type(1)) and (data <= 2147483647) and (-2147483648 <= data)
+    elif datatype=="bin":
+        return true
+    elif datatype=="utf8":
+        return type(data)==types.unicode
+    else:
+        raise PackerException("Wrong argument type: %s" % datatype)
+
 def packInt(data):
     assert type(data)==type(1), "packInt argument have to be an integer"
     # Overflow is checked by struct.pack
@@ -17,9 +27,9 @@ def packUtf8(data):
     return packBin(data.encode("utf-8"))
 
 def packBin(data):
-    return struct.pack("!Hs", len(data), data)
+    return struct.pack("!H%us" % len(data), len(data), data)
 
-def pack(func, event, args):
+def pack(func, event, types, values):
     """
     Pack arguments to binary string. Supported types :
     - "int": L{packInt}
@@ -27,13 +37,13 @@ def pack(func, event, args):
     - "utf8": L{packUtf8}
     """
 
-    assert (len(args) % 2) == 0, "Arguments length have to be even"
-    out = "%s:%s" % (func, event)
+    assert len(types) == len(values), "Lengths of types and args have to be the same."
+    out = struct.pack("!ii", func, event)
 
     #TODO: Fix this :-)
-    for i in range(0,len(args)-1, 2):
-        type = args[i]
-        data = args[i+1]
+    for i in range(len(values)):
+        type = types[i]
+        data = values[i]
         
         # TODO: Use dict instead of long if list
         if type=="int":
