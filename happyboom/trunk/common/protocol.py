@@ -142,7 +142,4 @@ def loadProtocol(filename):
                 e.addParam( \
                     param.getAttribute("name"),
                     param.getAttribute("type"))
-    print "-- Protocol --"                
-    print p
-    print "-- Protocol end --"                
     return p

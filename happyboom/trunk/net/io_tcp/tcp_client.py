@@ -1,4 +1,5 @@
 from net import io
+from happyboom.common.log import log
 import socket
 
 class TCP_Client(io.IO_Client):
@@ -58,7 +59,6 @@ class TCP_Client(io.IO_Client):
             if err[0] in (32, 104,):
                 self.disconnect()
                 return None
-            print err
             raise
         return self.__processRecvData(data)
 
@@ -71,7 +71,7 @@ class TCP_Client(io.IO_Client):
         # If no data, connection is lost
         if len(data)==0:
             if self.io.verbose:
-                print "Client %s lost connection with server!" % (self.name)
+                log.warning("Client %s lost connection with server!" % self)
             self.disconnect()
             return None
 

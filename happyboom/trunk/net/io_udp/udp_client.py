@@ -2,6 +2,7 @@ from net import io
 import thread
 import time
 import struct
+from happyboom.common.log import log
 from udp_ping import UDP_Pinger 
 
 class UDP_Client(io.IO_Client):
@@ -86,7 +87,7 @@ class UDP_Client(io.IO_Client):
         # Debug message
         if self.io.debug:
             t = time.time() - self.__waitAck[id].creation
-            print "Ack %u received (time=%.1f ms)" % (id, t*1000)
+            log.info("Ack %u received (time=%.1f ms)" % (id, t*1000))
 
         # The packet don't need ack anymore
         del self.__waitAck[id]
@@ -127,8 +128,8 @@ class UDP_Client(io.IO_Client):
         for id,timeout in receivedCopy.items():
             if timeout < time.time():
                 if self.io.debug:
-                    print "Supprime ancien paquet %u de %s:%u (timeout)" \
-                        % (id, self.host, self.port)
+                    log.info("Remove old packet %u from %s:%u (clear cache)." \
+                        % (id, self.host, self.port))
                 self.__received_sema.acquire()
                 del self.__received[id]
                 self.__received_sema.release()

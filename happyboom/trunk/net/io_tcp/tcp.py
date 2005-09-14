@@ -9,6 +9,8 @@ import struct
 from tcp_client import TCP_Client
 from net import io
 from server_waiter import NetworkServerWaiter
+from happyboom.common.log import log
+from happyboom.common.thread import getBacktrace
 
 class IO_TCP(io.BaseIO):
     """
@@ -53,18 +55,18 @@ class IO_TCP(io.BaseIO):
         self.__addr = (host, port,)
         if self.__is_server:
             if self.verbose:
-                print "Run server at %s:%u (tcp)" % (self.host, self.port)
+                log.info("Run server at %s:%u (tcp)" % (self.host, self.port))
             thread.start_new_thread( self.__waiter.run_thread, (port,max_connection,))
         else:
             if self.verbose:
-                print "Connect to server %s:%u" % (self.host, self.port)            
+                log.info("Connect to server %s:%u" % (self.host, self.port))
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
                 s.connect(self.__addr)
             except socket.error, err:
                 if err[0]==111:
                     if self.verbose:
-                        print "Fail to connect to server %s:%u" % (self.host, self.port)            
+                        log.warning("Fail to connect to server %s:%u" % (self.host, self.port))
                     if self.on_connection_fails:
                         self.on_connection_fails()
                     return
@@ -97,7 +99,7 @@ class IO_TCP(io.BaseIO):
         if  self.__clients.has_key(client.addr): del self.__clients[client.addr]
         self.__clients_sema.release()
         if self.verbose:
-            print "Disconnect client %s:%u" % (client.host, client.port)
+            log.info("Disconnect client %s." % client)
         if self.on_client_disconnect != None: self.on_client_disconnect (client)
         if self.__server == client: self.disconnect()
     
@@ -139,9 +141,11 @@ class IO_TCP(io.BaseIO):
             packet.recv_from = client
             data = packet.unpack(data)
             if not packet.isValid():
-                print "Bad data packet (%s) from %s !" % (data, client.name)
+                if self.debug:
+                    log.warning("Received buggy network packet from %s!" % client)
                 return
-            if self.debug: print "Received %s:%u => \"%s\"" % (client.host, client.port, packet.data)
+            if self.debug:
+                log.info("Received %s:%u => \"%s\"" % (client.host, client.port, packet.data))
             if self.on_new_packet: self.on_new_packet(packet)
     
     def run_thread(self):
@@ -151,9 +155,9 @@ class IO_TCP(io.BaseIO):
                 self.live()                
                 time.sleep(self.thread_sleep)
         except Exception, msg:
-            print "EXCEPTION DANS LE THREAD IO :"
-            print msg
-            traceback.print_exc()
+            log.error( \
+                "EXCEPTION DANS LE THREAD IO :\n%s\n%s"
+                % (msg, getBacktrace()))
         self.stop()
 
     def stop(self):
@@ -199,9 +203,8 @@ class IO_TCP(io.BaseIO):
         if self.on_client_connect != None: self.on_client_connect (client)
         
     def clientDisconnect(self, client):
-        if self.debug:
-            print "Client %s leave server %s." \
-                % (client.name, self.name)
+        if self.verbose:
+            log.info("Client %s leave server %s." % (client, self))
         self.__clients_sema.acquire()
         self.__clients.remove(client)
         self.__clients_sema.release()

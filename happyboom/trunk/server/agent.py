@@ -1,4 +1,5 @@
 from pysma import ActionAgent, ActionMessage
+from happyboom.common.log import log
 
 class Agent(ActionAgent):
     """
@@ -22,12 +23,11 @@ class Agent(ActionAgent):
         self.sendBroadcastMessage(message, "%s_listener" %self.type)
 
     def sendNetMsg(self, func, event, *args):
-        print args
         self._gateway.sendNetMsg(func, event, *args)
 
     def messageReceived(self, msg):
         if self.__debug:
-            print "Unhandled message : %s -- %s" %(type(self), msg)
+            log.warning("Unhandled message : %s -- %s" %(type(self), msg))
 
 class Message(ActionMessage):
     def __init__(self, action, arg, kw={}):

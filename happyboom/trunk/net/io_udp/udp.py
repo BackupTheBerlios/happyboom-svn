@@ -7,6 +7,8 @@ import traceback
 import struct
 from net import io
 from udp_client import UDP_Client
+from happyboom.common.log import log
+from happyboom.common.thread import getBacktrace
 
 class IO_UDP(io.BaseIO):
     """ IO for UDP transport.
@@ -64,11 +66,11 @@ class IO_UDP(io.BaseIO):
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         if self.__is_server:
             if self.verbose:
-                print "Run server at %s:%u (udp)" % ("", self.port)
+                log.info("Run server on port %u (udp)." % self.port)
             self.__socket.bind(("",port,))
         else:
             if self.verbose:
-                print "Connect to server %s:%u" % (self.host, self.port)
+                log.info("Connect to server %s:%u." % (self.host, self.port))
             self.__server = UDP_Client(self, self.__addr)
             self.__server.name = "server"
             self.__server.send_ping = True
@@ -103,7 +105,7 @@ class IO_UDP(io.BaseIO):
         if self.__clients.has_key(client.addr): del self.__clients[client.addr]
         self.__clients_sema.release()
         if self.verbose:
-            print "Disconnect client %s" % (client.name)
+            log.info("Disconnect client %s." % client)
         if self.on_client_disconnect != None: self.on_client_disconnect(client)
     
     def send(self, packet, to=None):
@@ -148,7 +150,8 @@ class IO_UDP(io.BaseIO):
         @type data: C{str}
         @type client: C{L{IO_Client<io.IO_Client>}}
         """        
-        if self.debug: print "Send data %s to %s (without ack)" % (data, client.name)
+        if self.debug:
+            log.info("Send data %s to %s (without ack)" % (data, client))
         self.__socket.sendto(data, client.addr)    
         
         # Call user event if needed
@@ -160,7 +163,8 @@ class IO_UDP(io.BaseIO):
         @type client: C{L{IO_Client<io.IO_Client>}}
         @type need_ack: C{bool}
         """
-        if self.debug: print "Send packet %s to %s" % (packet.toStr(), client.name)
+        if self.debug:
+            log.info("Send packet %s to %s" % (packet.toStr(), client))
         self.__socket.sendto(data, client.addr)
 
         # If the packet need an ack, add it to the list
@@ -208,12 +212,12 @@ class IO_UDP(io.BaseIO):
         if not client.addr in self.__clients: return
         client = self.__clients[client.addr]
         if self.verbose:
-            print "Lost connection with client %s !" % (client.name)
+            log.warning("Lost connection with client %s !" % client)
         self.disconnectClient(client)
     
     def lostConnection(self):
         if self.verbose:
-            print "Lost connection to %s:%u!" % (self.host, self.port)
+            log.warning("Lost connection to %s:%u!" % (self.host, self.port))
         if self.__socket_open:
             self.__socket.close()
             self.__socket_open = False
@@ -227,9 +231,9 @@ class IO_UDP(io.BaseIO):
                 self.live()                
                 time.sleep(self.thread_sleep)
         except Exception, msg:
-            print "EXCEPTION DANS LE THREAD IO :"
-            print msg
-            traceback.print_exc()
+            log.error( \
+                "EXCEPTION IN UDP SERVER:\n%s\n%s" \
+                msg, getBacktrace())
             self.stop()
 
     def stop(self):
@@ -248,7 +252,7 @@ class IO_UDP(io.BaseIO):
                 client = UDP_Client(self, addr)
                 self.__clients[addr] = client
                 self.__clients_sema.release()
-                if self.verbose: print "New client : %s:%u" % (addr[0], addr[1])
+                if self.verbose: log.info("New client: %s:%u." % (addr[0], addr[1]))
                 client.send_ping = True
                 if self.on_client_connect != None: self.on_client_connect(client)
             else:
@@ -258,7 +262,7 @@ class IO_UDP(io.BaseIO):
             # Drop packets which doesn't come from server
             if self.__server.addr != addr:
                 if self.debug:
-                    print "Drop packet from %s:%u (it isn't the server address)" % (addr[0], addr[1])
+                    log.warning("Drop packet from %s:%u (it isn't the server address)." % (addr[0], addr[1]))
                 return None
             client = self.__server
     
@@ -269,7 +273,8 @@ class IO_UDP(io.BaseIO):
         packet = io.Packet()
         packet.unpack(data)
         if not packet.isValid():
-            if self.debug: print "Drop invalid packet (%s) from %s" % (data, client.name)            
+            if self.debug:
+                log.warning("Drop invalid network packet from %s" % (data, client))
             return None
         
         # Return packet
@@ -280,7 +285,7 @@ class IO_UDP(io.BaseIO):
         client = packet.recv_from
 
         if self.debug:
-            print "Received packet %s from %s:%u" % (packet.toStr(), client.host, client.port)
+            log.info("Received packet %s from %s:%u" % (packet.toStr(), client.host, client.port))
         
         # Send an ack if needed
         if not packet.skippable: self.__sendAck(packet)
@@ -299,7 +304,7 @@ class IO_UDP(io.BaseIO):
         # This packet is already received ? Drop it!
         if client.alreadyReceived(packet.id):
             if self.debug:
-                print "Drop packet %u (already received)" % (packet.id)
+                log.warning("Drop packet %u (already received)" % packet.id))
             return None    
             
         client.receivePacket(packet)
@@ -315,7 +320,7 @@ class IO_UDP(io.BaseIO):
         ack = io.Packet(skippable=True)
         ack.type = io.Packet.PACKET_ACK
         ack.writeStr( struct.pack("!I", packet.id) )
-        #if self.debug: print "Send ACK %u." % (ack.id)
+        #if self.debug: log.info("Send ACK %u." % ack.id)
         packet.recv_from.send(ack)
 
     def __processNewPacket(self, packet):
@@ -323,7 +328,7 @@ class IO_UDP(io.BaseIO):
         @type packet: C{L{Packet<io.Packet>}}
         """
         if self.verbose:
-            print "New udp message : %s" % (packet.toStr())
+            log.info("New udp message : %s" % packet.toStr())
         if self.on_new_packet != None: self.on_new_packet(packet)        
 
     def __getPort(self):

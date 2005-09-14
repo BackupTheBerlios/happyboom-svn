@@ -1,10 +1,14 @@
-"""A network packet. It can have differents types :
+"""
+A network packet. It can have differents types :
 1. Data
 2. Ping
 3. Pong
 4. Ack
 
-Ping, pong and ack(nowledge) are only used on transport layer."""
+Ping, pong and ack(nowledge) are only used on transport layer.
+"""
+
+from happyboom.common.log import log
 import time
 import struct
 
@@ -99,7 +103,7 @@ class Packet(object):
             format = "!I"
             size = struct.calcsize(format)
             if len(binary_data) <  size:
-                print "Taille du paquet (%s) incorrect !" % (binary_data)
+                log.warning("Wrong network packet size from %s!" % (self.recv_from)
                 return None
             data = struct.unpack(format, binary_data[:size])
             data_len = data[0]
@@ -109,7 +113,7 @@ class Packet(object):
             format = "!BBII"
             size = struct.calcsize(format)
             if len(binary_data) <  size:
-                print "Taille du paquet (%s) incorrect !" % (binary_data)
+                log.warning("Wrong network packet size from %s!" % (self.recv_from)
                 return None
             data = struct.unpack(format, binary_data[:size])
             self.type = data[0]
@@ -123,7 +127,7 @@ class Packet(object):
             format = "!%us" % (data_len)
             size = struct.calcsize(format)
             if len(binary_data) < size:
-                print "Taille du paquet (%s) incorrect !" % (binary_data)
+                log.warning("Wrong network packet size from %s!" % (self.recv_from)
                 return None
             data = struct.unpack(format, binary_data[:size]) 
             self.__data = data[0] 

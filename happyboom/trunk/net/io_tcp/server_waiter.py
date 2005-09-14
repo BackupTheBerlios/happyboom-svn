@@ -2,6 +2,8 @@ import socket
 import thread
 import traceback
 from tcp_client import TCP_Client
+from happyboom.common.log import log
+from happyboom.common.thread import getBacktrace
 
 class NetworkServerWaiter(object):
     def __init__(self, server):
@@ -24,22 +26,21 @@ class NetworkServerWaiter(object):
             self.__running = True
             self.start(port, max_connection)
         except Exception, msg:
-            print "NETWORK SERVER EXCEPTION!"
-            print "ERROR MSG: %s" % (msg)
-            traceback.print_exc()
+            log.error("EXCEPTION IN TCP SERVER WAITER!\n%s\n%s" \
+                % (msg, getBacktrace())
         self.__running = False 
         
     def clientConnect(self, client):
         if self.__server.debug:
-            print "Client %s enter server %s." \
-                % (client.name, self.__server.name)
+            log.info("Client %s enter server %s." \
+                % (client.name, self.__server.name))
         self.__nb_clients_sema.acquire()
         self.__nb_clients = self.__nb_clients + 1
         self.__nb_clients_sema.release()
         self.__server.clientConnect (client)
 
     def clientDisconnect(self, client):
-        if self.__server.debug: print "New client : %s" % (client.getName())
+        if self.__server.debug: log.info("New client : %s" % (client.getName()))
         self.__nb_clients_sema.acquire()
         self.__nb_clients = self.__nb_clients - 1
         self.__nb_clients_sema.release()
@@ -53,9 +54,9 @@ class NetworkServerWaiter(object):
             raise
         if self.__max_clients <= self.getNbClients():
             if self.__server.debug:
-                print "Client %s refused on server %s (too many connection, %u/%u)." \
-                    % (addr, self.__server.name, \
-                       self.getNbClients(), self.__max_clients)
+                log.info( \
+                    "Client %s refused on server %s (too many connection, %u/%u)." \
+                    % (addr, self.__server.name, self.getNbClients(), self.__max_clients))
             conn.close()
             return None
         return TCP_Client(self.__server, addr, socket=conn)
@@ -64,21 +65,21 @@ class NetworkServerWaiter(object):
         self.__max_clients = max_connection
         self.__port = port
         if self.__server.debug: 
-            print "Start %s on port %u." \
-                % (self.__server.name, port)
+            log.info("Start %s on port %u." \
+                % (self.__server.name, port))
         self.__socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             self.__socket.bind((self.__host, self.__port))
             self.__socket.listen(max_connection)
         except socket.error, err:
             if self.__server.debug:
-                print "Binding error for %s." % (self.__server.name)
+                log.error("Binding error for %s." % (self.__server.name))
             if self.__server.on_binding_error != None:
                 self.__server.on_binding_error (self.__server)
             return
         if self.__server.debug: 
-            print "Server %s is listening (max=%u clients)." \
-                % (self.__server.name, max_connection)
+            log.info("Server %s is listening (max=%u clients)." \
+                % (self.__server.name, max_connection))
         self.__listening_sema.acquire()
         self.__listening = True 
         self.__listening_sema.release()

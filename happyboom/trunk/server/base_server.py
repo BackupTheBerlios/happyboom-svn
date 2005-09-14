@@ -1,5 +1,6 @@
 # TODO: Check if it's always possible to send skippable packets
 
+from happyboom.common.log import log
 from happyboom.server.gateway import Gateway
 from happyboom.server.client_manager import ClientManager
 import random, thread, time
@@ -20,9 +21,9 @@ class Server(object):
         self.gateway.born()
         
     def start(self):
-        if self.__verbose: print "[*] Starting server..."
+        if self.__verbose: log.info("[*] Starting server...")
         self.__gateway.start()
-        print "[*] Server started"
+        log.info("[*] Server started")
         
         self.__stoplock.acquire()
         running = not self.__stopped
@@ -41,6 +42,6 @@ class Server(object):
             return
         self.__stopped = True
         self.__stoplock.release()
-        print "[*] Stopping server..."
+        if self.__verbose: log.info("[*] Stopping server...")
         self.__gateway.stop()
-        if self.__verbose: print "[*] Server stopped"
+        log.info("[*] Server stopped")

@@ -39,6 +39,9 @@ class IO_Client(object):
         self.connected = False
         self.io.disconnectClient(self)
 
+    def __str__(self):
+        return self.name
+
     def __getAddr(self):
         return self.__addr
     def __getHost(self):

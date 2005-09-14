@@ -1,5 +1,7 @@
 from happyboom.net import io, io_udp, io_tcp, net_buffer
-import thread, traceback, time
+import thread, time
+from happyboom.common.log import log
+from happyboom.common.thread import getBacktrace
 
 class ClientManager(object):
     def __init__(self, arg): 
@@ -28,7 +30,7 @@ class ClientManager(object):
 #        processInputs()
 
     def start(self):
-        if self.__verbose: print "[*] Starting server"
+        if self.__verbose: log.info("[*] Starting server")
         self.__io.name = "server"
         self.__io.on_client_connect = self.openClient
         self.__io.on_client_disconnect = self.closeClient
@@ -65,10 +67,9 @@ class ClientManager(object):
         try:
             func(client)
         except Exception, msg:
-            print "EXCEPTION WHEN A CLIENT TRY TO CONNECT :"
-            print msg
-            print "--"
-            traceback.print_exc()
+            log.error( \
+                "EXCEPTION WHEN A CLIENT TRY TO CONNECT :\n%s\n%s" \
+                % (msg, getBacktrace()))
             self.stop()
 
     # Function which should be called in a thread
@@ -79,10 +80,9 @@ class ClientManager(object):
                 self.__io.live()                
                 time.sleep(0.001)
         except Exception, msg:
-            print "EXCEPTION IN IO THREAD :"
-            print msg
-            print "--"            
-            traceback.print_exc()
+            log.error( \
+                "EXCEPTION IN IO THREAD :\n%s\n%s" \
+                % (msg, getBacktrace()))
             self.stop()
 
     def generateSignature(self, client):
@@ -91,7 +91,7 @@ class ClientManager(object):
         return r
 
     def __do_openClient(self, io_client):
-        if self.__verbose: print "[*] Display %s try to connect ..." % (client.name)
+        log.info("[*] Display %s try to connect ..." % (client.name))
         client = ClientSocket(io_client, self)
         
 #        self.__buffer.clear(client.addr)
@@ -125,7 +125,7 @@ class ClientManager(object):
 
         txt = "Welcome to new (display) client : %s" % (client.name)
         self.__gateway.sendText(txt)
-        if self.__verbose: print "[*] Display %s connected" % (client.name)
+        log.info("[*] Display %s connected" % (client.name))
         self.sendBBMessage("sync")
 
     def __getSupportedFeatures(self): return self.__supported_features

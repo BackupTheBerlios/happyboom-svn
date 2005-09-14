@@ -71,7 +71,7 @@ class Log:
         """
         self.new_message(Log.LOG_INFO, str)
 
-    def warn(self, str):
+    def warning(self, str):
         """
         New warning message.
         @type str: C{str}

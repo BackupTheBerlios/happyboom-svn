@@ -99,6 +99,9 @@ class BaseIO(object):
         """ Stop the IO (close connections). """
         pass
 
+    def __str__(self):
+        return self.__name
+
     #--- Private functions ------------------------------------------------------
 
     def __getName(self):

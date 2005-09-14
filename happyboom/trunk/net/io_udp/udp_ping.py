@@ -1,6 +1,7 @@
 import time
 import struct
 from net import io
+from happyboom.common.log import log
 
 class UDP_Ping:
     """ One UDP ping.
@@ -69,9 +70,9 @@ class UDP_Pinger:
         @parameter id: The ping id.
         @type id: C{int}
         """
-        print "Ping timeout."
-#        print "Disconnect client %s:%u (ping timeout)." \
-#            % (self.client.host, self.client.port)
+        log.error("UDP ping timeout.")
+#        log.error("Disconnect client %s:%u (ping timeout)." \
+#            % (self.client.host, self.client.port))
 #        self.client.disconnect()
 
     def live(self):
@@ -113,7 +114,7 @@ class UDP_Pinger:
         id = self.__getPingId(packet.data)
         if id == None:
             if self.debug:
-                print "Wrong ping packet (%s)!" % (packet.toStr())
+                log.warning("Received invalid udp ping packet!")
             return
 
         # Received too late ?
