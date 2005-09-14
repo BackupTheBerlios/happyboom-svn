@@ -1,3 +1,7 @@
+"""
+Tools to load HappyBoom protocol in Python from an XML description file.
+"""
+
 import xml.dom.minidom
 
 class ProtocolException(Exception):
