@@ -1,60 +1,16 @@
-BoomBoom
-========
-
-BoomBoom is a rewrite of old game "Gorilla" (a Quick Basic game written
-by Microsoft). It's just a test for the HappyBoom kernel.
-
-  Requirements
-  ------------
-- Python : version 2.3 or earlier (tested until 2.4.1)
---> http://python.org/download/
-
-- pygame : version 1.6 or earlier (just tested 1.6)
---> http://www.pygame.org/download.shtml
-
-- pysma : version 0.3 (tested until 0.3)
---> https://developer.berlios.de/project/showfiles.php?group_id=3535
-
-  How to play
-  -----------
-To play, launch a term, go to the boomboom subdirectory and run
-a server :
-  python boomboom_server.py
-  
-Next, launch another term, go to the boomboom subdirectory again and run a client :
-  python boomboom_client.py <yourname>
-
-You can play it over Internet by giving a host name to client :
-  python boomboom_client.py --host <host ip or address> <yourname>
-
-   Controls
-   --------
-- Left/Right : Changes strength
-- Up/Down    : Changes angle
-- Space      : Shoots
-
-
 HappyBoom
 =========
 
-HappyBoom is a rewrite of Wormux game but with better conception :
-- inputs, server & "view" are well separated
-- it uses multi-agents system
+HappyBoom is a game engine based on client-server architecture. The server is
+based ony multi-agents system.
 
+Website: http://www.happyboom.org/
 
-Console
-=======
-
-It's a basic package of console tools. First it was a test for the kernel. But
-it should be compatible with new games. It can be used to display server stats
-for example :
-  python console_view.py --stats
-  
-  
 Documentation
 =============
 
-You can generate the API documentation of some package (presently 'boomboom'
-and 'net'). To do that, you must install Epydoc (version 2.1 or earlier, just
-tested 2.1) and run the 'makedoc' shell script in the concerned directory,
-or read the Epydoc manpage.
+You can generate the API documentation of HappyBoom which this command:
+    ./makedoc.sh
+
+Documentation will be generated in HTML in the subdirectory "doc". You
+need Epydoc (version 2.1 or earlier, just tested 2.1).

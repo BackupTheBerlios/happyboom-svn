@@ -1,0 +1,6 @@
+2005-04-29
+	- Version 0.1.4, quite playable with two human player over a network (or
+	in local). HappyBoom is using UDP transport for low latency.
+
+2005-04-25
+	- First line of BoomBoom source code

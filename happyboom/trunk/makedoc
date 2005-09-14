@@ -1,3 +1,0 @@
-#!/bin/sh
-test -e doc || mkdir doc
-epydoc -o doc/api -n "BoomBoom Client 0.2" --private-css blue net

@@ -1,0 +1,36 @@
+BoomBoom
+========
+
+BoomBoom is a rewrite of old game "Gorilla" (a Quick Basic game written
+by Microsoft). It's just a test for the HappyBoom kernel.
+
+See our website: http://www.happyboom.org/BoomBoom
+
+  Requirements
+  ------------
+- Python : version 2.2 or earlier (tested with 2.3 and 2.4)
+--> http://python.org/download/
+
+- pygame : version 1.6 or earlier (just tested 1.6)
+--> http://www.pygame.org/download.shtml
+
+- pysma : version 0.3 (tested until 0.3)
+--> https://developer.berlios.de/project/showfiles.php?group_id=3535
+
+  How to play
+  -----------
+To play, launch a term, go to the boomboom subdirectory and run
+a server:
+  python boomboom_server.py
+  
+Next, launch another term, go to the boomboom subdirectory again and run a client :
+  python boomboom_client.py <yourname>
+
+You can play it over Internet by giving a host name to client :
+  python boomboom_client.py --host <host ip or address> <yourname>
+
+   Controls
+   --------
+- Left/Right : Changes strength
+- Up/Down    : Changes angle
+- Space      : Shoots
