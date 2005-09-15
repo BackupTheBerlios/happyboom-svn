@@ -1,3 +1,8 @@
+from presentation import Presentation
+from packer import *
+
+
+class HappyboomProtocol(Presentation):
     def unpackPacketType(self, data):
         # Get packet type
         fmt = "!B"
