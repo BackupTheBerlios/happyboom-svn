@@ -71,7 +71,7 @@ class Gateway(Agent, EventListener):
         except ProtocolException, err:
             log.error(err)
             return
-        self.launchEvent("happyboom", "event", clients, data);
+        self.launchEvent("presentationProtocol", "event", clients, data);
 
     def __getProtocolVersion(self): return self.__protocol.version
     protocol_version = property(__getProtocolVersion)
