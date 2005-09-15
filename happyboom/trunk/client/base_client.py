@@ -1,7 +1,7 @@
 from net import io_udp
 from common.happyboom_protocol import HappyboomProtocol
 from common.event import EventLauncher, EventListener
-import struct
+import struct, string
 
 class Client(object, EventListener, EventLauncher):
     
@@ -106,29 +106,61 @@ class Gateway(EventLauncher, EventListener):
         self.launchEvent("happyboom", "register", "destroy_item", self.processConnection)
         self.launchEvent("happyboom", "register", "recv_event", self.processConnection)
         self.registerEvent("happyboom")
+        self.features = []
+        self.items = {}
+        #self.gamepath = None
+        self.module = __import__("items")
         
     def processConnection(self, version, signature):
         self.launchEvent("happyboom", "signature", signature)
+        self.launchEvent("happyboom", "sendFeatures", self.features)
         
     def processDisconnection(self, reason):
         self.launchEvent("happyboom", "stop", reason)
     
     def processCreateItem(self, feature, id):
+        assert feature in self.features, "Unexpected feature"
+        classname = self.getClassnameByFeature(feature)
+        assert hasattr(self.module, classname), "Item class not found : %s" %classname
+        itemclass = getattr(self.module, classname)
+        item = itemclass(id)
+        self.items[id] = item
         self.launchEvent(feature, "new", id)
     
     def processDestroyItem(self, id):
+        assert id in self.items, "Unknown item identifier %s" %id
         self.launchEvent(feature, "delete", id)
-    
+        del self.items[id]
+        
     def processEvent(self, feature, event, args):
         self.launchEvent(feature, event, *args)
+
+    def getClassnameByFeature(self, feature):
+        classname = ""
+        prefix = True
+        space = True
+        for i in range(len(feature)):
+            if feature[i] not in string.ascii_letters:
+                if prefix:
+                    classname = classname + feature[i]
+                space = True
+            else:
+                prefix = False
+                if space:
+                    classname = classname + feature[i].upper()
+                else:
+                    classname = classname + feature[i]
+        return classname
 
     def evt_happyboom_features(self, feature):
         if feature not in self.features:
             self.features.append(feature)
             self.registerEvent(feature)
-            
-    def processEvent(self, event):
+        
+#    def evt_happyboom_gamepath(self, path):
+#        self.gamepath = path
+        
+    def eventPerformed(self, event):
         if self.type != "happyboom":
             self.launchEvent("happyboom", "send", *event.content)
             
-    
