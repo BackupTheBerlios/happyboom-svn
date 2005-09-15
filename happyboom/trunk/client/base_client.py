@@ -1,11 +1,15 @@
 from net import io_udp
+from common.happyboom_protocol import HappyboomProtocol
+from common.event import EventLauncher, EventListener
 import struct
 
-class HappyBoomClient(object):
+class Client(object, EventListener, EventLauncher):
     
     def __init__(self, args):
+        EventLauncher.__init__(self)
+        EventListener.__init__(self) # TODO : Fix me (with good arguments)
         self.host = args.get("host", "127.0.0.1")
-        self.port = args.get("port", "12430")
+        self.port = args.get("port", 12430)
         self.verbose = args.get("verbose", False)
         self.debug = args.get("debug", False)
         protocol = args.get("protocol", None)
@@ -18,7 +22,8 @@ class HappyBoomClient(object):
         self.__stoplock = thread.allocate_lock()
         
         self.signature = None
-        self.gateway = Gateway(self.__io, protocol)
+        self.presentation = common.HappyboomProtocol(protocol)
+        self.gateway = Gateway()
         
     def start(self):
         """ Starts the client : connection to the server, etc. """
@@ -91,5 +96,39 @@ class HappyBoomClient(object):
         p.writeStr(str)
         self.__io.send(p)
         
+class Gateway(EventLauncher, EventListener):
+    def __init__(self):
+        EventLauncher.__init__(self)
+        EventListener.__init__(self, "evt_")
+        self.launchEvent("happyboom", "register", "connection", self.processConnection)
+        self.launchEvent("happyboom", "register", "disconnection", self.processDisconnection)
+        self.launchEvent("happyboom", "register", "create_item", self.processConnection)
+        self.launchEvent("happyboom", "register", "destroy_item", self.processConnection)
+        self.launchEvent("happyboom", "register", "recv_event", self.processConnection)
+        self.registerEvent("happyboom")
+        
+    def processConnection(self, version, signature):
+        self.launchEvent("happyboom", "signature", signature)
+        
+    def processDisconnection(self, reason):
+        self.launchEvent("happyboom", "stop", reason)
+    
+    def processCreateItem(self, feature, id):
+        self.launchEvent(feature, "new", id)
+    
+    def processDestroyItem(self, id):
+        self.launchEvent(feature, "delete", id)
+    
+    def processEvent(self, feature, event, args):
+        self.launchEvent(feature, event, *args)
 
-
+    def evt_happyboom_features(self, feature):
+        if feature not in self.features:
+            self.features.append(feature)
+            self.registerEvent(feature)
+            
+    def processEvent(self, event):
+        if self.type != "happyboom":
+            self.launchEvent("happyboom", "send", *event.content)
+            
+    
