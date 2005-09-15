@@ -4,7 +4,7 @@
 @contact: See U{http://developer.berlios.de/projects/happyboom/}
 @version: 0.2
 """
-from happyboom.common.simple_event import EventListener
+from happyboom.common.event import EventListener
 import bb_events
 from bb_input import BoomBoomInput
 import thread, time, traceback, pygame
@@ -46,7 +46,7 @@ class BoomBoomClient(EventListener):
         self.__stopped = False
         self.__stoplock = thread.allocate_lock()
         
-        self.registerEvent(bb_events.stop)
+        self.registerEvent("game")
         
     def start(self):
         """ Starts the game client."""
@@ -76,9 +76,9 @@ class BoomBoomClient(EventListener):
         if self.__verbose: print "[CLIENT] Stopping client..."
         self.display.stop()
     
-    def evt_game_Stop(self, event):
+    def evt_game_stop(self):
         """ Stop event handler.
-        @param event: Event with "game_Stop" type.
+        @param event: Event game.stop()
         @type event: C{L{common.simple_event.Event}}
         """
         self.stop()

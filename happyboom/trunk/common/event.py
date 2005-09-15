@@ -10,7 +10,7 @@ import generic_event as evt
 class EventListener(evt.EventListener):
     """ Happyboom generic class for listening to events.
     """
-    def __init__(self, prefix="evt", suffix="", default="eventPerformed", silent=False):
+    def __init__(self, prefix="evt", suffix="", default="eventPerformed", silent=True):
         """ EventListener constructor.
         """
         evt.EventListener.__init__(self, prefix, suffix, "happyboomEventPerformed", silent)

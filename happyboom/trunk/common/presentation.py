@@ -18,19 +18,11 @@ class Presentation(EventListener):
     DESTROY       = 0x5
     EVENT         = 0x6
     
-    def __init__(self, protocol, is_server):
+    def __init__(self, protocol):
         EventListener.__init__(self, "evt_", silent=True)
         self.protocol = protocol
         self.items = {}
-        self.gateway = None
-        self.is_server = is_server 
-        self._unpackFunc = { \
-            self.CONNECTION: self.unpackConnection,
-            self.DISCONNECTION: self.unpackDisconnect,
-            self.FEATURES: self.unpackFeatures,
-            self.CREATE: self.unpackCreateItem,
-            self.DESTROY: self.unpackDestroyItem,
-            self.EVENT: self.unpackEvent}
+        self._unpackFunc = {}
         self.registerEvent("happyboom")
 
         # Event (IO_Client client, str version, str signature)
@@ -56,11 +48,11 @@ class Presentation(EventListener):
         @param packet: incomming network packet.
         @type packet: C{net.io.packet.Packet}
         """
-        data = unpackPacketType(packet.data)
+        ptype, data = self.unpackPacketType(packet.data)
         
         # Choose process function
         if ptype in self._unpackFunc:
-            self._unpackFunc(packet.recv_from, data)
+            data = self._unpackFunc[ptype] (packet.recv_from, data)
         else:
             log.warning("ProtocoleWarning: received unexpected packet type %s." % ptype)
         if len(data) != 0:
@@ -70,7 +62,7 @@ class Presentation(EventListener):
     def evt_happyboom_register(self, event, handler):
         event = "_on_"+event
         if hasattr(self, event):
-            self.setattr(event, handler, handler)
+            setattr(self, event, handler)
     
     def evt_happyboom_closeConnection(self, ioclient, reason):
         """
@@ -85,7 +77,7 @@ class Presentation(EventListener):
         data = data + packBin(features)
         return Packet(data)
        
-    def evt_happyboom_connection(self, ioclient, version, signature=""):
+    def evt_happyboom_connection(self, ioclient, version, signature):
         """
         Send a connection message to ioclient.
         @type version ASCII string
@@ -113,9 +105,11 @@ class Presentation(EventListener):
         packet = Packet(data)
         for client in clients: client.send(packet)
         
-    def unpackPacketType(self, data): pass
-    def unpackDisconnect(self, ioclient, data): pass
-    def unpackFeatures(self, ioclient, data): pass
-    def unpackCreateItem(self, data): pass
-    def unpackDestroyItem(self, data): pass
-    def unpackEvent(self, ioclient, data): pass
+    def unpackPacketType(self, data):
+        """ returns type, data """
+        return 0, data
+    def unpackDisconnect(self, ioclient, data): return data
+    def unpackFeatures(self, ioclient, data): return data
+    def unpackCreateItem(self, data): return data
+    def unpackDestroyItem(self, data): return data
+    def unpackEvent(self, ioclient, data): return data

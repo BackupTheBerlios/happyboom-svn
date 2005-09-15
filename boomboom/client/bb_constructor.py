@@ -4,7 +4,7 @@
 @contact: See U{http://developer.berlios.de/projects/happyboom/}
 @version: 0.2
 """
-from happyboom.common.simple_event import EventListener
+from happyboom.common.event import EventListener
 import bb_events
 from items import Sun, Projectile, Weapon, World, Character
 
@@ -13,14 +13,14 @@ class BoomBoomConstructor(EventListener):
     def __init__(self):
         """ BoomBoomConstructor constructor. """
         EventListener.__init__(self, prefix="evt_")
-        self.registerEvent(bb_events.start)
+        self.registerEvent("game")
         self.registerEvent(bb_events.create)
         self.registerEvent(bb_events.text)
         
     def evt_agent_manager_Create(self, event):
         """ Create event handler.
         @param event: Event with "agent_manager_Create" type.
-        @type event: C{L{common.simple_event.Event}}
+        @type event: C{L{common.event.Event}}
         """
         arg = event.content.split(":")
         type = arg[0]
@@ -52,16 +52,16 @@ class BoomBoomConstructor(EventListener):
             return Character(id, "foo")
         return None
         
-    def evt_game_Start(self, event):
+    def evt_game_start(self):
         """ Start event handler.
         @param event: Event with "game_Start" type.
-        @type event: C{L{common.simple_event.Event}}
+        @type event: C{L{common.event.Event}}
         """
         Sun()
         
     def evt_agent_manager_Text(self, event):
         """ Text event handler.
         @param event: Event with "agent_manager_Text" type.
-        @type event: C{L{common.simple_event.Event}}
+        @type event: C{L{common.event.Event}}
         """
         print "[DISPLAY] Server message: %s" %(event.content)

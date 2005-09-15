@@ -9,9 +9,9 @@ def checkType(datatype, data):
     if datatype=="int":
         return (type(data) == type(1)) and (data <= 2147483647) and (-2147483648 <= data)
     elif datatype=="bin":
-        return len(data) < 65535 
+        return type(data)==types.StringType and len(data) < 65535 
     elif datatype=="utf8":
-        return len(data) < 65535 and type(data)==types.UnicodeType
+        return type(data)==types.UnicodeType and len(data) < 65535
     else:
         raise PackerException("Wrong argument type: %s" % datatype)
 

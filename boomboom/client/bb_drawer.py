@@ -4,7 +4,7 @@
 @contact: See U{http://developer.berlios.de/projects/happyboom/}
 @version: 0.2
 """
-from happyboom.common.simple_event import EventListener
+from happyboom.common.event import EventListener
 import bb_events
 import pygame, time
 
@@ -28,7 +28,7 @@ class BoomBoomDrawer(EventListener):
         self.__screen = None
         self.__frameTime = 1.0 / max_fps
         self.__items = []
-        self.registerEvent(bb_events.visibleItem)
+        self.registerEvent("graphical")
     
     def start(self):
         """ Creates game window and starts display loop. """
@@ -51,13 +51,13 @@ class BoomBoomDrawer(EventListener):
                 delay = self.__frameTime - delay
                 time.sleep(delay)
         
-    def evt_graphical_item(self, event):
+    def evt_graphical_item(self, item):
         """ active item event handler.
         @param event: Event with "graphical_item" type.
         @type event: C{L{common.simple_event.Event}}
         """
-        if event.source not in self.__items:
-            self.__items.append(event.source)
+        if item not in self.__items:
+            self.__items.append(item)
         
         
 class Window:

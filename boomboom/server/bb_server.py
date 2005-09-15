@@ -1,4 +1,4 @@
-from happyboom.common.presentation import Presentation
+from happyboom.common.happyboom_protocol import HappyboomProtocol as Presentation
 from happyboom.server.base_server import \
     Server as HBServer, \
     Gateway as HBGateway, \
@@ -41,8 +41,8 @@ class Gateway(HBGateway):
         
 class Server(HBServer):
     def __init__(self, protocol, arg):
-        manager = ClientManager(arg)
-        presentation = Presentation(protocol, True)
+        manager = ClientManager(protocol, arg)
+        presentation = Presentation(protocol)
         gateway = Gateway(protocol, presentation, manager, arg)
         manager.gateway = gateway
-        HBServer.__init__(self, gateway, arg)
+        HBServer.__init__(self, gateway, manager, arg)

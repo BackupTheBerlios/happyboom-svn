@@ -7,9 +7,10 @@ from happyboom.common.event import EventLauncher
 import thread, time
 
 class ClientManager(EventLauncher, object):
-    def __init__(self, arg): 
+    def __init__(self, protocol, arg): 
         EventLauncher.__init__(self)
         self.server = None 
+        self.__protocol = protocol
         self.__io = io_tcp.IO_TCP(is_server=True)
         self.__io.debug = arg.get("debug", False)
         self.__io.verbose = arg.get("verbose", False)
@@ -24,13 +25,18 @@ class ClientManager(EventLauncher, object):
         self.gateway = None
         self.presentation = None
 
+    def onClientDisconnection(self, ioclient, reason):
+        log.info("Client %s leave us: %s" % (ioclient, reason))
+        self.closeClient(ioclient)
+
     def onClientConnection(self, ioclient, version, signature):
-        # TODO: Et le cas où signature ne vaut pas "" ???
-        if version == self.protocol.version:
+        # TODO: Case where signature != "" ??? (reconnection)
+        server_version = self.__protocol.version
+        if version == server_version:
             signature = self.generateSignature(ioclient)
-            self.launchEvent("happyboom", "clientConnection", ioclient, self.version, signature)
+            self.launchEvent("happyboom", "clientConnection", ioclient, server_version, signature)
         else:    
-            self.launchEvent("happyboom", "closeConnection", ioclient, u"Wrong server version")
+            self.launchEvent("happyboom", "closeConnection", ioclient, u"Wrong server version (%s VS %s)" % (version, serverur_version))
 
     def onClientFeatures(self, ioclient, features):
         # Register client in the clients list
@@ -72,6 +78,7 @@ class ClientManager(EventLauncher, object):
         self.__io.on_new_packet = self.presentation.processPacket
         self.__io.connect('', self.client_port)
         self.launchEvent("happyboom", "register", "connection", self.onClientConnection)
+        self.launchEvent("happyboom", "register", "disconnection", self.onClientDisconnection)
         thread.start_new_thread(self.run_io_thread, ())
 
     def readClientAnswer(self, client, timeout=1.000):
@@ -103,6 +110,7 @@ class ClientManager(EventLauncher, object):
         # TODO: get client of type Client for the client of type ClientIO to send
         # him bye
 #        client.sendNetMsg("presentation", "bye", "utf8", u"Lost connection")
+        log.info("[*] Client %s leave us." % ioclient)
         self.removeClient(ioclient)
         
     def __clientChallenge(self, client, func):

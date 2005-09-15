@@ -4,7 +4,7 @@
 @contact: See U{http://developer.berlios.de/projects/happyboom/}
 @version: 0.2
 """
-from happyboom.common.simple_event import EventListener, EventLauncher
+from happyboom.common.event import EventListener, EventLauncher
 import bb_events
 import pygame
 
@@ -19,7 +19,7 @@ class BoomBoomItem(EventListener, EventLauncher):
         EventListener.__init__(self, "evt_")
         EventLauncher.__init__(self)
         self.visual = None
-        self.launchEvent(bb_events.visibleItem)
+        self.launchEvent("graphical", "item", self)
         
     def draw(self, screen):
         """ Drawing method called by C{BoomBoomDrawer}

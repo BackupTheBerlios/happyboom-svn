@@ -108,11 +108,11 @@ class ProtocolFeature:
 class Protocol:
     """
     HappyBoom protocol utility.
-    version is unicode
+    version is ASCII 
     """
     def __init__(self, name, version):
         self.name = name
-        self.version = version
+        self.version = version.encode("ascii")
         self.__featnames = {}
         self.__featids = {}
 

@@ -4,7 +4,7 @@
 @contact: See U{http://developer.berlios.de/projects/happyboom/}
 @version: 0.2
 """
-from happyboom.common.simple_event import EventLauncher
+from happyboom.common.event import EventLauncher
 import bb_events
 from net import io
 from net import io_udp, io_tcp
@@ -63,10 +63,10 @@ class BoomBoomInput(EventLauncher):
         if event.type == pygame.KEYDOWN: 
             # q, Q or escape: quit
             if event.unicode in (u'q', u'Q') or event.key == 27:
-                self.launchEvent(bb_events.stop)
+                self.launchEvent("game", "stop")
         # Quit event: quit
         elif event.type in (pygame.QUIT, ):
-            self.launchEvent(bb_events.stop)
+            self.launchEvent("game", "stop")
     
         #character = self.client.view.getActiveCharacter()
         #if character != None: self.process_event_active(character, event)
@@ -85,7 +85,7 @@ class BoomBoomInput(EventLauncher):
             # arrow keys: move character
             if event.key == 32:
                 print "Event %s" % bb_events.shoot
-                self.launchEvent(bb_events.shoot)
+                self.launchEvent("weapon", "shoot")
             elif event.key == 275: self.sendCmd("move_right")
             elif event.key == 273: self.sendCmd("move_up") 
             elif event.key == 274: self.sendCmd("move_down")

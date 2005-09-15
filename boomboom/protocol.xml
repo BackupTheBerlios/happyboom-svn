@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<protocol name="BoomBoom" version="0.2">
+<protocol name="BoomBoom" version="BoomBoom 0.2">
   <feature name="game" id="1">
     <event name="start" id="1" />
     <event name="stop" id="2" />

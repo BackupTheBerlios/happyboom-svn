@@ -35,12 +35,10 @@ class Gateway(Agent, EventListener):
         self.sendNetMsg(feature, event, *args)
         
     def start(self):
-        self.client_manager.start()
         Kernel.instance.addAgent(self)
         
     def stop(self):
         self.sendNetMsg("game", "stop")
-        self.client_manager.stop()
         Kernel.instance.stopKernel()
 
     def process(self):
@@ -48,7 +46,7 @@ class Gateway(Agent, EventListener):
 #       TODO: Waiting for last PySMA version...        
 #        if not self.__scheduler.alive:
 #            self.__server.stop()
-        self.client_manager.process()
+        pass
 
     def sendText(self, txt, client=None):
         if client != None:

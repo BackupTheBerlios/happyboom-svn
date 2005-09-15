@@ -4,8 +4,9 @@
 @contact: See U{http://developer.berlios.de/projects/happyboom/}
 @version: 0.2
 """
-from happyboom.common.presentation import Presentation
-from happyboom.common.simple_event import EventLauncher, EventListener
+from happyboom.common.happyboom_protocol import HappyboomProtocol as Presentation
+from happyboom.common.event import EventLauncher, EventListener
+from happyboom.common.log import log
 import bb_events
 from bb_drawer import BoomBoomDrawer
 from bb_constructor import BoomBoomConstructor
@@ -56,8 +57,7 @@ class BoomBoomDisplay(EventLauncher, EventListener):
         """
         EventLauncher.__init__(self)
         EventListener.__init__(self, prefix="evt_")
-        self.launchEvent("x")
-        self.presentation = Presentation(protocol, False)
+        self.presentation = Presentation(protocol)
         self.drawer = BoomBoomDrawer(arg.get("max_fps", 25))
         self.host = arg.get("host", "localhost")
         self.port = arg.get("port", 12430)
@@ -71,7 +71,17 @@ class BoomBoomDisplay(EventLauncher, EventListener):
         self.__stopped = False
         self.__stoplock = thread.allocate_lock()
         
-        self.registerEvent(bb_events.shoot)
+        self.registerEvent("weapon")
+        self.registerEvent("happyboom")
+
+    def evt_happyboom_connection(self, ioclient, version, signature):
+        # TODO: Save signature to reuse it later
+        features = "TODO: Feed me!"
+        self.launchEvent("happyboom", "features", features)
+    
+    def evt_happyboom_disconnection(self, ioclient, reason):
+        log.warning(u"Received disconnected from server: %s" % reason)
+        self.launchEvent("game", "stop")
         
     def start(self):
         """ Starts the display client : connection to the server, etc. """
@@ -87,7 +97,7 @@ class BoomBoomDisplay(EventLauncher, EventListener):
         thread.start_new_thread(self.__io.run_thread, ())
     
         BoomBoomConstructor()
-        self.__io.send(self.presentation.connectionPacket())
+        self.launchEvent("happyboom", "connection", self.__io, self.__protocol.version.encode("ascii"), "")
         print "==== BoomBoom ===="
         self.drawer.start()
         
@@ -97,8 +107,7 @@ class BoomBoomDisplay(EventLauncher, EventListener):
         self.__stopped = True
         self.__stoplock.release()
         # TODO: clean "bye"
-        packet = self.presentation.disconnectionPacket(u"Quit.")
-        self.__io.send(packet)
+        self.launchEvent("happyboom", "disconnection", self.__io, u"Quit.")
         self.__io.stop()
         if self.__verbose: print "[DISPLAY] Stopped"
         
@@ -123,12 +132,12 @@ class BoomBoomDisplay(EventLauncher, EventListener):
     def onDisconnect(self):
         """ Handler called on network disconnection. """
         print "[DISPLAY] Connection to server closed"
-        self.launchEvent(bb_events.stop)
+        self.launchEvent("game", "start")
 
     def onLostConnection(self):
         """ Handler called on losting network connection. """
         print "[DISPLAY] Lost connection with server"
-        self.launchEvent(bb_events.stop)
+        self.launchEvent("game", "stop")
     
     def send(self, feature, event, *args):
         """ Sends a string to the network server.
@@ -138,9 +147,6 @@ class BoomBoomDisplay(EventLauncher, EventListener):
         data = self.__protocol.createMsg(feature, event, *args)
         data = self.presentation.sendMsg(data)
         self.__io.send(Packet(data))
-
-    def evt_x(self, event):
-        print "x"
         
     def evt_weapon_shoot(self, event):
         print "Shoot aussi"
