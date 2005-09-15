@@ -32,7 +32,7 @@ class Gateway(Agent, EventListener):
 #        print "gzzz", event
 
     def evt_happyboom_network(self, feature, event, *args):
-        self.sendMsg(feature, event, *args)
+        self.sendNetMsg(feature, event, *args)
         
     def start(self):
         self.client_manager.start()
