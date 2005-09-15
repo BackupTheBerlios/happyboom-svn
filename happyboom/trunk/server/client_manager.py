@@ -3,7 +3,7 @@ from happyboom.common.packer import unpackBin
 from happyboom.common.log import log
 from happyboom.common.thread import getBacktrace
 from happyboom.server.client import Client
-from happyboom.common.simple_event import EventLauncher
+from happyboom.common.event import EventLauncher
 import thread, time
 
 class ClientManager(EventLauncher, object):

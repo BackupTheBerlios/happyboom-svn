@@ -13,21 +13,22 @@ class EventListener(evt.EventListener):
     def __init__(self, prefix="evt", suffix="", default="eventPerformed", silent=False):
         """ EventListener constructor.
         """
-        evt.EventListener.__init__(self, prefix, suffix, __eventPerformed, silent)
+        evt.EventListener.__init__(self, prefix, suffix, "happyboomEventPerformed", silent)
         self.hb_default = default
         
     def getEventName(self, feature, event):
         return "%s_%s" %(feature, event)
         
-    def __eventPerformed(self, event):
-        if issubclass(event, Event):
+    def happyboomEventPerformed(self, event):
+        if issubclass(event.__class__, Event):
             # Try to call event-specific handle method
             fctname = self.pattern %(self.getEventName(event.type, event.event))
             if hasattr(self, fctname):
                 function = getattr(self, fctname)
                 if callable(function):
-                    function(event)
+                    function(*event.content)
                     return
+
         # Try to call default handle method
         if hasattr(self, self.hb_default):
             function = getattr(self, self.hb_default)
@@ -35,8 +36,8 @@ class EventListener(evt.EventListener):
                 function(event)
                 return
         # No handle method found, raise error ?
-        if not obj.silent:
-            raise UnhandledEventError("%s has no method to handle %s" %(obj, event))
+        if not self.event_silent:
+            raise evt.UnhandledEventError("%s has no method to handle %s" %(self, event))
 
 class EventLauncher(evt.EventLauncher):
     """ Happyboom generic class for launching events.

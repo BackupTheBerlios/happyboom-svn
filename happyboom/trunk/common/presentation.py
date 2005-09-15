@@ -1,5 +1,5 @@
 from happyboom.common.packer import packUtf8, packBin
-from happyboom.common.simple_event import EventListener
+from happyboom.common.event import EventListener
 from happyboom.common.log import log
 from happyboom.common.packer import unpack, unpackBin, unpackUtf8
 from happyboom.net.io.packet import Packet
@@ -20,7 +20,7 @@ class Presentation(EventListener):
     EVENT         = 0x6
     
     def __init__(self, protocol, is_server):
-        EventListener.__init__(self)
+        EventListener.__init__(self, "evt_", silent=True)
         self.protocol = protocol
         self.items = {}
         self.gateway = None
@@ -32,6 +32,7 @@ class Presentation(EventListener):
             self.CREATE: self.unpackCreateItem,
             self.DESTROY: self.unpackDestroyItem,
             self.EVENT: self.unpackEvent}
+        self.registerEvent("happyboom")
 
         # Event (IO_Client client, str version, str signature)
         self._on_client_connection = None
@@ -50,7 +51,7 @@ class Presentation(EventListener):
 
         # Event (IO_Client client, int id)
         self._on_destroy_item = None
-        
+
     def processPacket(self, packet):
         """ Processes incomming network packets (converts and launches local event).
         @param packet: incomming network packet.
@@ -88,6 +89,11 @@ class Presentation(EventListener):
             self._on_features(ioclient, features)
         return data
 
+    def evt_happyboom_register(self, event, handler):
+        import re
+        if hasattr(self, event) and re.compile("^_on_").search(event):
+            self.setattr(event, handler, handler)
+    
     def evt_happyboom_closeConnection(self, ioclient, reason):
         """
         Close client connection.

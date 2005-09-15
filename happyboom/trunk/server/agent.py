@@ -1,11 +1,13 @@
 from pysma import ActionAgent, ActionMessage as Message
 from happyboom.common.log import log
+from happyboom.common.event import EventLauncher
 
-class Agent(ActionAgent):
+class Agent(ActionAgent, EventLauncher):
     """
     SMA agent in HappyBoom.
     """
     def __init__(self, type, gateway, **args):
+        EventLauncher.__init__(self)
         ActionAgent.__init__(self, prefix="msg_")
         self._gateway = gateway
         self.type = type

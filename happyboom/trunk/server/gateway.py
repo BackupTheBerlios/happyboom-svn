@@ -3,12 +3,12 @@ from happyboom.common.protocol import loadProtocol, ProtocolException
 from happyboom.net.io import Packet
 from happyboom.common.log import log
 from pysma import Kernel, DummyScheduler
-from happyboom.common.simple_event import EventListener
+from happyboom.common.event import EventListener
 import struct
 
 class Gateway(Agent, EventListener):
     def __init__(self, protocol, presentation, client_manager, arg):
-        EventListener.__init__(self)
+        EventListener.__init__(self, "evt_", silent=True)
         Agent.__init__(self, self, "gateway")
         self.__protocol = protocol
         self.client_manager = client_manager
@@ -28,6 +28,9 @@ class Gateway(Agent, EventListener):
         self.client_manager.server = server
     server = property(None, __setServer)
 
+#    def eventPerformed(self, event):
+#        print "gzzz", event
+
     def evt_happyboom_network(self, feature, event, *args):
         self.sendMsg(feature, event, *args)
         
@@ -42,8 +45,9 @@ class Gateway(Agent, EventListener):
 
     def process(self):
         # Stop server if the scheduler is dead
-        if not self.__scheduler.alive:
-            self.__server.stop()
+#       TODO: Waiting for last PySMA version...        
+#        if not self.__scheduler.alive:
+#            self.__server.stop()
         self.client_manager.process()
 
     def sendText(self, txt, client=None):

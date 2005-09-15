@@ -62,7 +62,7 @@ class EventManager:
                         function(event)
                         continue
                 # No handle method found, raise error ?
-                if not obj.silent:
+                if not obj.event_silent:
                     raise UnhandledEventError("%s has no method to handle %s" %(obj, event))
         else:
             print("Pas de event.type %s" % event.type)
@@ -103,7 +103,7 @@ class EventListener:
         self.manager = EventManager.instance
         self.pattern = prefix + "%s" + suffix
         self.default = default
-        self.silent = silent
+        self.event_silent = silent
         
     def registerEvent(self, event_type):
         """ Registers itself to a new event.
