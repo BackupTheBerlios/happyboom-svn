@@ -49,3 +49,19 @@ class HappyboomProtocol(Presentation):
 
         self.gateway.recvNetMsg(feature, event, args)
         return ""
+
+    def unpackConnection(self, ioclient, data):
+        version, data = unpackBin(data)
+        signature, data = unpackBin(data) 
+        
+        if self._on_connection != None:
+            self._on_connection(ioclient, version, signature)
+#        if version != self.protocol.version:
+#            # TODO: send presentation bye(<why>)
+#            raise PresentationException("Wrong protocol version.")
+#        else:
+#            if not self.is_server:
+#                self.launchEvent("signature", (signature,))
+#                packet = self.featuresPacket()
+#                ioclient.send(packet)
+        return data

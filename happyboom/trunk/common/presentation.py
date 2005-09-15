@@ -2,6 +2,7 @@ from happyboom.common.event import EventListener
 from happyboom.common.log import log
 from happyboom.net.io.packet import Packet
 from happyboom.server.client import Client
+from happyboom.common.packer import packUtf8, packBin
 import struct
 
 class PresentationException(Exception):
@@ -78,22 +79,6 @@ class Presentation(EventListener):
         @type reason Unicode
         """
         self.evt_happyboom_disconnection(ioclient, reason)
-
-    def unpackConnection(self, ioclient, data):
-        version, data = unpackBin(data)
-        signature, data = unpackBin(data) 
-        
-        if self._on_connection != None:
-            self._on_connection(ioclient, version, signature)
-#        if version != self.protocol.version:
-#            # TODO: send presentation bye(<why>)
-#            raise PresentationException("Wrong protocol version.")
-#        else:
-#            if not self.is_server:
-#                self.launchEvent("signature", (signature,))
-#                packet = self.featuresPacket()
-#                ioclient.send(packet)
-        return data
             
     def featuresPacket(self, features="TODO: Feed me!"):
         data = struct.pack("!B", self.FEATURES)
