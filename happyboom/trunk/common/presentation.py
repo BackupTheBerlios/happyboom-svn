@@ -57,14 +57,8 @@ class Presentation(EventListener):
         @param packet: incomming network packet.
         @type packet: C{net.io.packet.Packet}
         """
-      
-        # Get packet type
-        data = packet.data
-        fmt = "!B"
-        i = struct.calcsize(fmt)
-        ptype, = struct.unpack(fmt, data[:i]) 
-        data = data[i:]
-
+        data = unpackPacketType(packet.data)
+        
         # Choose process function
         if ptype in self._unpackFunc:
             self._unpackFunc(packet.recv_from, data)
@@ -73,21 +67,6 @@ class Presentation(EventListener):
         if len(data) != 0:
             log.warning("ProtocolWarning: Received a message with an unexpected length.")
             log.warning(u"Rest: [%s]." % data)
-
-    def unpackDisconnect(self, ioclient, data):
-        reason, data = unpackUtf8(data)
-        if self.is_server:
-            self.client_manager.closeClient(ioclient)
-        else:
-            log.warning(u"Received disconnected from server: %s" % reason)
-            self.launchEvent("happyboom", "stop")
-        return data
-        
-    def unpackFeatures(self, ioclient, data):
-        features, data = unpackBin(data)
-        if self._on_features != None:
-            self._on_features(ioclient, features)
-        return data
 
     def evt_happyboom_register(self, event, handler):
         import re
@@ -123,10 +102,6 @@ class Presentation(EventListener):
         data = data + packBin(features)
         return Packet(data)
        
-    def unpackCreateItem(self, data):
-        # TODO
-        return data
-
     def evt_happyboom_clientConnection(self, ioclient, version, signature=""):
         """
         Send a connection message to ioclient.
@@ -155,19 +130,9 @@ class Presentation(EventListener):
         packet = Packet(data)
         for client in clients: client.send(packet)
         
-    def unpackDestroyItem(self, data):
-        # TODO
-        return data
-    
-    def unpackEvent(self, ioclient, data):
-        fmt = "!BB"
-        i = struct.calcsize(fmt)
-        feature_id, event_id = struct.unpack(fmt, data[:i])
-        data = data[i:]
-
-        feature, event, args = unpack(data, feature_id, event_id, self.protocol)
-        log.info("Received: %s.%s(%s)" \
-            % (feature, event, args))
-
-        self.gateway.recvNetMsg(feature, event, args)
-        return ""
+    def unpackPacketType(self, data): pass
+    def unpackDisconnect(self, ioclient, data): pass
+    def unpackFeatures(self, ioclient, data): pass
+    def unpackCreateItem(self, data): pass
+    def unpackDestroyItem(self, data): pass
+    def unpackEvent(self, ioclient, data): pass
