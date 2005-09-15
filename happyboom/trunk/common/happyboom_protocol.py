@@ -1,6 +1,5 @@
 from presentation import Presentation
-from packer import *
-
+from happyboom.common.packer import unpack, unpackBin, unpackUtf8, unpackInt
 
 class HappyboomProtocol(Presentation):
     def unpackPacketType(self, data):
@@ -25,12 +24,17 @@ class HappyboomProtocol(Presentation):
             self._on_features(ioclient, features)
         return data
 
-    def unpackCreateItem(self, data):
-        # TODO
+    def unpackCreateItem(self, ioclient, data):
+        itemid,data = unpackInt(data)
+        type,data = unpackBin(data)
+        if self._on_create_item != None:
+            self._on_create_item(ioclient, type, itemid)
         return data
 
-    def unpackDestroyItem(self, data):
-        # TODO
+    def unpackDestroyItem(self, ioclient, data):
+        itemid,data = unpackInt(data)
+        if self._on_destroy_item != None:
+            self._on_destroy_item(ioclient, itemid)
         return data
     
     def unpackEvent(self, ioclient, data):
