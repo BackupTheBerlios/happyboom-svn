@@ -30,7 +30,7 @@ class Presentation(EventListener):
             self.CREATE: self.unpackCreateItem,
             self.DESTROY: self.unpackDestroyItem,
             self.EVENT: self.unpackEvent}
-        self.registerEvent("presentationProtocol")
+        self.registerEvent("happyboom")
 
         # Event (IO_Client client, str version, str signature)
         self._on_client_connection = None
@@ -66,18 +66,18 @@ class Presentation(EventListener):
             log.warning("ProtocolWarning: Received a message with an unexpected length.")
             log.warning(u"Rest: [%s]." % data)
 
-    def evt_presentationProtocol_register(self, event, handler):
+    def evt_happyboom_register(self, event, handler):
         import re
         if hasattr(self, event) and re.compile("^_on_").search(event):
             self.setattr(event, handler, handler)
     
-    def evt_presentationProtocol_closeConnection(self, ioclient, reason):
+    def evt_happyboom_closeConnection(self, ioclient, reason):
         """
         Close client connection.
         @type ioclient L{IOClient}
         @type reason Unicode
         """
-        self.evt_presentationProtocol_clientDisconnection(ioclient, reason)
+        self.evt_happyboom_clientDisconnection(ioclient, reason)
 
     def unpackConnection(self, ioclient, data):
         version, data = unpackBin(data)
@@ -100,7 +100,7 @@ class Presentation(EventListener):
         data = data + packBin(features)
         return Packet(data)
        
-    def evt_presentationProtocol_clientConnection(self, ioclient, version, signature=""):
+    def evt_happyboom_clientConnection(self, ioclient, version, signature=""):
         """
         Send a connection message to ioclient.
         @type version ASCII string
@@ -112,7 +112,7 @@ class Presentation(EventListener):
         data = data + packBin(signature)
         ioclient.send( Packet(data) )
 
-    def evt_presentationProtocol_clientDisconnection(self, ioclient, reason):
+    def evt_happyboom_clientDisconnection(self, ioclient, reason):
         """
         Send a disconnection message to ioclient.
         @type ioclient L{IOClient}
@@ -123,7 +123,7 @@ class Presentation(EventListener):
         ioclient.send( Packet(data) )
         ioclient.disconnect()
 
-    def evt_presentationProtocol_event(self, clients, data):
+    def evt_happyboom_event(self, clients, data):
         data = struct.pack("!B", self.EVENT) + data
         packet = Packet(data)
         for client in clients: client.send(packet)
