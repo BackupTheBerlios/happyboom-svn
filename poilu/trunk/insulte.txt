@@ -1,4 +1,3 @@
-mdr:Ta gueule grosse vache !
 asp:"dot NET" çapucpalibre
 oracle:Oracle çapucpalibre, PostgreSQL c'est libre au moins!
 java:Java çapucpalibre, utilisez Python !

@@ -9,25 +9,22 @@ def checkType(datatype, data):
     if datatype=="int":
         return (type(data) == type(1)) and (data <= 2147483647) and (-2147483648 <= data)
     elif datatype=="bin":
-        return true
+        return len(data) < 65535 
     elif datatype=="utf8":
-        return type(data)==types.UnicodeType
+        return len(data) < 65535 and type(data)==types.UnicodeType
     else:
         raise PackerException("Wrong argument type: %s" % datatype)
 
 def packInt(data):
-    assert type(data)==type(1), "packInt argument have to be an integer"
-    # Overflow is checked by struct.pack
-    #assert data <= 2147483647, "packInt argument is too big (%s)" % data
-    #assert -2147483648 <= data, "packInt argument is too small (%s)" % data
+    assert checkType("int", data), "packInt argument have to be an integer"
     return struct.pack("!i", data)
     
 def packUtf8(data):
-    assert type(data)==types.UnicodeType, "packUtf8 argument have to be an unicode string"
+    assert checkType("utf8", data), "packUtf8 argument have to be an unicode string"
     return packBin(data.encode("utf-8"))
 
 def packBin(data):
-    assert type(data)==types.StringType, "packBin argument have to be a string"
+    assert checkType("bin", data), "packBin argument have to be a string"
     return struct.pack("!H%us" % len(data), len(data), data)
 
 def pack(func, event, types, values):
@@ -41,12 +38,10 @@ def pack(func, event, types, values):
     assert len(types) == len(values), "Lengths of types and args have to be the same."
     out = struct.pack("!BB", func, event)
 
-    #TODO: Fix this :-)
     for i in range(len(values)):
         type = types[i]
         data = values[i]
         
-        # TODO: Use dict instead of long if list
         if type=="int":
             data = packInt(data)
         elif type=="bin":

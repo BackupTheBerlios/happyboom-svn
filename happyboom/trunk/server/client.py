@@ -16,9 +16,7 @@ class Client(object):
         return self.__io.__str__()
 
     def disconnect(self, reason):
-        packet = self.__gateway.presentation.disconnectionPacket(reason)
-        self.sendPacket(packet)
-        self.stop()        
+        self.launchEvent("happyboom", "clientDisconnect", self.__io, reason)
 
     # Stop client: close socket.
     def stop(self):
@@ -34,13 +32,13 @@ class Client(object):
         self.__io.send(packet)
 
     # Send a HappyBoom message to the client (see L{sendPacket})
-    def sendNetMsg(self, func, event, *args):
+    def sendNetMsg(self, feature, event, *args):
         try:
-            packet = self.__gateway.createMsg(func, event, *args)
+            data = self.__protocol.createMsg(feature, event, *args)
         except ProtocolException, err:
             log.error(err)
             return
-        self.__io.send(packet)
+        self.launchEvent("happyboom", "event", (self,), data);
 
     def __getAddr(self): return self.__io.addr
     addr = property(__getAddr)

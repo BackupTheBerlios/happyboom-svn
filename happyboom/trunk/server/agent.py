@@ -23,7 +23,7 @@ class Agent(ActionAgent):
         self.sendBroadcastMessage(message, "%s_listener" %self.type)
 
     def sendNetMsg(self, func, event, *args):
-        self._gateway.sendNetMsg(func, event, *args)
+        self.launchEvent("happyboom", "network", func, event, *args)
 
     def messageReceived(self, msg):
         if self.__debug:

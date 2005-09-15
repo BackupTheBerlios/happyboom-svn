@@ -1,4 +1,3 @@
-mdr:([Mm]dr|lo+l|ptdr+)
 asp:(ASP|\.(NET|Net))
 oracle:[Oo]racle
 java:[Jj]ava
