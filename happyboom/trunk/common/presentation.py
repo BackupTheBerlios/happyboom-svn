@@ -33,22 +33,22 @@ class Presentation(EventListener):
             self.DESTROY: self.unpackDestroyItem,
             self.EVENT: self.unpackEvent}
 
-        # Event (IOClient client, str version, str signature)
+        # Event (IO_Client client, str version, str signature)
         self._on_client_connection = None
 
-        # Event (IOClient client, str features)
+        # Event (IO_Client client, str features)
         self._on_features = None
         
-        # Event (IOClient client)
+        # Event (IO_Client client)
         self._on_client_disconnection = None
 
-        # Event (IOClient client, str feature, str event, str arguments)
+        # Event (IO_Client client, str feature, str event, str arguments)
         self._on_recv_event = None
 
-        # Event (IOClient client, str type, int id)
+        # Event (IO_Client client, str type, int id)
         self._on_create_item = None
 
-        # Event (IOClient client, int id)
+        # Event (IO_Client client, int id)
         self._on_destroy_item = None
         
     def processPacket(self, packet):
