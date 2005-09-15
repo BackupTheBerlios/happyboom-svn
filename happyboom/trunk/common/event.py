@@ -43,7 +43,7 @@ class EventLauncher(evt.EventLauncher):
     """
     def __init__(self):
         """ EventLauncher constructor. """
-        self.manager = EventManager.instance
+        evt.EventLauncher.__init__(self)
         
     def launchEvent(self, feature, event, *args):
         """ Launches a new event to the listeners.
