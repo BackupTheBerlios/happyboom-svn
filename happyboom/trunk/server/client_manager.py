@@ -71,7 +71,7 @@ class ClientManager(EventLauncher, object):
         self.__io.on_client_disconnect = self.closeClient
         self.__io.on_new_packet = self.presentation.processPacket
         self.__io.connect('', self.client_port)
-        self.launchEvent("happyboom", "register", "on_connection", self.onClientConnection)
+        self.launchEvent("happyboom", "register", "connection", self.onClientConnection)
         thread.start_new_thread(self.run_io_thread, ())
 
     def readClientAnswer(self, client, timeout=1.000):

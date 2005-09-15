@@ -33,13 +33,13 @@ class Presentation(EventListener):
         self.registerEvent("happyboom")
 
         # Event (IO_Client client, str version, str signature)
-        self._on_client_connection = None
+        self._on_connection = None
 
         # Event (IO_Client client, str features)
         self._on_features = None
         
         # Event (IO_Client client)
-        self._on_client_disconnection = None
+        self._on_disconnection = None
 
         # Event (IO_Client client, str feature, str event, str arguments)
         self._on_recv_event = None
@@ -67,8 +67,8 @@ class Presentation(EventListener):
             log.warning(u"Rest: [%s]." % data)
 
     def evt_happyboom_register(self, event, handler):
-        import re
-        if hasattr(self, event) and re.compile("^_on_").search(event):
+        event = "_on_"+event
+        if hasattr(self, event):
             self.setattr(event, handler, handler)
     
     def evt_happyboom_closeConnection(self, ioclient, reason):
@@ -77,14 +77,14 @@ class Presentation(EventListener):
         @type ioclient L{IOClient}
         @type reason Unicode
         """
-        self.evt_happyboom_clientDisconnection(ioclient, reason)
+        self.evt_happyboom_disconnection(ioclient, reason)
 
     def unpackConnection(self, ioclient, data):
         version, data = unpackBin(data)
         signature, data = unpackBin(data) 
         
-        if self._on_client_connection != None:
-            self._on_client_connection(ioclient, version, signature)
+        if self._on_connection != None:
+            self._on_connection(ioclient, version, signature)
 #        if version != self.protocol.version:
 #            # TODO: send presentation bye(<why>)
 #            raise PresentationException("Wrong protocol version.")
@@ -100,7 +100,7 @@ class Presentation(EventListener):
         data = data + packBin(features)
         return Packet(data)
        
-    def evt_happyboom_clientConnection(self, ioclient, version, signature=""):
+    def evt_happyboom_connection(self, ioclient, version, signature=""):
         """
         Send a connection message to ioclient.
         @type version ASCII string
@@ -112,7 +112,7 @@ class Presentation(EventListener):
         data = data + packBin(signature)
         ioclient.send( Packet(data) )
 
-    def evt_happyboom_clientDisconnection(self, ioclient, reason):
+    def evt_happyboom_disconnection(self, ioclient, reason):
         """
         Send a disconnection message to ioclient.
         @type ioclient L{IOClient}
