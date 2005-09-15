@@ -73,13 +73,16 @@ class BoomBoomDisplay(EventLauncher, EventListener):
         
         self.registerEvent("weapon")
         self.registerEvent("happyboom")
+        self.launchEvent("happyboom", "register", "connection", self.onConnection)
+        self.launchEvent("happyboom", "register", "disconnection", self.onDisconnection)
 
-    def evt_happyboom_connection(self, ioclient, version, signature):
+    def onConnection(self, ioclient, version, signature):
         # TODO: Save signature to reuse it later
         features = "TODO: Feed me!"
-        self.launchEvent("happyboom", "features", features)
+        if self.__verbose: log.info("Connected to server, send features ...")
+        self.launchEvent("happyboom", "features", self.__io, features)
     
-    def evt_happyboom_disconnection(self, ioclient, reason):
+    def onDisconnection(self, ioclient, reason):
         log.warning(u"Received disconnected from server: %s" % reason)
         self.launchEvent("game", "stop")
         

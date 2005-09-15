@@ -31,12 +31,15 @@ class ClientManager(EventLauncher, object):
 
     def onClientConnection(self, ioclient, version, signature):
         # TODO: Case where signature != "" ??? (reconnection)
+        if self.__verbose: log.info("Client %s try to connect : check version." % ioclient)
         server_version = self.__protocol.version
         if version == server_version:
+            if self.__verbose: log.info("Client %s try to connect: version ok." % ioclient)
             signature = self.generateSignature(ioclient)
-            self.launchEvent("happyboom", "clientConnection", ioclient, server_version, signature)
+            self.launchEvent("happyboom", "connection", ioclient, server_version, signature)
         else:    
-            self.launchEvent("happyboom", "closeConnection", ioclient, u"Wrong server version (%s VS %s)" % (version, serverur_version))
+            if self.__verbose: log.warning("Client %s try to connect: wrong version (%s)." % version)
+            self.launchEvent("happyboom", "closeConnection", ioclient, u"Wrong server version (%s VS %s)" % (version, serveur_version))
 
     def onClientFeatures(self, ioclient, features):
         # Register client in the clients list
@@ -46,7 +49,6 @@ class ClientManager(EventLauncher, object):
         self.__clients_lock.release() 
 
         # Register client to features
-        features = unpackBin(features)
         for feature in features:
             if feature in self.__supported_features:
                 self.__supported_features[feature].append(ioclient)
@@ -79,6 +81,7 @@ class ClientManager(EventLauncher, object):
         self.__io.connect('', self.client_port)
         self.launchEvent("happyboom", "register", "connection", self.onClientConnection)
         self.launchEvent("happyboom", "register", "disconnection", self.onClientDisconnection)
+        self.launchEvent("happyboom", "register", "features", self.onClientFeatures)
         thread.start_new_thread(self.run_io_thread, ())
 
     def readClientAnswer(self, client, timeout=1.000):
@@ -93,14 +96,12 @@ class ClientManager(EventLauncher, object):
         else:
             self.__supported_features[role] = [client,]
         
-    def openClient(self, client):
-        log.info("[*] Client %s try to connect ..." % client)
+    def openClient(self, ioclient):
+        log.info("[*] Client %s try to connect ..." % ioclient)
 
     def removeClient(self, ioclient):
-        client = self.getClientByAddr(ioclient.addr)
-        if client == None: return
-        log.info("Disconnect client %s." % client)
-        self.gateway.sendText(u"Client %s leave us." % client)
+        log.info("Disconnect client %s." % ioclient)
+        self.gateway.sendText(u"Client %s leave us." % ioclient)
 
         self.__clients_lock.acquire() 
         del self.__clients[ioclient.addr]
@@ -110,7 +111,9 @@ class ClientManager(EventLauncher, object):
         # TODO: get client of type Client for the client of type ClientIO to send
         # him bye
 #        client.sendNetMsg("presentation", "bye", "utf8", u"Lost connection")
-        log.info("[*] Client %s leave us." % ioclient)
+        client = self.getClientByAddr(ioclient.addr)
+        if client == None: return
+        log.info("[*] Client %s leave us." % client)
         self.removeClient(ioclient)
         
     def __clientChallenge(self, client, func):
@@ -137,8 +140,9 @@ class ClientManager(EventLauncher, object):
 
     def generateSignature(self, ioclient):
         import random
-        r = random.randint(0,1000000)
-        return r
+        r1 = random.randint(0,1000000)
+        r2 = random.randint(0,1000000)
+        return "%s%s%s" % (r1,ioclient.addr,r2)
 
     def getClientByAddr(self, addr):
         """ Returns None if no client matchs. """

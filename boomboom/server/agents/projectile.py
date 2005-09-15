@@ -22,7 +22,7 @@ class Projectile(Agent):
         self.requestActions("character")
         self.requestActions("world")
         self.requestActions("game")
-        self.requestActions("network")
+        self.requestActions("gateway")
         self.sendBroadcastMessage(Message("new_item", (self.type, self.id)), "network")
 
     def msg_weapon_strength(self, arg):
@@ -74,8 +74,9 @@ class Projectile(Agent):
             y = self.start_pos[1] +self.speed[1] * dt +9.8*dt*dt*self.mass
             self.move (x, y)
 
-    def sync(self):
+    def sync(self, client):
+        # TODO: Only send it to client
         self.setActive(self.active)
 
-    def msg_network_sync(self):
-        self.sync()
+    def msg_gateway_syncClient(self, client):
+        self.sync(client)

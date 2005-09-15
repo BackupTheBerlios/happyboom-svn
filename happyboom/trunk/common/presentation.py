@@ -71,11 +71,11 @@ class Presentation(EventListener):
         @type reason Unicode
         """
         self.evt_happyboom_disconnection(ioclient, reason)
-            
-    def featuresPacket(self, features="TODO: Feed me!"):
+
+    def evt_happyboom_features(self, ioclient, features):
         data = struct.pack("!B", self.FEATURES)
         data = data + packBin(features)
-        return Packet(data)
+        ioclient.send( Packet(data) )
        
     def evt_happyboom_connection(self, ioclient, version, signature):
         """

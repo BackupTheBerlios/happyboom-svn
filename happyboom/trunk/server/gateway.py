@@ -59,7 +59,7 @@ class Gateway(Agent, EventListener):
         self.sendBroadcastMessage(message, "%s_listener" % feature)
 
     def evt_happyboom_newClient(self, client):
-        self.send("sync") #TODO: Add client argument ...
+        self.send("syncClient", client)
 
     def sendNetMsg(self, feature, event, *args):
         clients = self.client_manager.supported_features.get(feature, ())
