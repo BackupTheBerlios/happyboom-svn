@@ -84,8 +84,7 @@ class BoomBoomInput(EventLauncher):
         if event.type == pygame.KEYDOWN: 
             # arrow keys: move character
             if event.key == 32:
-                print "Event %s" % bb_events.shoot
-                self.launchEvent("weapon", "shoot")
+                self.launchEvent("happyboom", "netSendMsg", "weapon", "shoot")
             elif event.key == 275: self.sendCmd("move_right")
             elif event.key == 273: self.sendCmd("move_up") 
             elif event.key == 274: self.sendCmd("move_down")

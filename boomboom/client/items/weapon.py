@@ -36,30 +36,41 @@ class Weapon(BoomBoomItem):
         self.__font_background = (0,0,0,0)
         self.__y = 10
         self.__x = 10
-        self.registerEvent(bb_events.weaponStrength)
-        self.registerEvent(bb_events.weaponAngle)
-        self.registerEvent(bb_events.activeCharAbs)
+        self.character_pos = {}
+        self.registerEvent("weapon")
+        self.registerEvent("character")
+        print self.event_manager.listeners["character"]
+        self.registerEvent("game")
+#        self.registerEvent(bb_events.activeCharAbs)
+
+    def eventPerformed(self, event):
+        print "WTF ? ", event
         
-    def evt_weapon_force(self, event):
+    def evt_weapon_setStrength(self, strength):
         """ Weapon strength event handler.
         @param event: Event with "weapon_force" type.
         @type event: C{L{common.simple_event.Event}}
         """
-        self.__strength = int(event.content)
+        self.__strength = strength
         
-    def evt_weapon_angle(self, event):
+    def evt_weapon_setAngle(self, angle):
         """ Weapon angle event handler.
         @param event: Event with "weapon_angle" type.
         @type event: C{L{common.simple_event.Event}}
         """
-        self.__angle = int(event.content)
+        self.__angle = angle 
+
+    def evt_charactr_move(self, id, x, y):
+        print "move *** %s,%s" % (x,y)
+        self.character_pos[id] = (x, y,)
         
-    def evt_active_character_abscisse(self, event):
+    def evt_game_setActiveCharacter(self, id):
         """ Active character abcsisse event handler.
         @param event: Event with "active_character_abscisse" type.
         @type event: C{L{common.simple_event.Event}}
         """
-        self.__x = int(event.content)
+        print "active *** %s" % (id)
+        self.__x = self.character_pos[id][0]
         
     def draw(self, screen):
         """ Drawing method called by C{BoomBoomDrawer}

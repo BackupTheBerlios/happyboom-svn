@@ -5,6 +5,7 @@
 @version: 0.2
 """
 from happyboom.common.event import EventListener
+from happyboom.common.log import log
 import bb_events
 from items import Sun, Projectile, Weapon, World, Character
 
@@ -13,44 +14,24 @@ class BoomBoomConstructor(EventListener):
     def __init__(self):
         """ BoomBoomConstructor constructor. """
         EventListener.__init__(self, prefix="evt_")
+        self.registerEvent("happyboom")
         self.registerEvent("game")
-        self.registerEvent(bb_events.create)
-        self.registerEvent(bb_events.text)
+        self.registerEvent("log")
         
-    def evt_agent_manager_Create(self, event):
+    def evt_happyboom_doCreateItem(self, type, id):
         """ Create event handler.
         @param event: Event with "agent_manager_Create" type.
         @type event: C{L{common.event.Event}}
         """
-        arg = event.content.split(":")
-        type = arg[0]
-        id = int(arg[1])
-        item = self.tryCreateItem(id, type)
-        if item != None:
-            event.source.send("yes")
-            event.source.send(type)
-            event.source.send(".")
-        else:
-            event.source.send("no")
-        
-    def tryCreateItem(self, id, type):
-        """ Constructs an item of required type.
-        @param id: Server id of the item.
-        @type id: C{int}
-        @param type: Type of item to construct.
-        @type type: C{str}
-        @return: The constructed item or C{None}, if the type does not exist.
-        @rtype: C{L{BoomBoomItem}}
-        """
+        log.info("Try to create object %s ..." % type)
         if type=="projectile":
-            return Projectile()
+            Projectile()
         if type=="weapon":
-            return Weapon()
+            Weapon()
         if type=="world":
-            return World()
+            World()
         if type=="character":
-            return Character(id, "foo")
-        return None
+            Character(id, "foo")
         
     def evt_game_start(self):
         """ Start event handler.
@@ -59,9 +40,18 @@ class BoomBoomConstructor(EventListener):
         """
         Sun()
         
+    def evt_log_info(self, text):
+        print u"[SERVER info] %s" % text
+        
+    def evt_log_warning(self, text):
+        print u"[SERVER warn] %s" % text
+        
+    def evt_log_error(self, text):
+        print u"[SERVER error] %s" % text
+        
     def evt_agent_manager_Text(self, event):
         """ Text event handler.
         @param event: Event with "agent_manager_Text" type.
         @type event: C{L{common.event.Event}}
         """
-        print "[DISPLAY] Server message: %s" %(event.content)
+        print "[CLIENT] Server message: %s" %(event.content)

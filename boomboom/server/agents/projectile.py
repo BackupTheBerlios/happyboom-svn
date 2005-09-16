@@ -9,11 +9,14 @@ class Projectile(Agent):
         self.x, self.y = 0, 0
         self.start_pos = None
         self.active = False
+        self.active_character = None
         self.time = None
         self.speed = None
         self.weapon_angle = None
         self.weapon_strength = None
         self.mass = 10
+        self.registerEvent("gateway")
+        self.registerEvent("weapon")
 
     def born(self):
         Agent.born(self)
@@ -31,28 +34,32 @@ class Projectile(Agent):
     def msg_weapon_angle(self, angle):
         self.weapon_angle = (-int(angle)) * math.pi / 180
 
-    def msg_weapon_shoot(self, cmd):
+    def msg_weapon_shoot(self):
         if not self.active:
             self.shoot()
 
-    def msg_character_active_coord(self, x, y):
-        self.start_pos = (x, y)
+    def msg_game_setActiveCharacter(self, id):
+        self.active_character = id
 
-    def msg_world_collision(self, x, y):
+    def msg_character_move(self, id, x, y):
+        if self.active_character == id:
+            self.start_pos = (x, y) 
+
+    def msg_world_hitGround(self, x, y):
         self.setActive(False)
 
     def setActive(self, active):
         self.active = active
-        self.sendBBMessage("activate", active)
-        self.sendNetMsg("projectile", "activate", 0) 
+        self.send("activate", active)
+        self.sendNetMsg("projectile", "activate", int(active)) 
 
     def shoot(self):
-        log.info("Shoot!")
         if self.weapon_angle==None: return
         if self.weapon_strength==None: return
         if self.start_pos==None: return
         self.move(self.start_pos[0], self.start_pos[1])
         self.setActive(True)
+
         self.time = time.time()
         sx = self.weapon_strength * math.cos(self.weapon_angle)
         sy = self.weapon_strength * math.sin(self.weapon_angle)
@@ -63,8 +70,8 @@ class Projectile(Agent):
     def move(self, x, y):
         self.x = x
         self.y = y
-        self.sendBBMessage("move", x, y)
-        self.sendNetMsg("projectile", "move", x, y)
+        self.send("move", x, y)
+        self.sendNetMsg("projectile", "move", int(x), int(y))
 
     def live(self):
         Agent.live(self)
@@ -74,8 +81,9 @@ class Projectile(Agent):
             y = self.start_pos[1] +self.speed[1] * dt +9.8*dt*dt*self.mass
             self.move (x, y)
 
-    def sync(self, client):
-        # TODO: Only send it to client
+    def evt_gateway_syncClient(self, client):
+        self.netCreateItem(client)
+        self.move(self.x, self.y)
         self.setActive(self.active)
 
     def msg_gateway_syncClient(self, client):

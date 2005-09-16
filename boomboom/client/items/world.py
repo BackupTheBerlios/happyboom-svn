@@ -48,15 +48,20 @@ class World(BoomBoomItem):
         """ World item constructor. """
         BoomBoomItem.__init__(self)
         self.__buildings = []
-        self.registerEvent(bb_events.worldCreate)
+        self.registerEvent("world")
 
-    def evt_world_create(self, event):
+    def born(self):
+        Agent.born(self)
+        self.registerAction("world")
+
+    def evt_world_create(self, data):
         """ World create event handler.
         @param event: Event with "world_create" type.
         @type event: C{L{common.simple_event.Event}}
         """
+        print "Create world."
         self.__buildings = []
-        rects = event.content.split(";")
+        rects = data.split(";")
         for rect in rects:
             x, y, w, h = rect.split(",")
             b = Building(int(x), int(y), int(w), int(h))

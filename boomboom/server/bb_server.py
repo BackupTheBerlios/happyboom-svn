@@ -5,7 +5,7 @@ from happyboom.server.base_server import \
     ClientManager
 from pysma import Kernel
 from bb_agent import Message
-from agents import Character, Projectile, Weapon, World, Game
+from agents import Character, Projectile, Weapon, World, Game, LogAgent
 from happyboom.common.log import log
 
 class Gateway(HBGateway):
@@ -23,6 +23,7 @@ class Gateway(HBGateway):
     def start(self):
         HBGateway.start(self)
         if self._verbose: log.info("[*] Creating agents")
+        self.addAgent(LogAgent(self, debug=self._debug))
         self.addAgent(Game(self, debug=self._debug))
         self.addAgent(World(self, debug=self._debug))
         self.addAgent(Character(self, 100, 1, debug=self._debug))

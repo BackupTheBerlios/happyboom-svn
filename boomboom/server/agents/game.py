@@ -6,26 +6,23 @@ class Game(Agent):
         Agent.__init__(self, "game", gateway, **args)
         self.characters = []
         self.current = None 
+        self.registerEvent("gateway")
 
     def born(self):
         Agent.born(self)
         self.requestActions("world")
         self.requestActions("network")
 
-    def msg_network_sync(self):
-        self.sync()
-
     def msg_new_character(self, character):
         self.characters.append(character)
         if self.current == None:
             self.setCurrent(0)
 
-    def sync(self):
-        self.sendBroadcast(Message("game_current_character", self.current), "network")
-
     def setCurrent(self, current):
         self.current = current
-        self.sendNetMsg("game", "setActiveCharacter", current)
+        char = self.characters[self.current].id
+        self.send("setActiveCharacter", char)
+        self.sendNetMsg("game", "setActiveCharacter", char)
 
     def nextCharacter(self):
         new = (self.current + 1) % len(self.characters)
@@ -34,9 +31,9 @@ class Game(Agent):
     def nextTurn(self):
         self.send("next_turn")
         self.sendNetMsg("game", "nextTurn")
-        self.sendNetMsg("game", "setActiveCharacter", self.current)
+        self.setCurrent(self.current)
 
-    def msg_world_collision(self, x, y):
+    def msg_world_hitGround(self, x, y):
         self.nextTurn()
         self.nextCharacter()
         
@@ -46,3 +43,7 @@ class Game(Agent):
     def launchGame(self):    
         self.setCurrent(self.current)
         self.nextTurn()
+
+    def evt_gateway_syncClient(self, client):
+        self.sendNetMsg("game", "start")
+        self.setCurrent(self.current)

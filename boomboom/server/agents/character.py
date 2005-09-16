@@ -10,6 +10,7 @@ class Character(Agent):
         self.team = team
         self.next = False
         self.current = False
+        self.registerEvent("gateway")
         
     def born(self):
         Agent.born(self)
@@ -23,12 +24,11 @@ class Character(Agent):
         if self.x == x and self.y == y and not force: return
         self.x = x
         self.y = y
-        self.sendBroadcast(Message("character_move", ("%u,%i,%i" % (self.id, self.x, self.y),)), "network")
-        if self.current:
-            self.send("active_coord", self.x, self.y)
-            self.sendNetMsg("character", "move", self.id, self.x, self.y)
+        self.send("move", self.id, self.x, self.y)
+        self.sendNetMsg("character", "move", self.id, self.x, self.y)
 
-    def sync(self):
+    def evt_gateway_syncClient(self, client):
+        self.netCreateItem(client)
         self.move(self.x, self.y, force=True)
 
     def msg_found_place(self, x, y):
@@ -39,6 +39,3 @@ class Character(Agent):
         if self.current:
             self.send("active_coord", self.x, self.y)
         self.next = False
-        
-    def msg_network_sync(self):
-        self.sync()

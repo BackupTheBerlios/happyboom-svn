@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python -W all
 # -*- coding: ISO-8859-1 -*-
 VERSION="0.2.0"
 PROGRAM="BoomBoom client"
@@ -63,8 +63,8 @@ def run(arg):
     from client import BoomBoomClient
     from client.bb_display import BoomBoomDisplay
 
-    protocol = loadProtocol("protocol.xml")
-    display = BoomBoomDisplay(protocol, arg)
+    arg["protocol"] = loadProtocol("protocol.xml")
+    display = BoomBoomDisplay(arg)
     client = BoomBoomClient(display, arg)
     try:
         client.start()

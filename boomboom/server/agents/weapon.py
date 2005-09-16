@@ -8,6 +8,7 @@ class Weapon(Agent):
         self.last_values = {}
         self.currentTeam = None
         self.nextTeam = None
+        self.registerEvent("gateway")
 
     def born(self):
         Agent.born(self)
@@ -26,16 +27,6 @@ class Weapon(Agent):
         self.updateAngle(angle)
         self.updateStrength(strength)
 
-    def msg_new_command(self, cmd):
-        if cmd == "move_left":
-            self.updateStrength (self.strength - 5)
-        if cmd == "move_right":
-            self.updateStrength (self.strength + 5)
-        if cmd == "move_down":
-            self.updateAngle (self.angle - 5)
-        if cmd == "move_up":
-            self.updateAngle (self.angle + 5)
-
     def updateAngle(self, angle):
         if angle < -80: angle = -80
         elif 80 < angle: angle = 80
@@ -50,9 +41,7 @@ class Weapon(Agent):
         self.send("strength", strength)
         self.sendNetMsg("weapon", "setStrength", strength)
 
-    def sync(self):
+    def evt_gateway_syncClient(self, client):
+        self.netCreateItem(client)
         self.updateStrength(self.strength)
         self.updateAngle(self.angle)
-
-    def msg_network_sync(self):
-        self.sync()

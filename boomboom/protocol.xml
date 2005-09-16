@@ -9,7 +9,25 @@
     <event name="nextTurn" id="4" />
   </feature>
   
-  <feature name="character" id="2">
+  <feature name="log" id="2">
+    <event name="info" id="1">
+      <param type="utf8" name="text" />
+    </event>
+    <event name="warning" id="2">
+      <param type="utf8" name="text" />
+    </event>
+    <event name="error" id="3">
+      <param type="utf8" name="text" />
+    </event>
+  </feature>  
+
+  <feature name="chat" id="3">
+    <event name="message" id="1">
+      <param type="utf8" name="text" />
+    </event>
+  </feature>  
+
+  <feature name="character" id="4">
     <event name="move" id="1">
       <param type="int" name="id" />
       <param type="int" name="x" />
@@ -17,14 +35,21 @@
     </event>
   </feature>
   
-  <feature name="projectile" id="3">
+  <feature name="projectile" id="5">
     <event name="activate" id="1">
       <param type="int" name="on" />
     </event>
-    <event name="hitGround" id="2" />
+    <event name="move" id="2">
+      <param type="int" name="x" />
+      <param type="int" name="y" />
+    </event>
+    <event name="hitGround" id="3">
+      <param type="int" name="x" />
+      <param type="int" name="y" />
+    </event>
   </feature>
   
-  <feature name="weapon" id="4">
+  <feature name="weapon" id="6">
     <event name="shoot" id="1" />
     <event name="setAngle" id="2">
       <param type="int" name="angle" />
@@ -34,9 +59,9 @@
     </event>
   </feature>
   
-  <feature name="chat" id="5">
-    <event name="message" id="1">
-      <param type="utf8" name="text" />
+  <feature name="world" id="7">
+    <event name="create" id="1">
+      <param type="bin" name="buildings" />
     </event>
   </feature>
 </protocol>

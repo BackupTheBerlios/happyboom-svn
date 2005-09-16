@@ -26,13 +26,13 @@ class World(Agent):
         self.buildings = None
         self.height = 350
         self.width = 640
+        self.registerEvent("gateway")
         self.generate()
 
     def born(self):
         Agent.born(self)
         self.requestActions("projectile")
         self.requestActions("game")
-        self.requestActions("network")
         self.sendBroadcastMessage(Message("new_item", (self.type, self.id)), "network")
 
     def generate(self):
@@ -65,13 +65,14 @@ class World(Agent):
                 return True
         return False    
 
-    def sync(self):
+    def sync(self, client):
         msg = ""
         for b in self.buildings:
             if len(msg) != 0: msg = msg + ";"
             msg = msg + "%i,%i,%i,%i" % (b.x, b.y, b.width, b.height)
         self.sendBroadcastMessage(Message("world_create", (msg,)), "network")
-        self.sendNetMsg("world", "create", m)
+        self.netCreateItem(client)
+        self.sendNetMsg("world", "create", msg)
 
     def msg_character_search_place(self, x0, width, height):
         if x0 < 0:
@@ -90,8 +91,8 @@ class World(Agent):
                 
     def msg_projectile_move(self, x, y):
         if self.hitGround(x, y):
-            self.sendBBMessage("collision", x, y)
-            self.sendNetMsg("projectile", "hitGround")
+            self.send("hitGround", x, y)
+            self.sendNetMsg("projectile", "hitGround", int(x), int(y))
 
-    def msg_network_sync(self):
-        self.sync()
+    def evt_gateway_syncClient(self, client):
+        self.sync(client)

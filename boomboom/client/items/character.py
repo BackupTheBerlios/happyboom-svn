@@ -36,18 +36,16 @@ class Character(BoomBoomItem):
         self.__name = name
         self.visual = VisualObject(os.path.join("data", "gorilla.png"))
         self.active = False
-        self.registerEvent(bb_events.characterMove)
-        self.registerEvent(bb_events.activeCharacter)
+        self.registerEvent("character")
         
-    def evt_character_move(self, event):
+    def evt_character_move(self, id, x, y):
         """ Character move event handler.
         @param event: Event with "character_move" type.
         @type event: C{L{common.simple_event.Event}}
         """
-        id, x, y = event.content.split(",")
-        if self.__id != int(id): return
-        self.__x = int(x)
-        self.__y = int(y)
+        if self.__id != id: return
+        self.__x = x
+        self.__y = y
         self.visual.move(self.__x, self.__y)
         if self.active:
             self.launchEvent(bb_events.activeCharAbs, self.__x)
