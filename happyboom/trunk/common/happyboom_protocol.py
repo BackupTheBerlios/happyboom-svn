@@ -1,5 +1,6 @@
 from presentation import Presentation
 from happyboom.common.packer import unpack, unpackBin, unpackUtf8, unpackInt
+from happyboom.common.log import log
 import struct
 
 class HappyboomProtocol(Presentation):
@@ -34,8 +35,10 @@ class HappyboomProtocol(Presentation):
         return data
 
     def unpackCreateItem(self, ioclient, data):
-        itemid,data = unpackInt(data)
-        type,data = unpackBin(data)
+        fmt = "!BI"
+        i = struct.calcsize(fmt)
+        type, itemid = struct.unpack(fmt, data)
+        data = data[i:]
         if self._on_create_item != None:
             self._on_create_item(ioclient, type, itemid)
         return data
@@ -51,12 +54,9 @@ class HappyboomProtocol(Presentation):
         i = struct.calcsize(fmt)
         feature_id, event_id = struct.unpack(fmt, data[:i])
         data = data[i:]
-
         feature, event, args = unpack(data, feature_id, event_id, self.protocol)
-        log.info("Received: %s.%s(%s)" % (feature, event, args))
-
         if self._on_recv_event != None:
-            self._on_recv_event(ioclient, feature, event, args)
+            self._on_recv_event(ioclient, feature, event, *args)
         return ""
 
     def unpackConnection(self, ioclient, data):

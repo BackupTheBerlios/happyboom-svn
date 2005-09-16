@@ -11,7 +11,7 @@ class ProtocolException(Exception):
 
 class ProtocolEventParam:
     def __init__(self, event, name, type):
-        self.name = name
+        self.name = name.encode("ascii")
         self.type = type
         self.event = event
 
@@ -20,7 +20,7 @@ class ProtocolEventParam:
        
 class ProtocolEvent:
     def __init__(self, feature, name, id):
-        self.name = name
+        self.name = name.encode("ascii")
         self.id = id
         self.feature = feature
         self.__params_dict = {}
@@ -53,7 +53,7 @@ class ProtocolEvent:
 class ProtocolFeature:
     def __init__(self, protocol, name, id):
         self.protocol = protocol
-        self.name = name
+        self.name = name.encode("ascii")
         self.id = id
         self.__evtnames = {}
         self.__evtids = {}
@@ -111,7 +111,7 @@ class Protocol:
     version is ASCII 
     """
     def __init__(self, name, version):
-        self.name = name
+        self.name = name.encode("ascii")
         self.version = version.encode("ascii")
         self.__featnames = {}
         self.__featids = {}
@@ -122,13 +122,13 @@ class Protocol:
         types = e.getParamTypes()
         if len(args) != len(types):
             raise ProtocolException( \
-                "Wrong parameter count (%u) for the event %s." \
-                % (len(args), e))
+                "Wrong parameter count (%u) for the event %s.%s." \
+                % (len(args), f.name, e))
         for i in range(len(args)):
             if not checkType(types[i], args[i]):
                 raise ProtocolException( \
-                    "Parameter %u of event %s should be of type %s (and not %s)." \
-                    % (i, f, types[i], type(args[i])))
+                    "Parameter %u of event %s.%s should be of type %s (and not %s)." \
+                    % (i, f.name, e, types[i], type(args[i])))
         return pack(f.id, e.id, types, args)
 
     def addFeature(self, name, id):

@@ -76,6 +76,10 @@ class Presentation(EventListener):
         data = struct.pack("!B", self.FEATURES)
         data = data + packBin(features)
         ioclient.send( Packet(data) )
+        
+    def evt_happyboom_create(self, ioclient, feature, id):
+        data = struct.pack("!BBI", self.CREATE, feature, id)
+        ioclient.send( Packet(data) )
        
     def evt_happyboom_connection(self, ioclient, version, signature):
         """
@@ -83,7 +87,7 @@ class Presentation(EventListener):
         @type version ASCII string
         @type signature string
         """
-        
+       
         data = struct.pack("!B", self.CONNECTION)
         data = data + packBin(version)
         data = data + packBin(signature)

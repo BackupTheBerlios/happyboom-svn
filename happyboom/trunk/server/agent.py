@@ -1,18 +1,22 @@
 from pysma import ActionAgent, ActionMessage as Message
 from happyboom.common.log import log
-from happyboom.common.event import EventLauncher
+from happyboom.common.event import EventLauncher, EventListener
 
-class Agent(ActionAgent, EventLauncher):
+class Agent(ActionAgent, EventLauncher, EventListener):
     """
     SMA agent in HappyBoom.
     """
     def __init__(self, type, gateway, **args):
         EventLauncher.__init__(self)
+        EventListener.__init__(self)
         ActionAgent.__init__(self, prefix="msg_")
         self._gateway = gateway
         self.type = type
         self.__debug = args.get("debug", False)
         self.sendBroadcast = self.sendBroadcastMessage
+
+    def netCreateItem(self, client):
+        self.launchEvent("happyboom", "netCreateItem", client, self)
 
     def born(self):
         self.requestRole(self.type)

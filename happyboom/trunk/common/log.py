@@ -11,6 +11,7 @@ class Log:
     def __init__(self):
         self.__buffer = {}
         self.__file = None
+        self.on_new_message = None # (level, prefix, text)
 
     def setFilename(self, filename):
         """
@@ -38,7 +39,7 @@ class Log:
         @return: C{str}
         """
         if level==Log.LOG_WARN: return "[warn]"
-        if level==Log.LOG_ERROR: return "[err] "
+        if level==Log.LOG_ERROR: return "[err!]"
         return "[info]"
 
     def new_message(self, level, str):
@@ -63,6 +64,8 @@ class Log:
             self.__file.write(u"%s - %s %s\n" \
                 % (time.strftime("%Y-%M-%d %H:%M:%S"),
                    prefix, str))
+        if self.on_new_message:
+            self.on_new_message (level, prefix, str)
 
     def info(self, str):
         """

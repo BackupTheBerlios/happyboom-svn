@@ -7,29 +7,29 @@ class Client(object):
     """
 
     def __init__(self, io_client, gateway, client_manager):
-        self.__io = io_client
+        self.io = io_client
         self.__client_manager = client_manager
         self.__gateway = gateway
         self.signature = None
 
     def __str__(self):
-        return self.__io.__str__()
+        return self.io.__str__()
 
     def disconnect(self, reason):
-        self.launchEvent("happyboom", "clientDisconnect", self.__io, reason)
+        self.launchEvent("happyboom", "clientDisconnect", self.io, reason)
 
     # Stop client: close socket.
     def stop(self):
-        self.__io.disconnect()
+        self.io.disconnect()
 
     # Read a message from network stack
     # Blocking function, returns None after timeout seconds (no data)
     def read(self, timeout):
-        return self.__client_manager.readClientAnswer(self.__io, timeout)
+        return self.__client_manager.readClientAnswer(self.io, timeout)
 
     # Send a network packet the the client socket
     def sendPacket(self, packet):
-        self.__io.send(packet)
+        self.io.send(packet)
 
     # Send a HappyBoom message to the client (see L{sendPacket})
     def sendNetMsg(self, feature, event, *args):
@@ -40,5 +40,5 @@ class Client(object):
             return
         self.launchEvent("happyboom", "event", (self,), data);
 
-    def __getAddr(self): return self.__io.addr
+    def __getAddr(self): return self.io.addr
     addr = property(__getAddr)

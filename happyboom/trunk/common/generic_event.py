@@ -49,15 +49,15 @@ class EventManager:
         if event.type in self.listeners:
             for obj in self.listeners[event.type]:
                 # Try to call event-specific handle method
-                fctname = obj.pattern %(event.type)
+                fctname = obj.event_pattern %(event.type)
                 if hasattr(obj, fctname):
                     function = getattr(obj, fctname)
                     if callable(function):
                         function(event)
                         continue
                 # Try to call default handle method
-                if hasattr(obj, obj.default):
-                    function = getattr(obj, obj.default)
+                if hasattr(obj, obj.event_default):
+                    function = getattr(obj, obj.event_default)
                     if callable(function):
                         function(event)
                         continue
@@ -80,12 +80,12 @@ class EventListener:
     If it does not exist, the default function is called as defined by the C{L{default}} parameter/attribute.
     
     If the event cannot be handled, a C{L{UnhandledEventError}} is raised, except if C{L{silent}} flag is C{True}.
-    @ivar manager: The event manager instance.
-    @type manager: C{L{EventManager}}
-    @ivar pattern: Event-specific handler pattern.
-    @type pattern: C{str}
-    @ivar default: Default handler function name.
-    @type default: C{str}
+    @ivar event_manager: The event manager instance.
+    @type event_manager: C{L{EventManager}}
+    @ivar event_pattern: Event-specific handler pattern.
+    @type event_pattern: C{str}
+    @ivar event_default: Default handler function name.
+    @type event_default: C{str}
     @ivar silent: Silent flag. If C{False}, C{L{UnhandledEventError}} is raised if an event cannot be handled. If C{True}, do nothing, listener does not handle the event.
     @type silent: C{str}
     """
@@ -95,14 +95,14 @@ class EventListener:
         @type prefix: C{str}
         @param suffix: Suffix for all event-specific handler function name.
         @type suffix: C{str}
-        @param default: Default handler function name.
-        @type default: C{str}
-        @param silent: Silent flag.
-        @type silent: C{bool}
+        @param event_default: Default handler function name.
+        @type event_default: C{str}
+        @param event_silent: Silent flag.
+        @type event_silent: C{bool}
         """
-        self.manager = EventManager.instance
-        self.pattern = prefix + "%s" + suffix
-        self.default = default
+        self.event_manager = EventManager.instance
+        self.event_pattern = prefix + "%s" + suffix
+        self.event_default = default
         self.event_silent = silent
         
     def registerEvent(self, event_type):
@@ -110,25 +110,25 @@ class EventListener:
         @param event_type: Type of the event to listen.
         @type event_type: C{str}
         """
-        self.manager.addListener(self, event_type)
+        self.event_manager.addListener(self, event_type)
         
     def unregisterEvent(self, event_type):
         """ Unregisters itself from a event.
         @param event_type: Type of the event which was listening.
         @type event_type: C{str}
         """
-        self.manager.removeListener(self, event_type)
+        self.event_manager.removeListener(self, event_type)
 
 
 class EventLauncher:
     """ Generic class for launching events.
     It is just needed to herite from this class to launch easily events.
-    @ivar manager: The event manager instance.
-    @type manager: C{L{EventManager}}
+    @ivar event_manager: The event manager instance.
+    @type event_manager: C{L{EventManager}}
     """
     def __init__(self):
         """ EventLauncher constructor. """
-        self.manager = EventManager.instance
+        self.event_manager = EventManager.instance
         
         
     def launchEvent(self, event_type, content=None):
@@ -138,7 +138,7 @@ class EventLauncher:
         @param content: Content to attach with the event (Optional).
         @type content: any
         """
-        self.manager.dispatchEvent(Event(event_type, self, content))
+        self.event_manager.dispatchEvent(Event(event_type, self, content))
     
     
 class Event:

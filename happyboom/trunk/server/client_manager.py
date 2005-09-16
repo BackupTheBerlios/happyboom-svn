@@ -1,4 +1,4 @@
-from happyboom.net import io, io_udp, io_tcp, net_buffer
+from happyboom.net.io_tcp.tcp import IO_TCP
 from happyboom.common.packer import unpackBin
 from happyboom.common.log import log
 from happyboom.common.thread import getBacktrace
@@ -11,10 +11,9 @@ class ClientManager(EventLauncher, object):
         EventLauncher.__init__(self)
         self.server = None 
         self.__protocol = protocol
-        self.__io = io_tcp.IO_TCP(is_server=True)
+        self.__io = IO_TCP(is_server=True)
         self.__io.debug = arg.get("debug", False)
         self.__io.verbose = arg.get("verbose", False)
-        self.__buffer = net_buffer.NetBuffer()
         self.__debug = arg.get("debug", False)
         self.__verbose = arg.get("verbose", False)
         self.max_clients = arg.get("max_clients", 2)
@@ -49,7 +48,11 @@ class ClientManager(EventLauncher, object):
         self.__clients_lock.release() 
 
         # Register client to features
+        print type(features)
         for feature in features:
+            f = self.__protocol.getFeatureById(ord(feature))
+            feature = f.name
+            log.info("Register feature %s for client %s" % (feature, client))
             if feature in self.__supported_features:
                 self.__supported_features[feature].append(ioclient)
             else:
@@ -60,9 +63,6 @@ class ClientManager(EventLauncher, object):
         log.info("[*] Client %s connected" % client)
         self.launchEvent("happyboom", "network", "info", "notice", txt)
         self.launchEvent("happyboom", "newClient", client)
-
-    def recvClientPacket(self, packet):
-        self.__buffer.append(packet.recv_from.addr, packet)
 
     def stop(self):
         for client in self.__clients.values():
@@ -83,11 +83,6 @@ class ClientManager(EventLauncher, object):
         self.launchEvent("happyboom", "register", "disconnection", self.onClientDisconnection)
         self.launchEvent("happyboom", "register", "features", self.onClientFeatures)
         thread.start_new_thread(self.run_io_thread, ())
-
-    def readClientAnswer(self, client, timeout=1.000):
-        answer = self.__buffer.readBlocking(client.addr, timeout)
-        if answer==None: return None
-        return answer.data
 
     def registerFeature(self, client, role):
         if role in self.__supported_features:

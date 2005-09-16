@@ -10,11 +10,11 @@ import generic_event as evt
 class EventListener(evt.EventListener):
     """ Happyboom generic class for listening to events.
     """
-    def __init__(self, prefix="evt", suffix="", default="eventPerformed", silent=True):
+    def __init__(self, prefix="evt_", suffix="", default="eventPerformed", silent=True):
         """ EventListener constructor.
         """
         evt.EventListener.__init__(self, prefix, suffix, "happyboomEventPerformed", silent)
-        self.hb_default = default
+        self.event_hb_default = default
         
     def getEventName(self, feature, event):
         return "%s_%s" %(feature, event)
@@ -22,7 +22,7 @@ class EventListener(evt.EventListener):
     def happyboomEventPerformed(self, event):
         if issubclass(event.__class__, Event):
             # Try to call event-specific handle method
-            fctname = self.pattern %(self.getEventName(event.type, event.event))
+            fctname = self.event_pattern %(self.getEventName(event.type, event.event))
             if hasattr(self, fctname):
                 function = getattr(self, fctname)
                 if callable(function):
@@ -30,8 +30,8 @@ class EventListener(evt.EventListener):
                     return
 
         # Try to call default handle method
-        if hasattr(self, self.hb_default):
-            function = getattr(self, self.hb_default)
+        if hasattr(self, self.event_hb_default):
+            function = getattr(self, self.event_hb_default)
             if callable(function):
                 function(event)
                 return
@@ -49,7 +49,8 @@ class EventLauncher(evt.EventLauncher):
     def launchEvent(self, feature, event, *args):
         """ Launches a new event to the listeners.
         """
-        self.manager.dispatchEvent(Event(feature, event, self, args))
+        e = Event(feature, event, self, args)
+        self.event_manager.dispatchEvent(e)
 
 class Event(evt.Event):
     """ Represents an happyboom event entity.
@@ -67,3 +68,5 @@ class Event(evt.Event):
         """
         return "<event.Event feature=%s event=%s source=%s content=%s>" %(self.type, self.event, self.source, self.content)
     
+    def getFeature(self): return feature
+    feature = property(getFeature)

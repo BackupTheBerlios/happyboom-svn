@@ -71,7 +71,7 @@ def unpackUtf8(data):
 def unpackInt(data):
     fmt = "!i"
     i = struct.calcsize(fmt)
-    value = struct.unpack(fmt, data[:i])
+    value, = struct.unpack(fmt, data[:i])
     return value, data[i:]
 
 def unpack(data, feature_id, event_id, protocol):
@@ -86,6 +86,8 @@ def unpack(data, feature_id, event_id, protocol):
             arg, data = unpackInt(data)
         elif type=="bin":
             arg, data = unpackBin(data)
+        elif type=="utf8":
+            arg, data = unpackUtf8(data)
         else:
             raise PackerException("Wrong argument type: %s" % type)
         args.append(arg)

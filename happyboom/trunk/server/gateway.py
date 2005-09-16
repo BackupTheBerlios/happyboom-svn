@@ -8,7 +8,7 @@ import struct
 
 class Gateway(Agent, EventListener):
     def __init__(self, protocol, presentation, client_manager, arg):
-        EventListener.__init__(self, "evt_", silent=True)
+        EventListener.__init__(self, "evt_")
         Agent.__init__(self, self, "gateway")
         self.__protocol = protocol
         self.client_manager = client_manager
@@ -23,6 +23,9 @@ class Gateway(Agent, EventListener):
         self.registerEvent("happyboom")
         Kernel().addAgent(self.__scheduler)
 
+    def eventPerformed(self, event):
+        p = self.pattern % self.getEventName(event.type, event.event)
+
     def __setServer(self, server):
         self.__server = server
         self.client_manager.server = server
@@ -34,8 +37,19 @@ class Gateway(Agent, EventListener):
     def evt_happyboom_network(self, feature, event, *args):
         self.sendNetMsg(feature, event, *args)
         
+    def evt_happyboom_netCreateItem(self, client, item):
+        try:
+            type = item.type
+            type = self.presentation.protocol.getFeature(type)
+            type = type.id
+        except ProtocolException, err:
+            log.error(err)
+            return
+        self.launchEvent("happyboom", "create", client.io, type, item.id);
+        
     def start(self):
         Kernel.instance.addAgent(self)
+        self.launchEvent("happyboom", "register", "recv_event", self.recvNetMsg)
         
     def stop(self):
         self.sendNetMsg("game", "stop")
@@ -54,24 +68,19 @@ class Gateway(Agent, EventListener):
         else:
             self.sendNetMsg("chat", "message", txt)
 
-    def recvNetMsg(self, feature, event, *args):
+    def recvNetMsg(self, ioclient, feature, event, *args):
         message = Message("%s_%s" % (feature, event), args)
         self.sendBroadcastMessage(message, "%s_listener" % feature)
 
     def evt_happyboom_newClient(self, client):
-        self.send("syncClient", client)
+        self.launchEvent("gateway", "syncClient", client)
 
     def sendNetMsg(self, feature, event, *args):
         clients = self.client_manager.supported_features.get(feature, ())
         if len(clients)==0: return
         try:
-            data = self.__protocol.createMsg(feature, event, *args)
+            data = self.presentation.protocol.createMsg(feature, event, *args)
         except ProtocolException, err:
             log.error(err)
             return
-        self.launchEvent("presentationProtocol", "event", clients, data);
-
-    def __getProtocolVersion(self): return self.__protocol.version
-    protocol_version = property(__getProtocolVersion)
-
-
+        self.launchEvent("happyboom", "event", clients, data);
