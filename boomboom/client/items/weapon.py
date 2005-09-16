@@ -34,18 +34,13 @@ class Weapon(BoomBoomItem):
         self.__font = pygame.font.SysFont(fontname, 14)
         self.__font_color = (255,255,255,255)
         self.__font_background = (0,0,0,0)
-        self.__y = 10
-        self.__x = 10
+        self.x, self.y = (None, 10)
         self.character_pos = {}
+        self.active_character = None
         self.registerEvent("weapon")
         self.registerEvent("character")
-        print self.event_manager.listeners["character"]
         self.registerEvent("game")
-#        self.registerEvent(bb_events.activeCharAbs)
 
-    def eventPerformed(self, event):
-        print "WTF ? ", event
-        
     def evt_weapon_setStrength(self, strength):
         """ Weapon strength event handler.
         @param event: Event with "weapon_force" type.
@@ -60,18 +55,18 @@ class Weapon(BoomBoomItem):
         """
         self.__angle = angle 
 
-    def evt_charactr_move(self, id, x, y):
-        print "move *** %s,%s" % (x,y)
+    def evt_character_move(self, id, x, y):
         self.character_pos[id] = (x, y,)
+        self.updateX()
         
     def evt_game_setActiveCharacter(self, id):
         """ Active character abcsisse event handler.
         @param event: Event with "active_character_abscisse" type.
         @type event: C{L{common.simple_event.Event}}
         """
-        print "active *** %s" % (id)
-        self.__x = self.character_pos[id][0]
-        
+        self.active_character = id
+        self.updateX()
+               
     def draw(self, screen):
         """ Drawing method called by C{BoomBoomDrawer}
         @param screen: Offscreen to draw in.
@@ -79,6 +74,12 @@ class Weapon(BoomBoomItem):
         """
         if self.__angle == None: return
         if self.__strength == None: return
+        if self.x == None: return
         txt = "Angle: %s  Strength: %s" % (self.__angle, self.__strength)
         surface = self.__font.render(txt, True, self.__font_color, self.__font_background)
-        screen.blit(surface, (self.__x,self.__y))
+        screen.blit(surface, (self.x,self.y))
+
+    def updateX(self):
+        if self.active_character==None: return
+        pos = self.character_pos.get(self.active_character, None)
+        if pos != None: self.x = pos[0]

@@ -23,22 +23,26 @@ class Client(object, EventListener, EventLauncher):
     """
     
     def __init__(self, args):
-        EventLauncher.__init__(self)
         EventListener.__init__(self) # TODO : Fix me (with good arguments)
+        EventLauncher.__init__(self)
         self.host = args.get("host", "127.0.0.1")
         self.port = args.get("port", 12430)
         self.verbose = args.get("verbose", False)
         self.debug = args.get("debug", False)
         protocol = args.get("protocol", None)
         self._io = IO_TCP()
-        self._io.verbose = self.verbose
-        self._io.debug = self.debug
+        self._io.verbose = False # self.verbose
+        self._io.debug = False # self.debug
         self.__stopped = False
         self.__stoplock = thread.allocate_lock()
         
         self.signature = None
-        self.presentation = HappyboomProtocol(protocol)
-        self.gateway = Gateway(protocol)
+        self.presentation = HappyboomProtocol(protocol, args)
+        self.gateway = Gateway(protocol, args)
+        self.registerEvent("happyboom")
+
+    def evt_happyboom_network(self, feature, event, *args):
+        self.send(feature, event, *args)
 
     def send(self, feature, event, *args):
         """ Sends a string to the network server.
@@ -86,7 +90,7 @@ class Client(object, EventListener, EventLauncher):
     
     def onConnect(self):
         """ Handler called on network connection. """
-        if self.verbose: print "[HAPPYBOOM] Connected to server"
+        if self.verbose: print "[HAPPYBOOM] Connected to server, send presentation connection()."
         self.launchEvent("happyboom", "connection", self._io, self.presentation.protocol.version.encode("ascii"), "")
         
     def onConnectionFails(self):
@@ -95,6 +99,7 @@ class Client(object, EventListener, EventLauncher):
 
     def onDisconnect(self):
         """ Handler called on network disconnection. """
+        if self.stopped: return
         print "[HAPPYBOOM] Connection to server closed"
         self.launchEvent("happyboom", "stop")
 
@@ -114,7 +119,7 @@ class Client(object, EventListener, EventLauncher):
             self.launchEvent(event_type, arg)
             
 class Gateway(EventLauncher, EventListener):
-    def __init__(self, protocol):
+    def __init__(self, protocol, args):
         EventLauncher.__init__(self)
         EventListener.__init__(self, "evt_")
         self.protocol = protocol
@@ -124,6 +129,8 @@ class Gateway(EventLauncher, EventListener):
 #        self.launchEvent("happyboom", "register", "destroy_item", self.processXX)
         self.launchEvent("happyboom", "register", "recv_event", self.processEvent)
         self.registerEvent("happyboom")
+        self.verbose = args.get("verbose", False)
+        self.debug = args.get("debug", False)
         self.features = []
         self.items = {}
         #self.gamepath = None
@@ -190,5 +197,6 @@ class Gateway(EventLauncher, EventListener):
         self.launchEvent("happyboom", "doCreateItem", type, id)
 
     def processEvent(self, ioclient, feature, event, *args):       
-        log.info("New event: %s.%s%s" % (feature, event, args))
+        if self.debug:
+            log.info("New event: %s.%s%s" % (feature, event, args))
         self.launchEvent(feature, event, *args)

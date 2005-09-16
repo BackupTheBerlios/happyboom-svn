@@ -1,4 +1,4 @@
-#!/usr/bin/python -W all
+#!/usr/bin/python
 # -*- coding: ISO-8859-1 -*-
 VERSION="0.2.0"
 PROGRAM="BoomBoom client"
@@ -19,6 +19,7 @@ def usage(defval):
     print "\t--port PORT       : Server port (default %u)" % (defval["port"])
     print "\t-d,--debug        : Enable debug mode"
     print "\t-v,--verbose      : Enable verbose mode"
+    print "\t--server-log      : Output server log (default: %u)" % (defval["server-log"])
     print "\t--max-fps MAX     : Set maximum frame par second (fps)"
 
 def parseArgs(val):
@@ -29,7 +30,7 @@ def parseArgs(val):
         short = "h:dv"
         long = ["debug", "help", "version", "verbose", \
             "view-port=", "input-port=",
-            "host=", "max-fps="]
+            "host=", "max-fps=", "server-log"]
         opts, args = getopt.getopt(sys.argv[1:], short, long)
     except getopt.GetoptError:
         usage(defval)
@@ -49,6 +50,8 @@ def parseArgs(val):
             val["host"] = a
         if o in ("-v", "--verbose",):
             val["verbose"] = True
+        if o == "--verbose":
+            val["server-log"] = True
         if o == "--max-fps":
             a = int(a)
             if a < 1: a=1
@@ -85,6 +88,7 @@ def main():
         "port": 12430, \
         "max_fps": 50, \
         "verbose": False, \
+        "server-log": False, \
         "name": "-", \
         "debug": False}
     arg = parseArgs(val)

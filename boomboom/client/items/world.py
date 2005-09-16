@@ -59,7 +59,6 @@ class World(BoomBoomItem):
         @param event: Event with "world_create" type.
         @type event: C{L{common.simple_event.Event}}
         """
-        print "Create world."
         self.__buildings = []
         rects = data.split(";")
         for rect in rects:

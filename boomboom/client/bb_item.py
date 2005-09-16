@@ -28,6 +28,11 @@ class BoomBoomItem(EventListener, EventLauncher):
         """
         if self.visual == None: return
         self.visual.draw(screen)
+    
+    def sendNetMsg(self, feature, event, *args):
+        print "SEND NET %s" % (feature)
+        self.launchEvent("happyboom", "network", \
+            feature, event, *args)
 
 class VisualObject(object):
     """ Manage representation and transformation of an external image to be drawn into game screen.

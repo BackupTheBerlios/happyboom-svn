@@ -65,15 +65,6 @@ class World(Agent):
                 return True
         return False    
 
-    def sync(self, client):
-        msg = ""
-        for b in self.buildings:
-            if len(msg) != 0: msg = msg + ";"
-            msg = msg + "%i,%i,%i,%i" % (b.x, b.y, b.width, b.height)
-        self.sendBroadcastMessage(Message("world_create", (msg,)), "network")
-        self.netCreateItem(client)
-        self.sendNetMsg("world", "create", msg)
-
     def msg_character_search_place(self, x0, width, height):
         if x0 < 0:
             x0 = self.width + x0
@@ -94,5 +85,13 @@ class World(Agent):
             self.send("hitGround", x, y)
             self.sendNetMsg("projectile", "hitGround", int(x), int(y))
 
+    def evt_gateway_syncClientCreate(self, client):
+        self.netCreateItem(client)
+
     def evt_gateway_syncClient(self, client):
-        self.sync(client)
+        msg = ""
+        for b in self.buildings:
+            if len(msg) != 0: msg = msg + ";"
+            msg = msg + "%i,%i,%i,%i" % (b.x, b.y, b.width, b.height)
+        self.sendBroadcastMessage(Message("world_create", (msg,)), "network")
+        self.sendNetMsg("world", "create", msg)

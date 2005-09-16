@@ -4,8 +4,8 @@ from happyboom.common.log import log
 import struct
 
 class HappyboomProtocol(Presentation):
-    def __init__(self, protocol):
-        Presentation.__init__(self, protocol)
+    def __init__(self, protocol, args):
+        Presentation.__init__(self, protocol, args)
         self._unpackFunc = { \
             self.CONNECTION: self.unpackConnection,
             self.DISCONNECTION: self.unpackDisconnect,

@@ -10,6 +10,8 @@ class Projectile(Agent):
         self.start_pos = None
         self.active = False
         self.active_character = None
+        self.character_pos = {}
+        self.start_pos = None
         self.time = None
         self.speed = None
         self.weapon_angle = None
@@ -28,11 +30,11 @@ class Projectile(Agent):
         self.requestActions("gateway")
         self.sendBroadcastMessage(Message("new_item", (self.type, self.id)), "network")
 
-    def msg_weapon_strength(self, arg):
-        self.weapon_strength = int(arg) * 4
+    def msg_weapon_setStrength(self, strength):
+        self.weapon_strength = strength * 4 
         
-    def msg_weapon_angle(self, angle):
-        self.weapon_angle = (-int(angle)) * math.pi / 180
+    def msg_weapon_setAngle(self, angle):
+        self.weapon_angle = (-angle) * math.pi / 180
 
     def msg_weapon_shoot(self):
         if not self.active:
@@ -42,8 +44,7 @@ class Projectile(Agent):
         self.active_character = id
 
     def msg_character_move(self, id, x, y):
-        if self.active_character == id:
-            self.start_pos = (x, y) 
+        self.character_pos[id] = (x,y)
 
     def msg_world_hitGround(self, x, y):
         self.setActive(False)
@@ -56,7 +57,9 @@ class Projectile(Agent):
     def shoot(self):
         if self.weapon_angle==None: return
         if self.weapon_strength==None: return
-        if self.start_pos==None: return
+        self.start_pos = self.character_pos.get(self.active_character, None)
+        if self.start_pos == None: return
+
         self.move(self.start_pos[0], self.start_pos[1])
         self.setActive(True)
 
@@ -81,8 +84,10 @@ class Projectile(Agent):
             y = self.start_pos[1] +self.speed[1] * dt +9.8*dt*dt*self.mass
             self.move (x, y)
 
-    def evt_gateway_syncClient(self, client):
+    def evt_gateway_syncClientCreate(self, client):
         self.netCreateItem(client)
+
+    def evt_gateway_syncClient(self, client):
         self.move(self.x, self.y)
         self.setActive(self.active)
 

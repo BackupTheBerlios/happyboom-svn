@@ -35,6 +35,8 @@ class BoomBoomDrawer(EventListener):
         self.__screen = Window(640, 350)
         self.__screen.background_color = (0, 0, 168)
         
+    def mainLoop(self):
+        """ Display loop. """
         while True:
             live_begin = time.time()
             

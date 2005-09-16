@@ -26,8 +26,9 @@ class EventManager:
         @param event_type: Type of the event to listen.
         @type event_type: C{str}
         """
-        if event_type in self.listeners and obj not in self.listeners[event_type]:
-            self.listeners[event_type].append(obj)
+        if event_type in self.listeners:
+            if obj not in self.listeners[event_type]:
+                self.listeners[event_type].append(obj)
         else:
             self.listeners[event_type] = [obj]
     

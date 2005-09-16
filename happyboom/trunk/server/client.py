@@ -11,6 +11,7 @@ class Client(object):
         self.__client_manager = client_manager
         self.__gateway = gateway
         self.signature = None
+        self.features = [] 
 
     def __str__(self):
         return self.io.__str__()

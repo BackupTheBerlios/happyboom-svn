@@ -27,8 +27,10 @@ class Character(Agent):
         self.send("move", self.id, self.x, self.y)
         self.sendNetMsg("character", "move", self.id, self.x, self.y)
 
-    def evt_gateway_syncClient(self, client):
+    def evt_gateway_syncClientCreate(self, client):
         self.netCreateItem(client)
+
+    def evt_gateway_syncClient(self, client):
         self.move(self.x, self.y, force=True)
 
     def msg_found_place(self, x, y):

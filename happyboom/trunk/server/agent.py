@@ -16,7 +16,10 @@ class Agent(ActionAgent, EventLauncher, EventListener):
         self.sendBroadcast = self.sendBroadcastMessage
 
     def netCreateItem(self, client):
-        self.launchEvent("happyboom", "netCreateItem", client, self)
+        if self.type in client.features:
+            self.launchEvent("happyboom", "netCreateItem", client, self)
+        elif self.__debug:
+            log.info("Client %s doesn't want item %s" % (client, self.type))
 
     def born(self):
         self.requestRole(self.type)

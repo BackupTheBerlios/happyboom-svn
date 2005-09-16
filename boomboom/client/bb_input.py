@@ -4,14 +4,14 @@
 @contact: See U{http://developer.berlios.de/projects/happyboom/}
 @version: 0.2
 """
-from happyboom.common.event import EventLauncher
+from happyboom.common.event import EventLauncher, EventListener
 import bb_events
 from net import io
 from net import io_udp, io_tcp
 from net import net_buffer
 import thread, time, pygame
 
-class BoomBoomInput(EventLauncher):
+class BoomBoomInput(EventLauncher, EventListener):
     """ Class which manages "input" part of the network connections.
     @ivar host: Server hostname.
     @type host: C{str}
@@ -50,6 +50,16 @@ class BoomBoomInput(EventLauncher):
         """
 
         EventLauncher.__init__(self)
+        EventListener.__init__(self)
+        self.weapon_angle = None
+        self.weapon_strength = None
+        self.registerEvent("weapon")
+
+    def evt_weapon_setStrength(self, strength):
+        self.weapon_strength = strength
+        
+    def evt_weapon_setAngle(self, angle):
+        self.weapon_angle = angle
         
     def process(self):
         for input_event in pygame.event.get():
@@ -72,8 +82,13 @@ class BoomBoomInput(EventLauncher):
         #if character != None: self.process_event_active(character, event)
         self.process_event_active(event)
 
-    def sendCmd(self, cmd):
-        self.x.sendNetMsg("input", cmd)
+    def weapon_setStrengthDelta(self, delta):
+        self.launchEvent("happyboom", "network", \
+            "weapon", "askSetStrength", self.weapon_strength + delta)
+
+    def weapon_setAngleDelta(self, delta):
+        self.launchEvent("happyboom", "network", \
+            "weapon", "askSetAngle", self.weapon_angle + delta)
 
     def process_event_active(self, event):
         """ Manages when a pygame event is caught and interact with the server.
@@ -85,7 +100,11 @@ class BoomBoomInput(EventLauncher):
             # arrow keys: move character
             if event.key == 32:
                 self.launchEvent("happyboom", "netSendMsg", "weapon", "shoot")
-            elif event.key == 275: self.sendCmd("move_right")
-            elif event.key == 273: self.sendCmd("move_up") 
-            elif event.key == 274: self.sendCmd("move_down")
-            elif event.key == 276: self.sendCmd("move_left")
+            elif event.key == 275:
+                self.weapon_setStrengthDelta(10) # RIGHT 
+            elif event.key == 273:
+                self.weapon_setAngleDelta(10) # UP
+            elif event.key == 274:
+                self.weapon_setAngleDelta(-10) # DOWN
+            elif event.key == 276:
+                self.weapon_setStrengthDelta(-10) # LEFT

@@ -18,12 +18,13 @@ class Presentation(EventListener):
     DESTROY       = 0x5
     EVENT         = 0x6
     
-    def __init__(self, protocol):
-        EventListener.__init__(self, "evt_", silent=True)
+    def __init__(self, protocol, args):
+        EventListener.__init__(self)
         self.protocol = protocol
         self.items = {}
         self._unpackFunc = {}
         self.registerEvent("happyboom")
+        self.verbose = args.get("verbose", False)
 
         # Event (IO_Client client, str version, str signature)
         self._on_connection = None
@@ -73,11 +74,15 @@ class Presentation(EventListener):
         self.evt_happyboom_disconnection(ioclient, reason)
 
     def evt_happyboom_features(self, ioclient, features):
+        if self.verbose:
+            log.info(u"[PRESENTATION] Send features(%s)" % features)
         data = struct.pack("!B", self.FEATURES)
         data = data + packBin(features)
         ioclient.send( Packet(data) )
         
     def evt_happyboom_create(self, ioclient, feature, id):
+        if self.verbose:
+            log.info(u"[PRESENTATION] Send create(%s, %s)" % (feature, id))
         data = struct.pack("!BBI", self.CREATE, feature, id)
         ioclient.send( Packet(data) )
        
@@ -87,7 +92,8 @@ class Presentation(EventListener):
         @type version ASCII string
         @type signature string
         """
-       
+        if self.verbose:
+            log.info("[PRESENTATION] Send connection(\"%s\", \"%s\")" % (version, signature))
         data = struct.pack("!B", self.CONNECTION)
         data = data + packBin(version)
         data = data + packBin(signature)
@@ -100,6 +106,8 @@ class Presentation(EventListener):
         @type reason Unicode
         """
         
+        if self.verbose:
+            log.info(u"[PRESENTATION] Send disconnection(\"%s\")" % reason)
         data = struct.pack("!B", self.DISCONNECTION) + packUtf8(reason)
         ioclient.send( Packet(data) )
         ioclient.disconnect()

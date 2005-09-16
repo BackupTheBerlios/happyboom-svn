@@ -43,7 +43,7 @@ class Gateway(HBGateway):
 class Server(HBServer):
     def __init__(self, protocol, arg):
         manager = ClientManager(protocol, arg)
-        presentation = Presentation(protocol)
+        presentation = Presentation(protocol, arg)
         gateway = Gateway(protocol, presentation, manager, arg)
         manager.gateway = gateway
         HBServer.__init__(self, gateway, manager, arg)

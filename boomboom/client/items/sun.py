@@ -26,25 +26,22 @@ class Sun(BoomBoomItem):
         self.__visual1.move (300,10)
         self.__visual2.move (300,10)
         self.visual = self.__visual1
-        self.registerEvent(bb_events.nextTurn)
-        self.registerEvent(bb_events.projectileMove)
+        self.registerEvent("projectile")
+        self.registerEvent("game")
         
-    def evt_game_next_turn(self, event):
+    def evt_game_nextTurn(self):
         """ Next turn event handler.
         @param event: Event with "game_next_turn" type.
         @type event: C{L{common.simple_event.Event}}
         """
         self.resetHit()
         
-    def evt_projectile_move(self, event):
+    def evt_projectile_move(self, x, y):
         """ Projectile move event handler.
         @param event: Event with "projectile_move" type.
         @type event: C{L{common.simple_event.Event}}
         """
         if self.visual == self.__visual2: return
-        arg = event.content.split(",")
-        x = int(arg[0])
-        y = int(arg[1])
         projectile_rect = pygame.Rect([x,y,10,10]) # TODO: Incorrect projectile size!
         if self.visual.rect.colliderect(projectile_rect):
             self.hit()

@@ -69,10 +69,12 @@ class Gateway(Agent, EventListener):
             self.sendNetMsg("chat", "message", txt)
 
     def recvNetMsg(self, ioclient, feature, event, *args):
+        if self._verbose: log.info("Received: %s.%s%s" % (feature, event, args))
         message = Message("%s_%s" % (feature, event), args)
         self.sendBroadcastMessage(message, "%s_listener" % feature)
 
     def evt_happyboom_newClient(self, client):
+        self.launchEvent("gateway", "syncClientCreate", client)
         self.launchEvent("gateway", "syncClient", client)
 
     def sendNetMsg(self, feature, event, *args):

@@ -57,6 +57,12 @@
     <event name="setStrength" id="3">
       <param type="int" name="angle" />
     </event>
+    <event name="askSetAngle" id="4">
+      <param type="int" name="angle" />
+    </event>
+    <event name="askSetStrength" id="5">
+      <param type="int" name="angle" />
+    </event>
   </feature>
   
   <feature name="world" id="7">

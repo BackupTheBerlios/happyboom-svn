@@ -48,15 +48,15 @@ class ClientManager(EventLauncher, object):
         self.__clients_lock.release() 
 
         # Register client to features
-        print type(features)
         for feature in features:
             f = self.__protocol.getFeatureById(ord(feature))
             feature = f.name
-            log.info("Register feature %s for client %s" % (feature, client))
+            if self.__verbose: log.info("Register feature %s for client %s" % (feature, client))
             if feature in self.__supported_features:
                 self.__supported_features[feature].append(ioclient)
             else:
                 self.__supported_features[feature] = [ioclient]
+            client.features.append(feature)
       
         # Send message to network and to the log
         txt = u"Welcome to new (display) client : %s" % client
@@ -92,10 +92,10 @@ class ClientManager(EventLauncher, object):
             self.__supported_features[role] = [client,]
         
     def openClient(self, ioclient):
-        log.info("[*] Client %s try to connect ..." % ioclient)
+        if self.__verbose: log.info("[*] Client %s try to connect ..." % ioclient)
 
     def removeClient(self, ioclient):
-        log.info("Disconnect client %s." % ioclient)
+        if self.__verbose: log.info("Disconnect client %s." % ioclient)
         self.gateway.sendText(u"Client %s leave us." % ioclient)
 
         self.__clients_lock.acquire() 

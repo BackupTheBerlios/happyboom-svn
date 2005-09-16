@@ -7,27 +7,30 @@
 from happyboom.common.event import EventListener
 from happyboom.common.log import log
 import bb_events
-from items import Sun, Projectile, Weapon, World, Character
+from items import Sun, Projectile, Weapon, World, Character, LogItem
 
 class BoomBoomConstructor(EventListener):
     """ Constructs visual items when server requires creation. """
-    def __init__(self):
+    def __init__(self, arg):
         """ BoomBoomConstructor constructor. """
         EventListener.__init__(self, prefix="evt_")
+        self.verbose = arg.get("verbose", False)
         self.registerEvent("happyboom")
         self.registerEvent("game")
-        self.registerEvent("log")
         
     def evt_happyboom_doCreateItem(self, type, id):
         """ Create event handler.
         @param event: Event with "agent_manager_Create" type.
         @type event: C{L{common.event.Event}}
         """
-        log.info("Try to create object %s ..." % type)
+        if self.verbose:
+            log.info("Try to create object %s ..." % type)
         if type=="projectile":
             Projectile()
         if type=="weapon":
             Weapon()
+        if type=="log":
+            LogItem()
         if type=="world":
             World()
         if type=="character":
@@ -39,15 +42,6 @@ class BoomBoomConstructor(EventListener):
         @type event: C{L{common.event.Event}}
         """
         Sun()
-        
-    def evt_log_info(self, text):
-        print u"[SERVER info] %s" % text
-        
-    def evt_log_warning(self, text):
-        print u"[SERVER warn] %s" % text
-        
-    def evt_log_error(self, text):
-        print u"[SERVER error] %s" % text
         
     def evt_agent_manager_Text(self, event):
         """ Text event handler.

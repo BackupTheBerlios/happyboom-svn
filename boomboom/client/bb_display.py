@@ -47,7 +47,9 @@ class BoomBoomDisplay(BaseClient, EventListener):
         self.drawer = BoomBoomDrawer(arg.get("max_fps", 25))
         self.name = arg.get("name", "no name")
         #TODO: Support chat?
-        self.gateway.features = ["game", "character", "projectile", "weapon", "world", "log"]
+        self.gateway.features = ["game", "character", "projectile", "weapon", "world"]
+#        if arg.get("server-log", False):
+#            self.gateway.features.append("log")
         self.registerEvent("happyboom")
 
     def evt_happyboom_netSendMsg(self, feature, event, *args):
@@ -55,11 +57,12 @@ class BoomBoomDisplay(BaseClient, EventListener):
 
     def start(self):
         """ Starts the display client : connection to the server, etc. """
-        BaseClient.start(self)
-    
-        BoomBoomConstructor()
         print "==== BoomBoom ===="
         self.drawer.start()
+        BaseClient.start(self)
+        args = {"verbose": self.verbose}
+        BoomBoomConstructor(args)
+        self.drawer.mainLoop()
         
     def stop(self):
         """ Stops the display client : disconnection from the server, etc. """

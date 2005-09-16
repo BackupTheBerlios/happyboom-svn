@@ -18,6 +18,9 @@ class LogAgent(Agent):
         elif level==Log.LOG_INFO:
             self.sendNetMsg("log", "error", text)
         
+    def evt_gateway_syncClientCreate(self, client):
+        self.netCreateItem(client)    
+
     def evt_gateway_syncClient(self, client):
         # Send last messages?
         pass
