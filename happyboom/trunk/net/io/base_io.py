@@ -1,13 +1,13 @@
 #!/usr/bin/python
 # -*- coding: ISO-8859-1 -*-
 
+from happyboom.net.io.packet import Packet
+from happyboom.net.io.io_client import IO_Client
 import time
 import threading
 import socket
 import traceback
 import struct
-from packet import Packet
-from io_client import IO_Client
 
 class BaseIO(object):
     """
@@ -29,8 +29,8 @@ class BaseIO(object):
     @type on_client_disconnect: C{function(L{IO_Client})}
     @ivar on_new_packet: Event called when a new packet is received.
     @type on_new_packet: C{function(L{Packet})}
-    @ivar __name: The IO name.
-    @type __name: C{str}
+    @ivar _name: The IO name.
+    @type _name: C{str}
     @ivar _running: Is the thread running ?
     @type _running: C{bool}
     """
@@ -56,7 +56,7 @@ class BaseIO(object):
         self.on_send = None               # (data)
         self.on_receive = None            # (data)
 
-        self.__name = None
+        self._name = None
 
     def connect(self, host, port):
         """ Connect to host:port.
@@ -65,8 +65,8 @@ class BaseIO(object):
         @parameter port: Network port number.
         @type port: C{int}
         """
-        if self.__name==None:
-            self.__name = "%s:%u" % (host, port)
+        if self._name==None:
+            self._name = "%s:%u" % (host, port)
         self._running = True
 
     def disconnect(self):
@@ -106,23 +106,23 @@ class BaseIO(object):
         self.disconnect()
 
     def __str__(self):
-        return self.__name
+        return self.name
     
     def isRunning(self): return self._running
 
     #--- Private functions ------------------------------------------------------
 
-    def __getName(self):
-        if self.__name == None: return "no name"
-        return self.__name
+    def _getName(self):
+        if self._name == None: return "no name"
+        return self._name
     
-    def __setName(self, name):
-        self.__name = name
+    def _setName(self, name):
+        self._name = name
 
     def __getReady(self):
         return self._is_ready
 
     #--- Properties -------------------------------------------------------------
 
-    name = property(__getName, __setName, doc="The IO name.")
+    name = property(_getName, _setName, doc="The IO name.")
     is_ready = property(__getReady, doc="Tells if the IO is ready to use.");

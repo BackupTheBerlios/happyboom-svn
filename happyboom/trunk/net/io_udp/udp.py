@@ -5,12 +5,12 @@ import thread
 import socket
 import traceback
 import struct
-from net import io
+from net.io.base_io import BaseIO
 from udp_client import UDP_Client
 from happyboom.common.log import log
 from happyboom.common.thread import getBacktrace
 
-class IO_UDP(io.BaseIO):
+class IO_UDP(BaseIO):
     """ IO for UDP transport.
     @ivar packet_timeout: Try to send a packet until this timeout.
     @type packet_timeout: C{float}
@@ -38,7 +38,7 @@ class IO_UDP(io.BaseIO):
     
     def __init__(self, is_server=False):
         """ Constructor. """
-        io.BaseIO.__init__(self)
+        BaseIO.__init__(self)
         self.packet_timeout = 1.000
         self.thread_sleep = 0.010
 
@@ -84,7 +84,7 @@ class IO_UDP(io.BaseIO):
         if not self.__is_server:
             self.send( io.Packet("I'm here") )
         
-        io.BaseIO.connect(self, host, port)
+        BaseIO.connect(self, host, port)
 
         # Call user event if needed
         if self.on_connect != None: self.on_connect()
@@ -340,13 +340,10 @@ class IO_UDP(io.BaseIO):
 
     def __getAddr(self): return self.__addr
 
-    def __getName(self):
-        if self.__name != None: return self.__name
+    def _getName(self):
+        if self._name != None: return self._name
         return self.host
         
-    def __setName(self, name):
-        self.__name = name    
-
     def __getClients(self):
         self.__clients_sema.acquire()
         clients = self.__clients.copy()
@@ -358,7 +355,7 @@ class IO_UDP(io.BaseIO):
         
     #--- Properties -------------------------------------------------------------
 
-    name = property(__getName, __setName, doc="The IO name")
+    name = property(_getName, BaseIO._setName, doc="The IO name")
     addr = property(__getAddr, doc="The IO addresse (host, port).")
     port = property(__getPort, doc="The network port number.")
     host = property(__getHost, doc="The network hostname.")

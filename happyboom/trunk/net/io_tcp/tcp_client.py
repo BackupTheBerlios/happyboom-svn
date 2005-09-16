@@ -1,8 +1,8 @@
-from net import io
+from happyboom.net.io.io_client import IO_Client
 from happyboom.common.log import log
 import socket
 
-class TCP_Client(io.IO_Client):
+class TCP_Client(IO_Client):
     """ An TCP client.
     @ivar __socket: The TCP socket
     @type __socket: C{socket}
@@ -12,7 +12,7 @@ class TCP_Client(io.IO_Client):
     @type on_receive: C{function}
     """
     def __init__(self, io_tcp, addr, name=None, socket=None):
-        io.IO_Client.__init__(self, io_tcp, addr, name)
+        IO_Client.__init__(self, io_tcp, addr, name)
         self.__socket = socket 
         self.on_send = None
         self.on_receive = None
@@ -65,7 +65,7 @@ class TCP_Client(io.IO_Client):
     def disconnect(self):
         """ Disconned the client : close the socket. """
         self.__socket.close()
-        io.IO_Client.disconnect(self)
+        IO_Client.disconnect(self)
 
     def __processRecvData(self, data):
         # If no data, connection is lost

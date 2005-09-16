@@ -1,17 +1,17 @@
 #!/usr/bin/python
 # -*- coding: ISO-8859-1 -*-
 
-import time
-import thread
-import socket
-import traceback
-import struct
-from tcp_client import TCP_Client
+from happyboom.net.io_tcp.tcp_client import TCP_Client
 from happyboom.net.io.packet import Packet
 from happyboom.net.io.base_io import BaseIO
 from server_waiter import NetworkServerWaiter
 from happyboom.common.log import log
 from happyboom.common.thread import getBacktrace
+import time
+import thread
+import socket
+import traceback
+import struct
 
 class IO_TCP(BaseIO):
     """
@@ -76,8 +76,8 @@ class IO_TCP(BaseIO):
             self.__clients[client.addr] = client
             self.__clients_sema.release()
 
-        if self.on_connect != None: self.on_connect()
         BaseIO.connect(self, host, port)
+        if self.on_connect != None: self.on_connect()
         self._is_ready = True
 
     def disconnect(self):
@@ -160,21 +160,21 @@ class IO_TCP(BaseIO):
     #--- Private functions ------------------------------------------------------
 
     def __getPort(self):
+        if self.__addr==None: return "(no port)"
         return self.__addr[1]
 
     def __getHost(self):
+        if self.__addr==None: return "(no hostname)"
         if self.__addr[0]=='': return "localhost"
         return self.__addr[0]
 
     def __getAddr(self): return self.__addr
 
-    def __getName(self):
-        if self.__name != None: return self.__name
-        return self.host
+    def _getName(self):
+        if self._name != None: return self._name
+        if self.__addr != None: return self.host
+        return "(no name)"
         
-    def __setName(self, name):
-        self.__name = name    
-
     def __getClients(self):
         self.__clients_sema.acquire()
         clients = self.__clients.copy()
@@ -203,7 +203,7 @@ class IO_TCP(BaseIO):
         
     #--- Properties -------------------------------------------------------------
 
-    name = property(__getName, __setName)
+    name = property(_getName, BaseIO._setName)
     addr = property(__getAddr)
     port = property(__getPort)
     host = property(__getHost)
