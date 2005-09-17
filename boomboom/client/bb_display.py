@@ -9,7 +9,6 @@ from happyboom.common.log import log
 from happyboom.client.base_client import Client as BaseClient
 from happyboom.common.event import EventListener
 import bb_events
-from bb_drawer import BoomBoomDrawer
 from bb_constructor import BoomBoomConstructor
 from happyboom.net.io import Packet
 
@@ -44,8 +43,13 @@ class BoomBoomDisplay(BaseClient, EventListener):
 
         EventListener.__init__(self)
         BaseClient.__init__(self, arg)
-        self.drawer = BoomBoomDrawer(arg.get("max_fps", 25))
+        if arg["textmode"]:
+            from bb_drawer_curses import BoomBoomDrawer
+        else:
+            from bb_drawer import BoomBoomDrawer
+        self.drawer = BoomBoomDrawer(arg)
         self.name = arg.get("name", "no name")
+        self.args = arg
         #TODO: Support chat?
         self.gateway.features = ["game", "character", "projectile", "weapon", "world"]
 #        if arg.get("server-log", False):
@@ -57,11 +61,10 @@ class BoomBoomDisplay(BaseClient, EventListener):
 
     def start(self):
         """ Starts the display client : connection to the server, etc. """
-        print "==== BoomBoom ===="
+        log.info("==== BoomBoom ====")
         self.drawer.start()
         BaseClient.start(self)
-        args = {"verbose": self.verbose}
-        BoomBoomConstructor(args)
+        BoomBoomConstructor(self.args)
         self.drawer.mainLoop()
         
     def stop(self):

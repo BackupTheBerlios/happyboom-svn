@@ -18,7 +18,7 @@ class BoomBoomDrawer(EventListener):
     @type __items: C{list<L{BoomBoomItem}>}
     """
     
-    def __init__(self, max_fps=25):
+    def __init__(self, args):
         """ BoomBoomDrawer constructor.
         @param max_fps: Maximal number of frames per second, for optimization.
         @type max_fps: C{int}
@@ -26,6 +26,7 @@ class BoomBoomDrawer(EventListener):
         EventListener.__init__(self, prefix="evt_")
         # Current offscreen
         self.__screen = None
+        max_fps = args.get("max_fps", 25)
         self.__frameTime = 1.0 / max_fps
         self.__items = []
         self.registerEvent("graphical")

@@ -7,7 +7,6 @@
 from happyboom.common.event import EventListener
 from happyboom.common.log import log
 import bb_events
-from items import Sun, Projectile, Weapon, World, Character, LogItem
 
 class BoomBoomConstructor(EventListener):
     """ Constructs visual items when server requires creation. """
@@ -17,6 +16,8 @@ class BoomBoomConstructor(EventListener):
         self.verbose = arg.get("verbose", False)
         self.registerEvent("happyboom")
         self.registerEvent("game")
+        self.textmode = arg["textmode"]
+        self.args = arg
         
     def evt_happyboom_doCreateItem(self, type, id):
         """ Create event handler.
@@ -26,22 +27,41 @@ class BoomBoomConstructor(EventListener):
         if self.verbose:
             log.info("Try to create object %s ..." % type)
         if type=="projectile":
-            Projectile()
+            if self.textmode:
+                from items.projectile_curses import Projectile
+            else:
+                from items.projectile import Projectile
+            Projectile(self.args)
         if type=="weapon":
-            Weapon()
+            if self.textmode:
+                from items.weapon_curses import Weapon 
+            else:
+                from items.weapon import Weapon
+            Weapon(self.args)
         if type=="log":
+            from items import LogItem
             LogItem()
         if type=="world":
-            World()
+            if self.textmode:
+                from items.world_curses import World
+            else:
+                from items.world import World
+            World(self.args)
         if type=="character":
-            Character(id, "foo")
+            if self.textmode:
+                from items.character_curses import Character
+            else:
+                from items.character import Character
+            Character(id, "foo", self.args)
         
     def evt_game_start(self):
         """ Start event handler.
         @param event: Event with "game_Start" type.
         @type event: C{L{common.event.Event}}
         """
-        Sun()
+        if not self.textmode:
+            from items import Sun
+            Sun()
         
     def evt_agent_manager_Text(self, event):
         """ Text event handler.

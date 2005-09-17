@@ -1,12 +1,5 @@
-"""
-@author: Victor Stinner and Damien Boucard
-@license: Gnu/GPL v2 or later, see LICENSE file.
-@contact: See U{http://developer.berlios.de/projects/happyboom/}
-@version: 0.2
-"""
-from client import bb_events
 from client.bb_item import BoomBoomItem
-import random, pygame
+from client.curses_tools import convertXY
 
 class Building:
     """ Represents a building which is used as plat-form in the game.
@@ -26,17 +19,17 @@ class Building:
         @param height: Building height.
         @type height: C{int}
         """
-        self.rect = pygame.Rect([x, y, width, height])
-        self.color = (\
-            random.randint(0,255), random.randint(0,255), \
-            random.randint(0,255), 255,)
+        self.x, self.y = x,y
+        self.width, self.height = width, height
+#        self.color = None # TODO: Choose color 
 
-    def draw(self, screen):
+    def draw(self, win):
         """ Drawing method called by C{BoomBoomDrawer}
         @param screen: Offscreen to draw in.
         @type screen: C{L{Window<bb_drawer.Window>}}
         """
-        screen.surface.fill(self.color, self.rect)
+        for y in range(self.y, self.y+self.height):
+            win.addstr(y, self.x, "#" * self.width)
         
 class World(BoomBoomItem):
     """ Represents the ground of the game (collection of buildings).
@@ -48,6 +41,7 @@ class World(BoomBoomItem):
         BoomBoomItem.__init__(self)
         self.__buildings = []
         self.registerEvent("world")
+        self.window = args["window"]
 
     def born(self):
         Agent.born(self)
@@ -60,14 +54,17 @@ class World(BoomBoomItem):
         """
         self.__buildings = []
         rects = data.split(";")
+        maxy, maxx = self.window.getmaxyx()
         for rect in rects:
             x, y, w, h = rect.split(",")
-            b = Building(int(x), int(y), int(w), int(h))
+            x, y = convertXY(int(x), int(y))
+            w, h = convertXY(int(w), int(h))
+            b = Building(x, y, w, h)
             self.__buildings.append(b)
 
-    def draw(self, screen):
+    def draw(self):
         """ Drawing method called by C{BoomBoomDrawer}
         @param screen: Offscreen to draw in.
         @type screen: C{L{Window<bb_drawer.Window>}}
         """
-        for b in self.__buildings: b.draw(screen)
+        for b in self.__buildings: b.draw(self.window)

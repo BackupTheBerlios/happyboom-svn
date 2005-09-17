@@ -22,7 +22,7 @@ class Character(BoomBoomItem):
     @ivar __name: Name of the player controlling the character (as known by the server).
     @type __name: C{str}
     """
-    def __init__(self, id, name):
+    def __init__(self, id, name, args):
         """ Character item constructor.
         @param id:  Server item id.
         @type id: C{int}
@@ -47,8 +47,6 @@ class Character(BoomBoomItem):
         self.__x = x
         self.__y = y
         self.visual.move(self.__x, self.__y)
-        if self.active:
-            self.launchEvent(bb_events.activeCharAbs, self.__x)
         
     def evt_game_active_character(self, event):
         """ Active character event handler.

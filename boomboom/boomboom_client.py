@@ -21,6 +21,7 @@ def usage(defval):
     print "\t-v,--verbose      : Enable verbose mode"
     print "\t--server-log      : Output server log (default: %u)" % (defval["server-log"])
     print "\t--max-fps MAX     : Set maximum frame par second (fps)"
+    print "\t--text            : Use text output"
 
 def parseArgs(val):
     import getopt
@@ -30,7 +31,7 @@ def parseArgs(val):
         short = "h:dv"
         long = ["debug", "help", "version", "verbose", \
             "view-port=", "input-port=",
-            "host=", "max-fps=", "server-log"]
+            "host=", "max-fps=", "server-log", "text"]
         opts, args = getopt.getopt(sys.argv[1:], short, long)
     except getopt.GetoptError:
         usage(defval)
@@ -50,8 +51,10 @@ def parseArgs(val):
             val["host"] = a
         if o in ("-v", "--verbose",):
             val["verbose"] = True
-        if o == "--verbose":
+        if o == "--server-log":
             val["server-log"] = True
+        if o == "--text":
+            val["textmode"] = True
         if o == "--max-fps":
             a = int(a)
             if a < 1: a=1
@@ -65,6 +68,7 @@ def run(arg):
     from happyboom.common.protocol import loadProtocol
     from client import BoomBoomClient
     from client.bb_display import BoomBoomDisplay
+    from happyboom.common.log import log
 
     arg["protocol"] = loadProtocol("protocol.xml")
     display = BoomBoomDisplay(arg)
@@ -72,9 +76,19 @@ def run(arg):
     try:
         client.start()
     except KeyboardInterrupt:
-        print "Program interrupted (CTRL+C)."
+        log.warning("Program interrupted (CTRL+C).")
         pass
     client.stop()
+
+def run_curses(stdscr, args):
+    from happyboom.common.log import log
+    try:
+        args["window"] = stdscr
+        stdscr.scrollok(True)
+        run(args)
+    except Exception, err:
+        log.error("Uncatched error in run_curses: %s" % err)
+        raise
 
 def main():
     # Add HappyBoom to PYTHONPATH ("../" today, but should be improved)
@@ -82,20 +96,42 @@ def main():
     file_dir = os.path.dirname(__file__)
     happyboomdir = os.path.join(file_dir, "../happyboom/trunk")
     sys.path.append(happyboomdir)
- 
+
+    # Get user directory 
+    from happyboom.common.file import getCreateHomeDir
+    logdir = getCreateHomeDir("boomboom")
+
+    # Setup log filename
+    from happyboom.common.log import log
+    if logdir != None:
+        logname = os.path.join(logdir, "client-log")    
+        log.setFilename(logname)
+
+    # Read command line arguments
     val = {
         "host": "127.0.0.1", \
         "port": 12430, \
         "max_fps": 50, \
         "verbose": False, \
+        "textmode": False, \
         "server-log": False, \
         "name": "-", \
         "debug": False}
     arg = parseArgs(val)
+    textmode = arg["textmode"]
 
     # Create the client
-    import pygame
-    run(arg)
-    pygame.quit()
+    if not textmode:
+        log.info("Start client with pygame.")
+        import pygame
+        pygame.init()
+        run(arg)
+        pygame.quit()
+    else:
+        log.info("Start client with curses.")
+        import curses
+        curses.wrapper(run_curses, arg)
+        log.use_print = True
+    log.info("Quit.")
 
 if __name__=="__main__": main()

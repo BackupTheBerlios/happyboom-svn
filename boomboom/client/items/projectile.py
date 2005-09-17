@@ -4,7 +4,7 @@
 @contact: See U{http://developer.berlios.de/projects/happyboom/}
 @version: 0.2
 """
-from client import bb_events
+#from client import bb_events
 from client.bb_item import BoomBoomItem, VisualObject
 import os.path
 
@@ -14,7 +14,7 @@ class Projectile(BoomBoomItem):
     @type visual: C{L{VisualObject}}
     """
     
-    def __init__(self):
+    def __init__(self, args):
         """ Projectile itemp constructor. """
         BoomBoomItem.__init__(self)
         self.visual = VisualObject(os.path.join("data", "banana.png"))

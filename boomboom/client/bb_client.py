@@ -5,9 +5,11 @@
 @version: 0.2
 """
 from happyboom.common.event import EventListener
+from happyboom.common.log import log
+from happyboom.common.thread import getBacktrace
 import bb_events
-from bb_input import BoomBoomInput
-import thread, time, traceback, pygame
+import thread, time, traceback
+import curses_tools
 
 class BoomBoomClient(EventListener):
     """ The main class of the client of BoomBoom.
@@ -41,18 +43,24 @@ class BoomBoomClient(EventListener):
         EventListener.__init__(self, prefix="evt_")
         
         self.display = display
+        if not arg.get("textmode", False):
+            from bb_input_pygame import BoomBoomInput
+        else:
+            log.use_print = False
+            log.on_new_message = curses_tools.onLogMessage
+            curses_tools.window = arg["window"]
+            from bb_input_curses import BoomBoomInput
         self.input = BoomBoomInput(arg)
         self.__verbose = arg.get("verbose", False)
         self.__stopped = False
         self.__stoplock = thread.allocate_lock()
-        
+        self.args = arg        
         self.registerEvent("game")
         
     def start(self):
         """ Starts the game client."""
-        if self.__verbose: print "[CLIENT] Starting client..."
-        # Start pygame
-        pygame.init()
+        if self.__verbose:
+            log.info("[CLIENT] Starting client...")
         
         # Create thread for input and display
         thread.start_new_thread(self.thread_display, ())
@@ -73,7 +81,8 @@ class BoomBoomClient(EventListener):
         self.__stopped = True
         self.__stoplock.release()
         
-        if self.__verbose: print "[CLIENT] Stopping client..."
+        if self.__verbose:
+            log.info("[CLIENT] Stopping client...")
         self.display.stop()
     
     def evt_game_stop(self):
@@ -88,22 +97,14 @@ class BoomBoomClient(EventListener):
         try:
             self.display.start()
         except Exception, msg:
-            print "EXCEPTION IN DISPLAY THREAD:\n%s" % msg
-            traceback.print_exc()
+            bt = getBacktrace()
+            log.error("EXCEPTION IN DISPLAY THREAD:\n%s\n%s" % (msg, bt))
         try:
             self.stop()
         except Exception, msg:
-            print "EXCEPTION IN DISPLAY THREAD:\n%s" % msg
-            traceback.print_exc()
+            bt = getBacktrace()
+            log.error("EXCEPTION (2) IN DISPLAY THREAD:\n%s\n%s" % (msg, bt))
         
-    def thread_input(self):
-        """ Thread handler for the "input" part."""
-        try:
-            self.input.start()
-        except:
-            traceback.print_exc()
-        self.stop()
-
     def __isStopped(self):
         self.__stoplock.acquire()
         stop = self.__stopped
