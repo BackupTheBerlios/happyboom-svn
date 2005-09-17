@@ -11,6 +11,7 @@ class Log:
     def __init__(self):
         self.__buffer = {}
         self.__file = None
+        self.use_print = True
         self.on_new_message = None # (level, prefix, text)
 
     def setFilename(self, filename):
@@ -59,7 +60,8 @@ class Log:
         else:
             self.__buffer[level].append(str)
         prefix = self.getLevelPrefix(level)            
-        print "%s %s" % (prefix, str)
+        if self.use_print:
+            print "%s %s" % (prefix, str)
         if self.__file:
             self.__file.write(u"%s - %s %s\n" \
                 % (time.strftime("%Y-%M-%d %H:%M:%S"),

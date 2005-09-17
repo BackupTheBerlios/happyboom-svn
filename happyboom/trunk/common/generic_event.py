@@ -5,6 +5,7 @@ Module to use event-system very easily.
 @contact: See U{http://developer.berlios.de/projects/happyboom/}
 @version: 1.0
 """
+from happyboom.common.log import log
 class EventManager:
     """ Manages the event-system.
     This class is instanciated on importing the module,
@@ -66,7 +67,7 @@ class EventManager:
                 if not obj.event_silent:
                     raise UnhandledEventError("%s has no method to handle %s" %(obj, event))
         else:
-            print("Pas de event.type %s" % event.type)
+            log.error("Pas de event.type %s" % event.type)
 
 EventManager()
     

@@ -20,6 +20,6 @@ def getCreateHomeDir(subdir):
     try:
         os.mkdir(logdir)
     except OSError, err:
-        if err[0]==17: pass
-        logdir = None
+        if err[0] != 17:
+            logdir = None
     return logdir

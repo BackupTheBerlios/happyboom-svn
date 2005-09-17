@@ -57,7 +57,7 @@ class Client(object, EventListener, EventLauncher):
     def start(self):
         """ Starts the client : connection to the server, etc. """
         # Try to connect to server
-        if self.verbose: print "[HAPPYBOOM] Trying to connect to server %s:%u" % (self.host, self.port)
+        if self.verbose: log.info("[HAPPYBOOM] Trying to connect to server %s:%u" % (self.host, self.port))
         self._io.on_connect = self.onConnect
         self._io.on_connection_fails = self.onConnectionFails
         self._io.on_disconnect = self.onDisconnect
@@ -78,7 +78,8 @@ class Client(object, EventListener, EventLauncher):
         self.__stoplock.release()
         
         self._io.stop()
-        if self.verbose: print "[HAPPYBOOM] Stopped"
+        if self.verbose:
+            log.info("[HAPPYBOOM] Stopped")
         return True
         
     def __isStopped(self):
@@ -90,22 +91,23 @@ class Client(object, EventListener, EventLauncher):
     
     def onConnect(self):
         """ Handler called on network connection. """
-        if self.verbose: print "[HAPPYBOOM] Connected to server, send presentation connection()."
+        if self.verbose:
+            log.info("[HAPPYBOOM] Connected to server, send presentation connection().")
         self.launchEvent("happyboom", "connection", self._io, self.presentation.protocol.version.encode("ascii"), "")
         
     def onConnectionFails(self):
         """ Handler called when network connection fails. """
-        print "[HAPPYBOOM] Fail to connect to the server"
+        log.error("[HAPPYBOOM] Fail to connect to the server.")
 
     def onDisconnect(self):
         """ Handler called on network disconnection. """
         if self.stopped: return
-        print "[HAPPYBOOM] Connection to server closed"
+        log.info("[HAPPYBOOM] Connection to server closed")
         self.launchEvent("happyboom", "stop")
 
     def onLostConnection(self):
         """ Handler called on losting network connection. """
-        print "[HAPPYBOOM] Lost connection with server"
+        log.warning("[HAPPYBOOM] Lost connection with server.")
         self.launchEvent("happyboom", "stop")
         
     def processPacket(self, new_packet):
@@ -115,7 +117,8 @@ class Client(object, EventListener, EventLauncher):
         """
         event_type, arg = self.str2evt(new_packet.data)
         if event_type != None: 
-            if self.debug: print "Received message: type=%s arg=%s" %(event_type, arg)
+            if self.debug:
+                log.info("Received message: type=%s arg=%s" %(event_type, arg))
             self.launchEvent(event_type, arg)
             
 class Gateway(EventLauncher, EventListener):
