@@ -142,7 +142,6 @@ class Gateway(EventLauncher, EventListener):
                         if feat in self.features:
                             raise Exception("[HAPPYBOOM] Duplicated feature %s in %s and %s classes" %(feat, itemClass.__name__, self.features[feat].__name__))
                         self.features[feat] = itemClass
-                    print "FEATURE : %s !!!!!!!!!!!!!!!!!!!!!!!" %feat
         
     def processConnection(self, ioclient, version, signature):
         self.launchEvent("happyboom", "signature", ioclient, signature)
