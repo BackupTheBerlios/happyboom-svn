@@ -4,8 +4,7 @@ from happyboom.common.log import log
 from happyboom.common.event import EventLauncher, EventListener
 from happyboom.net.io.packet import Packet
 from happyboom.net.io_tcp.tcp import IO_TCP
-import struct, string
-import thread
+import struct, string, thread, imp, os.path, sys
 
 class Client(object, EventListener, EventLauncher):
     """
@@ -23,7 +22,7 @@ class Client(object, EventListener, EventLauncher):
     """
     
     def __init__(self, args):
-        EventListener.__init__(self) # TODO : Fix me (with good arguments)
+        EventListener.__init__(self)
         EventLauncher.__init__(self)
         self.host = args.get("host", "127.0.0.1")
         self.port = args.get("port", 12430)
@@ -40,20 +39,13 @@ class Client(object, EventListener, EventLauncher):
         self.presentation = HappyboomProtocol(protocol, args)
         self.gateway = Gateway(protocol, args)
         self.registerEvent("happyboom")
+        
+    def evt_happyboom_stop(self):
+        self.stop()
 
     def evt_happyboom_network(self, feature, event, *args):
-        self.send(feature, event, *args)
+        self.launchEvent("happyboom", "event", (self._io,), feature, event, args)
 
-    def send(self, feature, event, *args):
-        """ Sends a string to the network server.
-        @param str: String to send.
-        @type str: C{str}
-        """
-        data = self.presentation.protocol.createMsg(feature, event, *args)
-        self.launchEvent("happyboom", "event", (self._io,), data)
-#        data = self.presentation.sendMsg(data)
-#        self._io.send(Packet(data))
-        
     def start(self):
         """ Starts the client : connection to the server, etc. """
         # Try to connect to server
@@ -93,7 +85,7 @@ class Client(object, EventListener, EventLauncher):
         """ Handler called on network connection. """
         if self.verbose:
             log.info("[HAPPYBOOM] Connected to server, send presentation connection().")
-        self.launchEvent("happyboom", "connection", self._io, self.presentation.protocol.version.encode("ascii"), "")
+        self.launchEvent("happyboom", "connection", self._io)
         
     def onConnectionFails(self):
         """ Handler called when network connection fails. """
@@ -110,17 +102,6 @@ class Client(object, EventListener, EventLauncher):
         log.warning("[HAPPYBOOM] Lost connection with server.")
         self.launchEvent("happyboom", "stop")
         
-    def processPacket(self, new_packet):
-        """ Processes incomming network packets (converts and launches local event).
-        @param new_packet: incomming network packet.
-        @type new_packet: C{net.io.packet.Packet}
-        """
-        event_type, arg = self.str2evt(new_packet.data)
-        if event_type != None: 
-            if self.debug:
-                log.info("Received message: type=%s arg=%s" %(event_type, arg))
-            self.launchEvent(event_type, arg)
-            
 class Gateway(EventLauncher, EventListener):
     def __init__(self, protocol, args):
         EventLauncher.__init__(self)
@@ -128,16 +109,40 @@ class Gateway(EventLauncher, EventListener):
         self.protocol = protocol
         self.launchEvent("happyboom", "register", "connection", self.processConnection)
         self.launchEvent("happyboom", "register", "disconnection", self.processDisconnection)
-        self.launchEvent("happyboom", "register", "create_item", self.processCreate)
-#        self.launchEvent("happyboom", "register", "destroy_item", self.processXX)
+        self.launchEvent("happyboom", "register", "create_item", self.processCreateItem)
+        self.launchEvent("happyboom", "register", "destroy_item", self.processDestroyItem)
         self.launchEvent("happyboom", "register", "recv_event", self.processEvent)
         self.registerEvent("happyboom")
         self.verbose = args.get("verbose", False)
         self.debug = args.get("debug", False)
-        self.features = []
+        self.features = {}
+        for feat in args.get("features", ()):
+            self.features[feat] = None
         self.items = {}
-        #self.gamepath = None
-        self.module = __import__("client/items")
+        itemPath = args["item_path"]
+        dirs = itemPath.split(os.path.sep)
+        if dirs[-1] == "":
+            dirs = dirs[:-1]
+        packagePath = None
+        try:
+            for d in dirs:
+                #print "imp.find_module(%s, %s)" %(repr(modName), repr(modDir))
+                f, fname, desc = imp.find_module(d, packagePath)
+                self.module = imp.load_module(d, f, fname, desc)
+                packagePath = self.module.__path__
+        except:
+            raise Exception("[HAPPYBOOM] Invalid item path : %s" %itemPath)
+        import types
+        for attr in self.module.__dict__:
+            if type(self.module.__dict__[attr]) == types.ClassType:
+                itemClass = self.module.__dict__[attr]
+                if hasattr(itemClass, "feature"):
+                    feat = getattr(itemClass, "feature")
+                    if feat != None:
+                        if feat in self.features:
+                            raise Exception("[HAPPYBOOM] Duplicated feature %s in %s and %s classes" %(feat, itemClass.__name__, self.features[feat].__name__))
+                        self.features[feat] = itemClass
+                    print "FEATURE : %s !!!!!!!!!!!!!!!!!!!!!!!" %feat
         
     def processConnection(self, ioclient, version, signature):
         self.launchEvent("happyboom", "signature", ioclient, signature)
@@ -150,56 +155,27 @@ class Gateway(EventLauncher, EventListener):
                 pass
         self.launchEvent("happyboom", "features", ioclient, features)
         
-    def processDisconnection(self, reason):
+    def processDisconnection(self, ioclient, reason):
         self.launchEvent("happyboom", "stop", reason)
     
-    def processCreateItem(self, feature, id):
-        assert feature in self.features, "Unexpected feature"
-        classname = self.getClassnameByFeature(feature)
-        assert hasattr(self.module, classname), "Item class not found : %s" %classname
-        itemclass = getattr(self.module, classname)
-        item = itemclass(id)
-        self.items[id] = item
-        self.launchEvent(feature, "new", id)
+    def processCreateItem(self, ioclient, feature, id):
+        assert feature in self.features, "Unexpected feature : %s" %feature
+        itemClass = self.features[feature]
+        if itemClass != None:
+            item = itemClass(id)
+            self.items[id] = item
+            self.launchEvent(feature, "new", id)
     
-    def processDestroyItem(self, id):
+    def processDestroyItem(self, ioclient, id):
         assert id in self.items, "Unknown item identifier %s" %id
         self.launchEvent(feature, "delete", id)
         del self.items[id]
         
-    def processEvent(self, ioclient, feature, event, *args):
+    def processEvent(self, ioclient, feature, event, args):
+        if self.debug:
+            log.info("New event: %s.%s%s" % (feature, event, args))
+        assert feature in self.features, "Unexpected feature"
         self.launchEvent(feature, event, *args)
-
-    def getClassnameByFeature(self, feature):
-        classname = ""
-        prefix = True
-        space = True
-        for i in range(len(feature)):
-            if feature[i] not in string.ascii_letters:
-                if prefix:
-                    classname = classname + feature[i]
-                space = True
-            else:
-                prefix = False
-                if space:
-                    classname = classname + feature[i].upper()
-                else:
-                    classname = classname + feature[i]
-        return classname
 
 #    def evt_happyboom_gamepath(self, path):
 #        self.gamepath = path
-        
-    def processCreate(self, ioclient, type, id):
-        try:
-            type = self.protocol.getFeatureById(type)
-            type = type.name
-        except ProtocolException, err:
-            log.error(err)
-            return
-        self.launchEvent("happyboom", "doCreateItem", type, id)
-
-    def processEvent(self, ioclient, feature, event, *args):       
-        if self.debug:
-            log.info("New event: %s.%s%s" % (feature, event, args))
-        self.launchEvent(feature, event, *args)
