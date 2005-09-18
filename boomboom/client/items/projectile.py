@@ -5,7 +5,7 @@
 @version: 0.2
 """
 #from client import bb_events
-from client.item import Item, VisualObject
+from client.item import Item
 import os.path
 
 class Projectile(Item):

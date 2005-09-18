@@ -5,7 +5,6 @@
 @version: 0.2
 """
 from happyboom.common.event import EventListener, EventLauncher
-import pygame
 
 class Item(EventListener, EventLauncher):
     """ Generic class for representing graphical items.

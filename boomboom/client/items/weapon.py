@@ -5,7 +5,6 @@
 @version: 0.2
 """
 from client.item import Item
-import pygame
 
 class Weapon(Item):
     """ Represents the weapon parameters controlled by the player.

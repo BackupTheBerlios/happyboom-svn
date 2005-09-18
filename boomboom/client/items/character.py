@@ -4,9 +4,8 @@
 @contact: See U{http://developer.berlios.de/projects/happyboom/}
 @version: 0.2
 """
-from client.item import Item, VisualObject
+from client.item import Item
 import os.path
-import pygame
 
 class Character(Item):
     """ Represents a monkey character controlled by the player.
