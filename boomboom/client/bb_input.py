@@ -5,13 +5,9 @@
 @version: 0.2
 """
 from happyboom.common.event import EventLauncher, EventListener
-import bb_events
-from net import io
-from net import io_udp, io_tcp
-from net import net_buffer
 import thread, time
 
-class BoomBoomInput(EventLauncher, EventListener):
+class Input(EventLauncher, EventListener):
     """ Class which manages "input" part of the network connections.
     @ivar host: Server hostname.
     @type host: C{str}

@@ -4,8 +4,7 @@
 @contact: See U{http://developer.berlios.de/projects/happyboom/}
 @version: 0.2
 """
-from client import bb_events
-from client.bb_item import BoomBoomItem
+from client.item import Item
 import random, pygame
 
 class Building:
@@ -15,6 +14,7 @@ class Building:
     @ivar color: Random color tuple of the building (Red, Green, Blue, Alpha).
     @type color: C{(int, int, int, int)}
     """
+    
     def __init__(self, x, y, width, height):
         """ Building constructor.
         @param x: Building left abscisse.
@@ -38,14 +38,17 @@ class Building:
         """
         screen.surface.fill(self.color, self.rect)
         
-class World(BoomBoomItem):
+class World(Item):
     """ Represents the ground of the game (collection of buildings).
     @ivar __buildings: Collection of buildings.
     @type __buildings: C{list<L{Building}>}
     """
-    def __init__(self, args):
+    
+    feature = "world"
+    
+    def __init__(self, id):
         """ World item constructor. """
-        BoomBoomItem.__init__(self)
+        Item.__init__(self, id)
         self.__buildings = []
         self.registerEvent("world")
 

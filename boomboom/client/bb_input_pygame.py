@@ -1,7 +1,7 @@
-from client.bb_input import BoomBoomInput as BaseInput
+from generic_input import Input as BaseInput
 import pygame                
 
-class BoomBoomInput(BaseInput):
+class Input(BaseInput):
     def __init__(self, arg):
         BaseInput.__init__(self, arg)
 #        import pygame
@@ -18,10 +18,10 @@ class BoomBoomInput(BaseInput):
         if event.type == pygame.KEYDOWN: 
             # q, Q or escape: quit
             if event.unicode in (u'q', u'Q') or event.key == 27:
-                self.launchEvent("game", "stop")
+                self.launchEvent("happyboom", "stop")
         # Quit event: quit
         elif event.type in (pygame.QUIT, ):
-            self.launchEvent("game", "stop")
+            self.launchEvent("happyboom", "stop")
     
         #character = self.client.view.getActiveCharacter()
         #if character != None: self.process_event_active(character, event)
@@ -36,7 +36,7 @@ class BoomBoomInput(BaseInput):
         if event.type == pygame.KEYDOWN: 
             # arrow keys: move character
             if event.key == 32:
-                self.launchEvent("happyboom", "netSendMsg", "weapon", "shoot")
+                self.launchEvent("happyboom", "network", "weapon", "shoot")
             elif event.key == 275:
                 self.weapon_setStrengthDelta(10) # RIGHT 
             elif event.key == 273:

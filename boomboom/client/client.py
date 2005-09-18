@@ -7,11 +7,14 @@
 from happyboom.common.event import EventListener
 from happyboom.common.log import log
 from happyboom.common.thread import getBacktrace
-import bb_events
-import thread, time, traceback
+from happyboom.common import protocol
+from happyboom.client.base_client import Client as Happyboom
+from display import Display
+from input import Input
+import thread, time
 import curses_tools
 
-class BoomBoomClient(EventListener):
+class Client(Happyboom, EventListener):
     """ The main class of the client of BoomBoom.
     @ivar display: Display manager of the game.
     @type display: C{L{BoomBoomDisplay}}
@@ -25,7 +28,7 @@ class BoomBoomClient(EventListener):
     @type __stoplock: C{thread.lock}
     """
     
-    def __init__(self, display, arg):
+    def __init__(self, args):
         """ BoomBoomClient constructor.
         @param host: Server hostname.
         @type host: C{str}
@@ -40,59 +43,45 @@ class BoomBoomClient(EventListener):
         @param max_fps: Maximal number of frames per second, for optimization.
         @type max_fps: C{int}
         """
+        args["protocol"] = protocol.loadProtocol("protocol.xml")
+        args["features"] = ["game"] # Constant features
+        
+        Happyboom.__init__(self, args)
         EventListener.__init__(self, prefix="evt_")
         
-        self.display = display
-        if not arg.get("textmode", False):
-            from bb_input_pygame import BoomBoomInput
-        else:
-            log.use_print = False
-            log.on_new_message = curses_tools.onLogMessage
-            curses_tools.window = arg["window"]
-            from bb_input_curses import BoomBoomInput
-        self.input = BoomBoomInput(arg)
-        self.__verbose = arg.get("verbose", False)
-        self.__stopped = False
-        self.__stoplock = thread.allocate_lock()
-        self.args = arg        
-        self.registerEvent("game")
+        self.display = Display(args)
+        self.input = Input(args)
+        self.__verbose = args.get("verbose", False)
+        self.registerEvent("happyboom")
         
     def start(self):
         """ Starts the game client."""
         if self.__verbose:
-            log.info("[CLIENT] Starting client...")
+            log.info("[BOOMBOOM] Starting client...")
+        Happyboom.start(self)
+        # Create thread for display
+        thread.start_new_thread(self.displayThread, ())
         
-        # Create thread for input and display
-        thread.start_new_thread(self.thread_display, ())
-
         quit = False
         while not quit:
             self.input.process()
             time.sleep(0.100)
-            quit = self.is_stopped
+            quit = self.stopped
         
     def stop(self):
         """  Stops the game client."""
-        # Does not stop several times
-        self.__stoplock.acquire()
-        if self.__stopped:
-            self.__stoplock.release()
-            return
-        self.__stopped = True
-        self.__stoplock.release()
-        
         if self.__verbose:
-            log.info("[CLIENT] Stopping client...")
+            log.info("[BOOMBOOM] Stopping client...")
+        Happyboom.stop(self)
+        self.launchEvent("happyboom", "disconnection", self._io, u"Quit.")
         self.display.stop()
     
-    def evt_game_stop(self):
+    def evt_happyboom_stop(self):
         """ Stop event handler.
-        @param event: Event game.stop()
-        @type event: C{L{common.simple_event.Event}}
         """
         self.stop()
     
-    def thread_display(self):
+    def displayThread(self):
         """ Thread handler for the "display" part."""
         try:
             self.display.start()
@@ -104,10 +93,3 @@ class BoomBoomClient(EventListener):
         except Exception, msg:
             bt = getBacktrace()
             log.error("EXCEPTION (2) IN DISPLAY THREAD:\n%s\n%s" % (msg, bt))
-        
-    def __isStopped(self):
-        self.__stoplock.acquire()
-        stop = self.__stopped
-        self.__stoplock.release()
-        return stop
-    is_stopped = property(__isStopped)

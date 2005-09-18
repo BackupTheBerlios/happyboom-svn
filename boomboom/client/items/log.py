@@ -1,8 +1,11 @@
-from client.bb_item import BoomBoomItem
+from client.item import Item
+from happyboom.common.log import log
 
-class LogItem(BoomBoomItem):
-    def __init__(self):
-        BoomBoomItem.__init__(self)
+class LogItem(Item):
+    feature = "log"
+    
+    def __init__(self, id):
+        Item.__init__(self, id)
         self.registerEvent("log")
         
     def evt_log_info(self, text):

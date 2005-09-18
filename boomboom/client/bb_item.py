@@ -5,21 +5,23 @@
 @version: 0.2
 """
 from happyboom.common.event import EventListener, EventLauncher
-import bb_events
 import pygame
 
-class BoomBoomItem(EventListener, EventLauncher):
+class Item(EventListener, EventLauncher):
     """ Generic class for representing graphical items.
     @ivar visual: Graphical object containing data and transformations
     @type visual: C{L{VisualObject}}
     """
     
-    def __init__(self):
+    feature = None
+    
+    def __init__(self, id=None):
         """ BoomBoomItem constructor. """
         EventListener.__init__(self, "evt_")
         EventLauncher.__init__(self)
         self.visual = None
         self.launchEvent("graphical", "item", self)
+        self.id = id
         
     def draw(self, screen):
         """ Drawing method called by C{BoomBoomDrawer}

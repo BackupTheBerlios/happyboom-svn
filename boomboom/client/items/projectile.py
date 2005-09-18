@@ -5,18 +5,20 @@
 @version: 0.2
 """
 #from client import bb_events
-from client.bb_item import BoomBoomItem, VisualObject
+from client.item import Item, VisualObject
 import os.path
 
-class Projectile(BoomBoomItem):
+class Projectile(Item):
     """ Represents a banana projectile launch by the monkey.
     @ivar visual: Graphical object containing data and transformations
     @type visual: C{L{VisualObject}}
     """
     
-    def __init__(self, args):
+    feature = "projectile"
+    
+    def __init__(self, id):
         """ Projectile itemp constructor. """
-        BoomBoomItem.__init__(self)
+        Item.__init__(self, id)
         self.visual = VisualObject(os.path.join("data", "banana.png"))
         self.registerEvent("projectile")
         

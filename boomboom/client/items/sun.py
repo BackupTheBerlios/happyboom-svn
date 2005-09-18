@@ -4,12 +4,11 @@
 @contact: See U{http://developer.berlios.de/projects/happyboom/}
 @version: 0.2
 """
-from client import bb_events
-from client.bb_item import BoomBoomItem, VisualObject
+from client.item import Item, VisualObject
 import os.path
 import pygame
 
-class Sun(BoomBoomItem):
+class Sun(Item):
     """ Represents a smiling sun which makes "oh" when collided.
     @ivar visual: Graphical object containing data and transformations
     @type visual: C{L{VisualObject}}
@@ -18,9 +17,12 @@ class Sun(BoomBoomItem):
     @ivar __visual2: Visual with the "oh"-ing sun image.
     @type __visual2: C{L{VisualObject}}
     """
+    
+    feature = "sun"
+    
     def __init__(self):
         """ Sun item constructor. """
-        BoomBoomItem.__init__(self)
+        Item.__init__(self)
         self.__visual1 = VisualObject(os.path.join("data", "sun.png"))
         self.__visual2 = VisualObject(os.path.join("data", "sun2.png"))
         self.__visual1.move (300,10)

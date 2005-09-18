@@ -4,10 +4,10 @@
 @contact: See U{http://developer.berlios.de/projects/happyboom/}
 @version: 0.2
 """
-from client.bb_item import BoomBoomItem
+from client.item import Item
 import pygame
 
-class Weapon(BoomBoomItem):
+class Weapon(Item):
     """ Represents the weapon parameters controlled by the player.
     @ivar __angle: Projection angle.
     @type __angle: C{int}
@@ -24,9 +24,12 @@ class Weapon(BoomBoomItem):
     @ivar __y: Item ordonnee.
     @type __y: C{int}
     """
-    def __init__(self, args):
+    
+    feature = "weapon"
+    
+    def __init__(self, id):
         """ Weapon item constructor. """
-        BoomBoomItem.__init__(self)
+        Item.__init__(self, id)
         self.__angle = None 
         self.__strength = None
         fontname = pygame.font.get_default_font()
@@ -38,7 +41,6 @@ class Weapon(BoomBoomItem):
         self.active_character = None
         self.registerEvent("weapon")
         self.registerEvent("character")
-        self.registerEvent("game")
 
     def evt_weapon_setStrength(self, strength):
         """ Weapon strength event handler.
@@ -58,7 +60,7 @@ class Weapon(BoomBoomItem):
         self.character_pos[id] = (x, y,)
         self.updateX()
         
-    def evt_game_setActiveCharacter(self, id):
+    def evt_character_activate(self, id):
         """ Active character abcsisse event handler.
         @param event: Event with "active_character_abscisse" type.
         @type event: C{L{common.simple_event.Event}}

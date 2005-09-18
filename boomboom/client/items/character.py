@@ -4,12 +4,11 @@
 @contact: See U{http://developer.berlios.de/projects/happyboom/}
 @version: 0.2
 """
-from client import bb_events
-from client.bb_item import BoomBoomItem, VisualObject
+from client.item import Item, VisualObject
 import os.path
 import pygame
 
-class Character(BoomBoomItem):
+class Character(Item):
     """ Represents a monkey character controlled by the player.
     @ivar visual: Graphical object containing data and transformations
     @type visual: C{L{VisualObject}}
@@ -22,18 +21,20 @@ class Character(BoomBoomItem):
     @ivar __name: Name of the player controlling the character (as known by the server).
     @type __name: C{str}
     """
-    def __init__(self, id, name, args):
+    feature = "character"
+    
+    def __init__(self, id):
         """ Character item constructor.
         @param id:  Server item id.
         @type id: C{int}
         @param name: Character name.
         @type name: C{str}
         """
-        BoomBoomItem.__init__(self)
+        Item.__init__(self, id)
         self.__x = None
         self.__y = None
         self.__id = id
-        self.__name = name
+        self.__name = "unamed%s" %id
         self.visual = VisualObject(os.path.join("data", "gorilla.png"))
         self.active = False
         self.registerEvent("character")
@@ -47,14 +48,10 @@ class Character(BoomBoomItem):
         self.__x = x
         self.__y = y
         self.visual.move(self.__x, self.__y)
-        
-    def evt_game_active_character(self, event):
-        """ Active character event handler.
-        Adverts weapon the abscisse of the new active character.
-        @param event: Event with "game_active_character" type.
-        @type event: C{L{common.simple_event.Event}}
-        """
-        if self.__id == int(event.content):
-            self.active = True
-            if self.__x != None:
-                self.launchEvent(bb_events.activeCharAbs, self.__x)
+    
+    def eventPerformed(self, event):
+        if event.event == "move":
+            raise Exception(event)
+    
+    def evt_character_name(self, id, name):
+        self.__name = name
