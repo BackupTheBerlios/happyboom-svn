@@ -4,34 +4,34 @@
 @contact: See U{http://developer.berlios.de/projects/happyboom/}
 @version: 0.2
 """
-from client.bb_item import BoomBoomItem
-from client.curses_tools import convertXY
+from curses_client.item import Item
+from curses_client.curses_tools import convertXY
 import curses
 
-class Projectile(BoomBoomItem):
+class Projectile(Item):
     """ Represents a banana projectile launch by the monkey.
     @ivar visual: Graphical object containing data and transformations
     @type visual: C{L{VisualObject}}
     """
+    feature = "projectile"
     
-    def __init__(self, args):
+    def __init__(self, id):
         """ Projectile itemp constructor. """
-        BoomBoomItem.__init__(self)
+        Item.__init__(self)
         self.registerEvent("projectile")
-        self.window = args["window"]
         self.x, self.y = 10,10
         self.display = False
 
-    def draw(self):
+    def draw(self, screen):
         if not self.display: return
-        maxy, maxx = self.window.getmaxyx()
-        if self.x < 0 or maxx < self.x: return
-        if self.y < 0 or maxy < self.y: return
-        self.window.addstr(self.y,self.x,"*")
+        maxy, maxx = screen.getmaxyx()
+        x, y = convertXY(screen, int(self.x), int(self.y))
+        if x < 0 or maxx < x: return
+        if y < 0 or maxy < y: return
+        screen.addstr(y,x,")"+" "*maxx)
         
     def evt_projectile_move(self, x, y):
-        height,width = self.window.getmaxyx()
-        self.x, self.y = convertXY(x, y)
+        self.x, self.y = (x, y)
         
 #    def evt_projectile_hitGround(self, x, y):
 #        pass

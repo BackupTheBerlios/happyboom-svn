@@ -1,7 +1,7 @@
 import curses
 
-def convertXY(x, y):
-    global window
+def convertXY(window, x, y):
+    #global window
     maxy, maxx = window.getmaxyx()
     x = int(x * maxx / 640)
     y = int(y * maxy / 350)

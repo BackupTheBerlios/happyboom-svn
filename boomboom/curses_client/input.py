@@ -1,7 +1,7 @@
-from client.bb_input import BoomBoomInput as BaseInput
+from generic_input import Input as BaseInput
 import curses
                 
-class BoomBoomInput(BaseInput):
+class Input(BaseInput):
     def __init__(self, arg):
         BaseInput.__init__(self, arg)
         self.window = arg["window"]
@@ -19,7 +19,7 @@ class BoomBoomInput(BaseInput):
 #            return
     
         if key == 32: # space
-            self.launchEvent("happyboom", "netSendMsg", "weapon", "shoot")
+            self.launchEvent("happyboom", "network", "weapon", "shoot")
         elif key == curses.KEY_RIGHT:
             self.weapon_setStrengthDelta(10)
         elif key == curses.KEY_UP:

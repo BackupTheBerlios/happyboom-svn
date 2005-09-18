@@ -1,20 +1,23 @@
-from client.bb_item import BoomBoomItem
-from client.curses_tools import convertXY
+from curses_client.item import Item
+from curses_client.curses_tools import convertXY
 
-class Character(BoomBoomItem):
-    def __init__(self, id, name, args):
-        BoomBoomItem.__init__(self)
+class Character(Item):
+    feature = "character"
+    
+    def __init__(self, id):
+        Item.__init__(self)
         self.x, self.y = None, None
         self.__id = id
-        self.__name = name
+        self.__name = "unamed%s"%id
         self.active = False
         self.registerEvent("character")
-        self.window = args["window"]
         
     def evt_character_move(self, id, x, y):
         if self.__id != id: return
-        self.x, self.y = convertXY(x, y)
+        self.x, self.y = (x, y)
         
-    def draw(self):
+    def draw(self, screen):
         if self.x == None: return
-        self.window.addstr(self.y, self.x, "Gorilla")
+        x, y = convertXY(screen, int(self.x), int(self.y))
+        screen.addstr(y, x, " oo")
+        screen.addstr(y+1, x, "(ww)"+" "*screen.getmaxyx()[1])

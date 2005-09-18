@@ -64,8 +64,7 @@ def parseArgs(val):
             val["debug"] = True
     return val
 
-def run(arg):
-    from client import Client
+def run(Client, arg):
     from happyboom.common.log import log
     
     client = Client(arg)
@@ -78,10 +77,12 @@ def run(arg):
 
 def run_curses(stdscr, args):
     from happyboom.common.log import log
+    from curses_client import Client
     try:
         args["window"] = stdscr
+        args["item_path"] = "curses_client/items"
         stdscr.scrollok(True)
-        run(args)
+        run(Client, args)
     except Exception, err:
         log.error("Uncatched error in run_curses: %s" % err)
         raise
@@ -122,7 +123,8 @@ def main():
         log.info("Start client with pygame.")
         import pygame
         pygame.init()
-        run(arg)
+        from client import Client
+        run(Client, arg)
         pygame.quit()
     else:
         log.info("Start client with curses.")

@@ -1,8 +1,8 @@
 from happyboom.common.event import EventListener
-import bb_events
-import curses, time
+from happyboom.common.log import log
+import curses, time, thread, item
 
-class BoomBoomDrawer(EventListener):
+class Display(EventListener):
     """ Manages the drawing of the screen game (double buffered) in a display loop.
     @ivar __screen: Current drawed offscreen.
     @type __screen: C{{Window}}
@@ -25,21 +25,44 @@ class BoomBoomDrawer(EventListener):
         self.__items = []
         self.registerEvent("graphical")
         self.window = args["window"]
+        self.__stopped = False
+        self.__stoplock = thread.allocate_lock()
+        self.__itemlock = thread.allocate_lock()
     
     def start(self):
-        pass
+        self.mainLoop()
+        
+    def stop(self):
+        """ Stops the display loop. """
+        # Does not stop several times
+        self.__stoplock.acquire()
+        if self.__stopped:
+            self.__stoplock.release()
+            return False
+        self.__stopped = True
+        self.__stoplock.release()
         
     def mainLoop(self):
         """ Display loop. """
-        while True:
+        while not self.stopped:
             live_begin = time.time()
             
             # Clearing screen
             self.window.clear()
 
             # Drawing each items
-            for item in self.__items:
-                item.draw()
+            items = self.getItems()
+            for item in items[:]:
+                if item.__class__.__name__ == "Projectile":
+                    item.draw(self.window)
+                    items.remove(item)
+            for item in items[:]:
+                if item.__class__.__name__ == "Character":
+                    item.draw(self.window)
+                    items.remove(item)
+            for item in items[:]:
+                item.draw(self.window)
+                items.remove(item)
 
             # Displaying offscreen 
             self.window.refresh()
@@ -55,4 +78,21 @@ class BoomBoomDrawer(EventListener):
         @type event: C{L{common.simple_event.Event}}
         """
         if item not in self.__items:
-            self.__items.append(item)
+            self.addItem(item)
+            
+    def __isStopped(self):
+        self.__stoplock.acquire()
+        stop = self.__stopped
+        self.__stoplock.release()
+        return stop
+    stopped = property(__isStopped)
+    
+    def getItems(self):
+        self.__itemlock.acquire()
+        items = self.__items[:]
+        self.__itemlock.release()
+        return items
+    def addItem(self, item):
+        self.__itemlock.acquire()
+        self.__items.append(item)
+        self.__itemlock.release()

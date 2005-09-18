@@ -1,4 +1,4 @@
-from client.item import Item
+from curses_client.item import Item
 from happyboom.common.log import log
 
 class LogItem(Item):
