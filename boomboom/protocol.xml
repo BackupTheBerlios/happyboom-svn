@@ -3,10 +3,8 @@
   <feature name="game" id="1">
     <event name="start" id="1" />
     <event name="stop" id="2" />
-    <event name="setActiveCharacter" id="3">
-      <param type="int" name="player" />
-    </event>
-    <event name="nextTurn" id="4" />
+    <event name="nextTurn" id="3" />
+    <event name="nextRound" id="4" />
   </feature>
   
   <feature name="log" id="2">
@@ -32,6 +30,9 @@
       <param type="int" name="id" />
       <param type="int" name="x" />
       <param type="int"  name="y"/>
+    </event>
+    <event name="activate" id="2">
+      <param type="int" name="id" />
     </event>
   </feature>
   
@@ -68,6 +69,12 @@
   <feature name="world" id="7">
     <event name="create" id="1">
       <param type="bin" name="buildings" />
+    </event>
+  </feature>
+  <feature name="score" id="8">
+    <event name="update" id="1">
+      <param type="int" name="player" />
+      <param type="int" name="score" />
     </event>
   </feature>
 </protocol>
