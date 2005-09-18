@@ -7,6 +7,7 @@
 from happyboom.common.happyboom_protocol import HappyboomProtocol as Presentation
 from happyboom.common.log import log
 from happyboom.common.event import EventListener
+from items import Sun
 import thread, pygame, time
 
 class Display(EventListener):
@@ -52,6 +53,7 @@ class Display(EventListener):
         """ Creates game window and starts display loop. """
         self._screen = Window(640, 350)
         self._screen.background_color = (0, 0, 168)
+        Sun()
         self.mainLoop()
         
     def stop(self):
