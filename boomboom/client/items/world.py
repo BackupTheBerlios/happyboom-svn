@@ -5,7 +5,7 @@
 @version: 0.2
 """
 from client.item import Item
-import random
+import random, pygame
 
 class Building:
     """ Represents a building which is used as plat-form in the game.

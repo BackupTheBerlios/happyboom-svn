@@ -4,7 +4,7 @@
 @contact: See U{http://developer.berlios.de/projects/happyboom/}
 @version: 0.2
 """
-from client.item import Item
+from client.item import Item, VisualObject
 import os.path
 
 class Character(Item):
