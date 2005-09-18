@@ -49,7 +49,7 @@ class ClientManager(EventLauncher, object):
 
         # Register client to features
         for feature in features:
-            f = self.__protocol.getFeatureById(ord(feature))
+            f = self.__protocol[ord(feature)]
             feature = f.name
             if self.__verbose: log.info("Register feature %s for client %s" % (feature, client))
             if feature in self.__supported_features:

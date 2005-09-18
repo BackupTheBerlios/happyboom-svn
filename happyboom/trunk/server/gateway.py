@@ -68,7 +68,7 @@ class Gateway(Agent, EventListener):
         else:
             self.sendNetMsg("chat", "message", txt)
 
-    def recvNetMsg(self, ioclient, feature, event, *args):
+    def recvNetMsg(self, ioclient, feature, event, args):
         if self._verbose: log.info("Received: %s.%s%s" % (feature, event, args))
         message = Message("%s_%s" % (feature, event), args)
         self.sendBroadcastMessage(message, "%s_listener" % feature)
@@ -80,9 +80,4 @@ class Gateway(Agent, EventListener):
     def sendNetMsg(self, feature, event, *args):
         clients = self.client_manager.supported_features.get(feature, ())
         if len(clients)==0: return
-        try:
-            data = self.presentation.protocol.createMsg(feature, event, *args)
-        except ProtocolException, err:
-            log.error(err)
-            return
-        self.launchEvent("happyboom", "event", clients, data);
+        self.launchEvent("happyboom", "event", clients, feature, event, args);
