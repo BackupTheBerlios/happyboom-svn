@@ -19,5 +19,5 @@ class Character(Item):
     def draw(self, screen):
         if self.x == None: return
         x, y = convertXY(screen, int(self.x), int(self.y))
-        screen.addstr(y, x, " oo")
-        screen.addstr(y+1, x, "(ww)"+" "*screen.getmaxyx()[1])
+        screen.addstr(y, x, "oo")
+        screen.addstr(y+1, x-1, "(ww)"+" "*screen.getmaxyx()[1])

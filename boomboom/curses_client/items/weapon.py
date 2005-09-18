@@ -6,7 +6,6 @@
 """
 from curses_client.item import Item
 from curses_client.curses_tools import convertXY
-from happyboom.common.log import log
 import curses 
 
 class Weapon(Item):
@@ -64,7 +63,6 @@ class Weapon(Item):
         else:
             x = maxx - 20
         y = 1
-        log.info("x=%s, y=%s" %(x, y))
         txt = "Angle: %s" % self.__angle
         screen.addstr(y, x, txt)
         txt = "Strength: %s" % self.__strength

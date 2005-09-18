@@ -1,5 +1,6 @@
 from curses_client.item import Item
 from curses_client.curses_tools import convertXY
+import random, curses
 
 class Building:
     """ Represents a building which is used as plat-form in the game.
@@ -21,17 +22,19 @@ class Building:
         """
         self.x, self.y = x,y
         self.width, self.height = width, height
-#        self.color = None # TODO: Choose color 
+        self.color = None
 
     def draw(self, screen):
         """ Drawing method called by C{BoomBoomDrawer}
         @param screen: Offscreen to draw in.
         @type screen: C{L{Window<bb_drawer.Window>}}
         """
+        if self.color == None:
+            self.color = random.randint(0, 6)
         x, y = convertXY(screen, int(self.x), int(self.y))
         w, h = convertXY(screen, int(self.width), int(self.height))
         for line in range(y, y+h):
-            screen.addstr(line, x, "#" * w)
+            screen.addstr(line, x, "#" * w, curses.color_pair(self.color))
         
 class World(Item):
     """ Represents the ground of the game (collection of buildings).

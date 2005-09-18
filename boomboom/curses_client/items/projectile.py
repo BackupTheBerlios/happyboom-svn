@@ -28,7 +28,7 @@ class Projectile(Item):
         x, y = convertXY(screen, int(self.x), int(self.y))
         if x < 0 or maxx < x: return
         if y < 0 or maxy < y: return
-        screen.addstr(y,x,")"+" "*maxx)
+        screen.addstr(y,x,")"+" "*maxx, curses.color_pair(curses.COLOR_YELLOW))
         
     def evt_projectile_move(self, x, y):
         self.x, self.y = (x, y)

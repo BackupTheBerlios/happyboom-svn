@@ -44,6 +44,8 @@ class Display(EventListener):
         
     def mainLoop(self):
         """ Display loop. """
+        for i in range(1,7):
+            curses.init_pair(i, i, curses.COLOR_BLACK)
         while not self.stopped:
             live_begin = time.time()
             
