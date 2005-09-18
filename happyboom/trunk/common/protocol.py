@@ -3,7 +3,6 @@ Tools to load HappyBoom protocol in Python from an XML description file.
 """
 
 import xml.dom.minidom
-from happyboom.common.packer import pack, checkType
 
 class ProtocolException(Exception):
     def __init__(self, msg):
@@ -86,7 +85,7 @@ class ProtocolFeature:
                 % (self.protocol.name, self.name, name))
         return self.__evtnames[name]
 
-    def getEventById(self, id):
+    def __getitem__(self, id):
         event = self.__evtids.get(id, None)
         if event == None:
             raise ProtocolException( \
@@ -115,21 +114,6 @@ class Protocol:
         self.version = version.encode("ascii")
         self.__featnames = {}
         self.__featids = {}
-
-    def createMsg(self, feature, event, *args):
-        f = self.getFeature(feature)
-        e = f.getEvent(event)
-        types = e.getParamTypes()
-        if len(args) != len(types):
-            raise ProtocolException( \
-                "Wrong parameter count (%u) for the event %s.%s." \
-                % (len(args), f.name, e))
-        for i in range(len(args)):
-            if not checkType(types[i], args[i]):
-                raise ProtocolException( \
-                    "Parameter %u of event %s.%s should be of type %s (and not %s)." \
-                    % (i, f.name, e, types[i], type(args[i])))
-        return pack(f.id, e.id, types, args)
 
     def addFeature(self, name, id):
         # Check if no other feature have the same identifier
@@ -160,7 +144,7 @@ class Protocol:
                 % (self.name, name))
         return feature
 
-    def getFeatureById(self, id):
+    def __getitem__(self, id):
         feature = self.__featids.get(id, None)
         if  feature == None:
             raise ProtocolException( \

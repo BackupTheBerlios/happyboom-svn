@@ -170,7 +170,7 @@ class Event:
         @return: Object converted string.
         @rtype: C{str}
         """
-        return "<bb_events.BoomBoomEvent type=%s source=%s content=%s>" %(self.type, self.source, self.content)
+        return "<generic_event.Event type=%s source=%s content=%s>" %(self.type, self.source, self.content)
     
     
 class UnhandledEventError(AttributeError):

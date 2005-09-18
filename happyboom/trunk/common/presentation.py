@@ -2,7 +2,6 @@ from happyboom.common.event import EventListener
 from happyboom.common.log import log
 from happyboom.net.io.packet import Packet
 from happyboom.server.client import Client
-from happyboom.common.packer import packUtf8, packBin
 import struct
 
 class PresentationException(Exception):
@@ -28,19 +27,14 @@ class Presentation(EventListener):
 
         # Event (IO_Client client, str version, str signature)
         self._on_connection = None
-
         # Event (IO_Client client, str features)
         self._on_features = None
-        
         # Event (IO_Client client)
         self._on_disconnection = None
-
         # Event (IO_Client client, str feature, str event, str arguments)
         self._on_recv_event = None
-
         # Event (IO_Client client, str type, int id)
         self._on_create_item = None
-
         # Event (IO_Client client, int id)
         self._on_destroy_item = None
 
@@ -73,30 +67,17 @@ class Presentation(EventListener):
         """
         self.evt_happyboom_disconnection(ioclient, reason)
 
-    def evt_happyboom_features(self, ioclient, features):
-        if self.verbose:
-            log.info(u"[PRESENTATION] Send features(%s)" % features)
-        data = struct.pack("!B", self.FEATURES)
-        data = data + packBin(features)
-        ioclient.send( Packet(data) )
-        
-    def evt_happyboom_create(self, ioclient, feature, id):
-        if self.verbose:
-            log.info(u"[PRESENTATION] Send create(%s, %s)" % (feature, id))
-        data = struct.pack("!BBI", self.CREATE, feature, id)
-        ioclient.send( Packet(data) )
-       
-    def evt_happyboom_connection(self, ioclient, version, signature):
+    def evt_happyboom_connection(self, ioclient, version=None, signature=""):
         """
         Send a connection message to ioclient.
         @type version ASCII string
         @type signature string
         """
+        if version == None:
+            version = self.protocol.version
         if self.verbose:
             log.info("[PRESENTATION] Send connection(\"%s\", \"%s\")" % (version, signature))
-        data = struct.pack("!B", self.CONNECTION)
-        data = data + packBin(version)
-        data = data + packBin(signature)
+        data = self.packConnection(version, signature)
         ioclient.send( Packet(data) )
 
     def evt_happyboom_disconnection(self, ioclient, reason):
@@ -108,20 +89,43 @@ class Presentation(EventListener):
         
         if self.verbose:
             log.info(u"[PRESENTATION] Send disconnection(\"%s\")" % reason)
-        data = struct.pack("!B", self.DISCONNECTION) + packUtf8(reason)
+        data = self.packDisconnection(reason)
         ioclient.send( Packet(data) )
         ioclient.disconnect()
+    
 
-    def evt_happyboom_event(self, clients, data):
-        data = struct.pack("!B", self.EVENT) + data
+    def evt_happyboom_features(self, ioclient, features):
+        if self.verbose:
+            log.info(u"[PRESENTATION] Send features(%s)" % features)
+        data = self.packFeatures(features)
+        ioclient.send( Packet(data) )
+        
+    def evt_happyboom_create(self, ioclient, feature, id):
+        if self.verbose:
+            log.info(u"[PRESENTATION] Send create(%s, %s)" % (feature, id))
+        data = self.packCreate(feature, id)
+        ioclient.send( Packet(data) )
+       
+    
+    def evt_happyboom_event(self, clients, feature, event, args):
+        data = self.packEvent(feature, event, args)
         packet = Packet(data)
         for client in clients: client.send(packet)
         
     def unpackPacketType(self, data):
         """ returns type, data """
         return 0, data
-    def unpackDisconnect(self, ioclient, data): return data
+        
+    def unpackConnection(self, ioclient, version, signature): return data
+    def unpackDisconnection(self, ioclient, data): return data
     def unpackFeatures(self, ioclient, data): return data
     def unpackCreateItem(self, data): return data
     def unpackDestroyItem(self, data): return data
     def unpackEvent(self, ioclient, data): return data
+
+    def packConnection(self, version, signature): return ""
+    def packDisconnect(self, reason): return ""
+    def packFeatures(self, features): return ""
+    def packCreateItem(self, feature, id): return ""
+    def packDestroyItem(self, id): return ""
+    def packEvent(self, feature, event, args): return ""
