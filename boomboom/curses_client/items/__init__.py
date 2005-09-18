@@ -1,4 +1,3 @@
-from sun import Sun
 from projectile import Projectile
 from weapon import Weapon
 from world import World
