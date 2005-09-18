@@ -65,14 +65,10 @@ def parseArgs(val):
     return val
 
 def run(arg):
-    from happyboom.common.protocol import loadProtocol
-    from client import BoomBoomClient
-    from client.bb_display import BoomBoomDisplay
+    from client import Client
     from happyboom.common.log import log
-
-    arg["protocol"] = loadProtocol("protocol.xml")
-    display = BoomBoomDisplay(arg)
-    client = BoomBoomClient(display, arg)
+    
+    client = Client(arg)
     try:
         client.start()
     except KeyboardInterrupt:
@@ -116,7 +112,8 @@ def main():
         "textmode": False, \
         "server-log": False, \
         "name": "-", \
-        "debug": False}
+        "debug": False, \
+        "item_path": "client/items"}
     arg = parseArgs(val)
     textmode = arg["textmode"]
 
