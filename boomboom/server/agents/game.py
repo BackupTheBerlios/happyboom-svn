@@ -22,7 +22,7 @@ class Game(Agent):
         self.current = current
         char = self.characters[self.current].id
         self.send("setActiveCharacter", char)
-        self.sendNetMsg("game", "setActiveCharacter", char)
+        self.sendNetMsg("character", "activate", char)
 
     def nextCharacter(self):
         new = (self.current + 1) % len(self.characters)
