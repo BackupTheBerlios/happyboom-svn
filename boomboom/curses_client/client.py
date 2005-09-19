@@ -53,6 +53,7 @@ class Client(Happyboom, EventListener):
         self.input = Input(args)
         self.__verbose = args.get("verbose", False)
         self.registerEvent("happyboom")
+        self.registerEvent("game")        
         
     def start(self):
         """ Starts the game client."""
@@ -75,7 +76,10 @@ class Client(Happyboom, EventListener):
         Happyboom.stop(self)
         self.launchEvent("happyboom", "disconnection", self._io, u"Quit.")
         self.display.stop()
-    
+        
+    def evt_game_stop(self):
+        self.stop()
+        
     def evt_happyboom_stop(self):
         """ Stop event handler.
         """
