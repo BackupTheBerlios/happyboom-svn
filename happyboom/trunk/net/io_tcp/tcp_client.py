@@ -30,7 +30,7 @@ class TCP_Client(IO_Client):
         if not self.connected: return
         try:
             self.__socket.send(data)
-        except SocketError, err:
+        except socket.SocketError, err:
             # Broken pipe (32) or Connection reset by peer (104)
             if err[0] in (32, 104,):
                 self.disconnect()

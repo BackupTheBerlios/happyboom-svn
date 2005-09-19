@@ -45,6 +45,8 @@ class Client(object, EventListener, EventLauncher):
 
     def evt_happyboom_network(self, feature, event, *args):
         try:
+            if self.debug:
+                log.info("Send event: %s.%s%s" % (feature, event, args))
             self.launchEvent("happyboom", "event", (self._io,), feature, event, args)
         except ProtocolException, msg:
             log.error("Protocol error: %s" % msg)
