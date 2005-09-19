@@ -88,6 +88,6 @@ class Log:
         New error message.
         @type str: C{str}
         """
-        self.new_message(Log.LOG_WARN, str)
+        self.new_message(Log.LOG_ERROR, str)
 
 log = Log()        

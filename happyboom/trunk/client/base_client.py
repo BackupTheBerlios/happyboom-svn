@@ -44,7 +44,10 @@ class Client(object, EventListener, EventLauncher):
         self.stop()
 
     def evt_happyboom_network(self, feature, event, *args):
-        self.launchEvent("happyboom", "event", (self._io,), feature, event, args)
+        try:
+            self.launchEvent("happyboom", "event", (self._io,), feature, event, args)
+        except ProtocolException, msg:
+            log.error("Protocol error: %s" % msg)
 
     def start(self):
         """ Starts the client : connection to the server, etc. """
@@ -150,7 +153,8 @@ class Gateway(EventLauncher, EventListener):
             try:
                 feature = self.protocol.getFeature(name)
                 features = features + "%c" % feature.id
-            except ProtocolException:
+            except ProtocolException, msg:
+                log.warning("Protocol exception: %s" % msg)
                 pass
         self.launchEvent("happyboom", "features", ioclient, features)
         
