@@ -62,16 +62,16 @@ class Presentation(EventListener):
     def evt_happyboom_closeConnection(self, ioclient, reason):
         """
         Close client connection.
-        @type ioclient L{IOClient}
-        @type reason Unicode
+        @type ioclient: L{IOClient}
+        @type reason: C{unicode}
         """
         self.evt_happyboom_disconnection(ioclient, reason)
 
     def evt_happyboom_connection(self, ioclient, version=None, signature=""):
         """
         Send a connection message to ioclient.
-        @type version ASCII string
-        @type signature string
+        @type version: str
+        @type signature: str
         """
         if version == None:
             version = self.protocol.version
@@ -83,8 +83,8 @@ class Presentation(EventListener):
     def evt_happyboom_disconnection(self, ioclient, reason):
         """
         Send a disconnection message to ioclient.
-        @type ioclient L{IOClient}
-        @type reason Unicode
+        @type ioclient: L{IOClient}
+        @type reason: unicode
         """
         
         if self.verbose:

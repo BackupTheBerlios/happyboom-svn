@@ -43,7 +43,7 @@ class Log:
         if level==Log.LOG_ERROR: return "[err!]"
         return "[info]"
 
-    def new_message(self, level, str):
+    def newMessage(self, level, str):
         """
         Write a new message : append it in the buffer,
         display it to the screen (if needed), and write
@@ -74,20 +74,20 @@ class Log:
         New informative message.
         @type str: C{str}
         """
-        self.new_message(Log.LOG_INFO, str)
+        self.newMessage(Log.LOG_INFO, str)
 
     def warning(self, str):
         """
         New warning message.
         @type str: C{str}
         """
-        self.new_message(Log.LOG_WARN, str)
+        self.newMessage(Log.LOG_WARN, str)
 
     def error(self, str):
         """
         New error message.
         @type str: C{str}
         """
-        self.new_message(Log.LOG_ERROR, str)
+        self.newMessage(Log.LOG_ERROR, str)
 
 log = Log()        

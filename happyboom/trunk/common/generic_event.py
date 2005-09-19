@@ -97,10 +97,10 @@ class EventListener:
         @type prefix: C{str}
         @param suffix: Suffix for all event-specific handler function name.
         @type suffix: C{str}
-        @param event_default: Default handler function name.
-        @type event_default: C{str}
-        @param event_silent: Silent flag.
-        @type event_silent: C{bool}
+        @param default: Default handler function name.
+        @type default: C{str}
+        @param silent: Silent flag.
+        @type silent: C{bool}
         """
         self.event_manager = EventManager.instance
         self.event_pattern = prefix + "%s" + suffix
