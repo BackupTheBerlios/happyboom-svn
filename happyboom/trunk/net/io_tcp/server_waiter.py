@@ -21,7 +21,7 @@ class NetworkServerWaiter(object):
     def isRunning(self):
         return self.__running
 
-    def run_thread(self, port, max_connection):
+    def runThread(self, port, max_connection):
         try:
             self.__running = True
             self.start(port, max_connection)

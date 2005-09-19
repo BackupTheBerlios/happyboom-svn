@@ -54,10 +54,6 @@ class UDP_Pinger:
         self.client = client
         self.__sent_ping = {}
 
-    def processPong(self, id):
-        """ Process pong. """
-        pass
-
     def sendPing(self):
         """ Send a new ping : create the packet and send it to the client. """
         self.__ping_id = self.__ping_id + 1

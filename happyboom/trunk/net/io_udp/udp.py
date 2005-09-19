@@ -165,7 +165,7 @@ class IO_UDP(BaseIO):
         @type need_ack: C{bool}
         """
         if self.debug:
-            log.info("Send packet %s to %s" % (packet.toStr(), client))
+            log.info("Send packet %s to %s" % (packet, client))
         self.__socket.sendto(data, client.addr)
 
         # If the packet need an ack, add it to the list
@@ -286,7 +286,7 @@ class IO_UDP(BaseIO):
         client = packet.recv_from
 
         if self.debug:
-            log.info("Received packet %s from %s:%u" % (packet.toStr(), client.host, client.port))
+            log.info("Received packet %s from %s:%u" % (packet, client.host, client.port))
         
         # Send an ack if needed
         if not packet.skippable: self.__sendAck(packet)
@@ -329,7 +329,7 @@ class IO_UDP(BaseIO):
         @type packet: C{L{Packet}}
         """
         if self.verbose:
-            log.info("New udp message : %s" % packet.toStr())
+            log.info("New udp message : %s" % packet)
         if self.on_new_packet != None: self.on_new_packet(packet)        
 
     def __getPort(self):

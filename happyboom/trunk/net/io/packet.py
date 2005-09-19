@@ -75,19 +75,19 @@ class Packet(object):
         if not Packet.use_tcp and self.id==None: return False
         return self.__valid 
         
-    def toStr(self):
+    def __str__(self):
         """ For debug only, convert to string """
         if self.type == Packet.PACKET_ACK:
-            return "ACK %u [id=%u, skippable=%u]" % (self.id, self.id, self.skippable)
+            return "Packet ACK %u <id=%u, skippable=%u>" % (self.id, self.id, self.skippable)
         if self.type == Packet.PACKET_PING:
             ping = struct.unpack("!I", self.__data)
-            return "PING %u [id=%u, skippable=%u]" % (ping[0], self.id, self.skippable)
+            return "Packet PING %u <id=%u, skippable=%u>" % (ping[0], self.id, self.skippable)
         if self.type == Packet.PACKET_PONG:
             ping = struct.unpack("!I", self.__data)
-            return "PONG %u [id=%u, skippable=%u]" % (ping[0], self.id, self.skippable)
+            return "Packet PONG %u <id=%u, skippable=%u>" % (ping[0], self.id, self.skippable)
         else:
-            return "\"%s\" [id=%u, skippable=%u]" \
-                % (self.__data, self.id, self.skippable)
+            return "Packet <id=%u, skippable=%u>" \
+                % (self.id, self.skippable)
 
     def unpack(self, binary_data):
         """ Fill attributes from a binary data packet
@@ -152,6 +152,8 @@ class Packet(object):
             data = data + struct.pack("!%us" % data_len, self.__data)
         return data
         
+    # TODO: Remove this function, only used in UDP
+    # code
     def prepareSend(self):
         """ Prepare the packet before it will be send : set timeout and send counter. """
         self.timeout = time.time()+Packet.timeout

@@ -54,7 +54,7 @@ class IO_TCP(BaseIO):
         if self.__is_server:
             if self.verbose:
                 log.info("Run server at %s:%u (tcp)" % (self.host, self.port))
-            thread.start_new_thread( self.__waiter.run_thread, (port,max_connection,))
+            thread.start_new_thread( self.__waiter.runThread, (port,max_connection,))
         else:
             if self.verbose:
                 log.info("Connect to server %s:%u" % (self.host, self.port))
