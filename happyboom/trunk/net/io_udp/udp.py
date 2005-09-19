@@ -6,6 +6,7 @@ import socket
 import traceback
 import struct
 from net.io.base_io import BaseIO
+from net.io.packet import Packet
 from udp_client import UDP_Client
 from happyboom.common.log import log
 from happyboom.common.thread import getBacktrace
@@ -82,7 +83,7 @@ class IO_UDP(BaseIO):
         self.__socket.setblocking(0)
 
         if not self.__is_server:
-            self.send( io.Packet("I'm here") )
+            self.send( Packet("I'm here") )
         
         BaseIO.connect(self, host, port)
 
@@ -270,7 +271,7 @@ class IO_UDP(BaseIO):
         if self.on_receive != None: self.on_receive(data)
                     
         # Decode data to normal packet (unpack) 
-        packet = io.Packet()
+        packet = Packet()
         packet.unpack(data)
         if not packet.isValid():
             if self.debug:
@@ -291,13 +292,13 @@ class IO_UDP(BaseIO):
         if not packet.skippable: self.__sendAck(packet)
         
         # Is is a special packet (ack / ping / poing) ?
-        if packet.type == io.Packet.PACKET_ACK:
+        if packet.type == Packet.PACKET_ACK:
             client.processAck(packet)
             return None
-        if packet.type == io.Packet.PACKET_PING:
+        if packet.type == Packet.PACKET_PING:
             client.processPing(packet)
             return None
-        if packet.type == io.Packet.PACKET_PONG:
+        if packet.type == Packet.PACKET_PONG:
             client.processPong(packet)
             return None
             
@@ -314,18 +315,18 @@ class IO_UDP(BaseIO):
 
     def __sendAck(self, packet):
         """ Send an ack for a packet.
-        @type packet: C{L{Packet<io.Packet>}}
+        @type packet: C{L{Packet}}
         """
         # Write ack to socket
-        ack = io.Packet(skippable=True)
-        ack.type = io.Packet.PACKET_ACK
-        ack.writeStr( struct.pack("!I", packet.id) )
-        #if self.debug: log.info("Send ACK %u." % ack.id)
+        data = struct.pack("!I", packet.id)
+        ack = Packet(data)
+        ack.type = Packet.PACKET_ACK
+        ack.skippable = True        
         packet.recv_from.send(ack)
 
     def __processNewPacket(self, packet):
         """ Do something with a new packet
-        @type packet: C{L{Packet<io.Packet>}}
+        @type packet: C{L{Packet}}
         """
         if self.verbose:
             log.info("New udp message : %s" % packet.toStr())

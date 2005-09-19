@@ -1,6 +1,6 @@
 import time
 import struct
-from net import io
+from net.io.packet import Packet
 from happyboom.common.log import log
 
 class UDP_Ping:
@@ -24,9 +24,9 @@ class UDP_Ping:
 
     def getPacket(self):
         """ Create a network packet containing the ping. """
-        ping = io.Packet()
+        data = struct.pack("!I", self.id)
+        ping = io.Packet(data)
         ping.type = io.Packet.PACKET_PING
-        ping.writeStr( struct.pack("!I", self.id) )
         return ping    
 
 class UDP_Pinger:
@@ -102,9 +102,9 @@ class UDP_Pinger:
         """ Process ping : send pong.
         @type packet: C{L{Packet<io.Packet>}}
         """
-        pong = io.Packet(skippable=True)
-        pong.type = io.Packet.PACKET_PONG
-        pong.writeStr( packet.data )
+        pong = Packet( packet.data )
+        pong.type = Packet.PACKET_PONG
+        pong.skippable = True        
         self.client.send(pong)
         
     def processPong(self, packet):

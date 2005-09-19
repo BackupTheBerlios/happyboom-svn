@@ -43,15 +43,6 @@ class Packet(object):
     PACKET_PONG = 3
     PACKET_ACK = 4
 
-    def __str__(self):
-        txt = "Packet <type=%u, " % (self.type)
-        if self.__data:
-            txt = txt+"data=\"%s\"" % (self.__data)
-        else:
-            txt = txt+"no data"            
-        if self.skippable: txt = txt+", skippable"
-        return txt+">"
-
     def __init__(self, str=None, skippable=False):
         """ Constructor.
         @parameter str: String data.
@@ -60,14 +51,22 @@ class Packet(object):
         @type skippable: C{bool}
         """
         self.sent = 0
-        self.__data = None
         self.timeout = None
         self.skippable = skippable
         self.id = None
         self.type = Packet.PACKET_DATA
         self.recv_from = None
         self.__valid = True
-        if str != None: self.writeStr(str)
+        self.__data = str        
+            
+    def __str__(self):
+        txt = "Packet <type=%u, " % (self.type)
+        if self.__data:
+            txt = txt+"data=\"%s\"" % (self.__data)
+        else:
+            txt = txt+"no data"            
+        if self.skippable: txt = txt+", skippable"
+        return txt+">"
 
     def isValid(self):
         """ After unpack, say if the packet is valid or not.
@@ -152,13 +151,6 @@ class Packet(object):
         if data_len != 0:
             data = data + struct.pack("!%us" % data_len, self.__data)
         return data
-        
-    def writeStr(self, str):
-        """ Write a sting into packet (still used ???) """
-        if self.__data == None:
-            self.__data = str
-        else:
-            self.__data = self.__data + str
         
     def prepareSend(self):
         """ Prepare the packet before it will be send : set timeout and send counter. """
