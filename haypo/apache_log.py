@@ -1,4 +1,4 @@
-#
+#!/usr/bin/python
 # Python script to parse Apache log file
 # 21 septembre 2005
 # Author: Victor Stinner
@@ -9,7 +9,7 @@ import re, time, sys, traceback
 class ApacheLogParser:
     def __init__(self):
         # String like "abc" or "a\"bc" or just ""
-        match_string = r"\"((?:[^\"]+|\\\")*)\""
+        match_string = r"\"((?:[^\"]|\\\")*)\""
 
         # Regex matching one line
         regex  = r"^([^ ]+) " # Origin
@@ -24,7 +24,6 @@ class ApacheLogParser:
         regex += match_string+"$" # Browser string
         
         self._regex = re.compile(regex)
-        print "Pattern: %s" % self._regex.pattern
         self.handler = self.processLine
 
     def processLine(self, line_number, line, info):
@@ -32,13 +31,10 @@ class ApacheLogParser:
 
     def parseLine(self, line_number, line):
         try:
-            print "LINE %u ========= %s =======" % (line_number, line)
-            print "Regex."
             m = self._regex.search(line)
             if m == None:
                 print "Can't parse line %u:\n%s" % (line_number, line)
                 return
-            print "Assign."
             origin, host, user, date, method, url, code, size, referrer, browser = m.groups()
             kw = { \
                 "origin": origin,
@@ -51,9 +47,7 @@ class ApacheLogParser:
                 "size": size,
                 "referrer": referrer,
                 "browser": browser}
-            print "Handler."
             self.handler(line_number, line, kw)
-            print "Done."
         except KeyboardInterrupt:
             print "Interrupt line: %s" % line
             raise
@@ -69,12 +63,12 @@ class ApacheLogParser:
         print "Load file %s ..." % filename
         try:
             nb_lines = len(data)
-            t = time.time()
+#            t = time.time()
             for line in data:
-                if 40800<line_number: #0.3 < time.time() - t:
-                    t = time.time()
-                    progress = int( (line_number-1)*100/nb_lines )
-                    print "Progress: %s%% (%u on %u) - %s" % (progress, line_number, nb_lines, line)
+#                if 1.0 < time.time() - t:
+#                    t = time.time()
+#                    progress = int( (line_number-1)*100/nb_lines )
+#                    print "Progress: %s%%" % (progress)
                 self.parseLine(line_number, line)
                 line_number += 1
             print "File loaded."
@@ -112,8 +106,8 @@ class ApacheLogParser_Stat(ApacheLogParser):
             url = "/"+m.group(1)
 
         # Ignore this hit?
-#        if self.ignore_handler:
-#            if self.ignore_handler(info)==True: return
+        if self.ignore_handler:
+            if self.ignore_handler(info)==True: return
 
         # Page hit stat
         if code not in [302, 404]:
@@ -161,6 +155,7 @@ class ApacheLogParser_Stat(ApacheLogParser):
 
 def printTopPage(r, max):
     # Top pages
+    print "=== Top page ==="
     pages = r.getTopPage(max)
     for page in pages:
         print "%u hit(s): %s" % (page[0], page[1])
@@ -175,30 +170,37 @@ def yahooHosts():
     return ["[a-z]+.search.yahoo.com"]
 
 def printTopReferrer(r, max):
-    # Top pages
+    print "=== Top referrer ==="
     pages = r.getTopReferrer(max)
     for page in pages:
         print "%u hit(s): %s" % (page[0], page[1])
 
 class HaypoCALC:
     def __init__(self):
+        # Ignore referrer regex
         hosts = ["(www\.)?haypocalc\.com"] # Haypocalc
+        hosts.append ("exoscin\.free\.fr") # Exoscin.free.fr
         hosts += googleHosts()
         hosts += yahooHosts()
         self.ignore_referrer = [ re.compile(r"^http://("+"|".join(hosts)+")")  ]
 
+        # Ignore url regex
         self.ignore_url = []
-        end = r"(\?.*)?$"
         ignore_ext = ["css", "jpg", "JPG", "png", "js", "gif", "swf"]
         ignore_ext = "|".join(ignore_ext)
-        self.ignore_url.append( re.compile(r"\.("+ignore_ext+r")"+end) )
+        self.ignore_url.append( re.compile(r"\.("+ignore_ext+r")(\?.*)?$") )
         self.ignore_url.append( re.compile(r"^/wiki/index.php\?.*&action=raw") )
         self.ignore_url.append( re.compile(r"^/robots\.txt$") )
 
     def ignoreHandler(self, info):
+        url = info["url"]
+        for regex in self.ignore_url:
+            if regex.search(url) != None: return True
+            
         referrer = info["referrer"]
         for regex in self.ignore_referrer:
             if regex.search(referrer) != None: return True
+            
         return False
 
 def usage():
@@ -214,8 +216,8 @@ def main():
         r=ApacheLogParser_Stat("haypocalc.com")
         r.ignore_handler = h.ignoreHandler
         r.parseFile(filename)
-    #    printTopPage(r, 10)
-        printTopReferrer(r, 100)
+        printTopPage(r, 10)
+        printTopReferrer(r, 10)
     except KeyboardInterrupt:
         print "Program interrupted (CTRL+C)."
         
