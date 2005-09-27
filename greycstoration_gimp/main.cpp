@@ -21,6 +21,8 @@
 #include "plug_in.h"
 #include "dialog.h"
 #include "greycstoration.h"
+#include <unistd.h>
+
 //----------------------------------------------------------------------------
 GREYCstoration greyc;
 GREYCstoration_params greyc_params;
@@ -92,6 +94,10 @@ static void run (const gchar* name,
 {
 	static GimpParam values[1];
 	GimpPDBStatusType status = GIMP_PDB_SUCCESS;
+
+	/* Reduce the processes importance so that it doesn't make the computer 
+	   non-interactive */
+	nice(19);
 
 	/* Mise en place d'une valeur obligatoire de retour */
 	*nreturn_vals = 1;
