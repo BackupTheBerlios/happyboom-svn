@@ -1,0 +1,21 @@
+Introduction
+============
+
+GREYCstoration is a Gimp plugin using the algorithm written by David
+Tschumperlé from GREYC laboratory (at Caen in France). The version 0.1.x of
+the plugin only supports the restoration functionnality, but the algorithm
+can also do great picture resize or good inpainting.
+
+Install the plugin
+==================
+
+See INSTALL file.
+
+Web links
+=========
+
+More informations about the algorithm:
+  http://www.greyc.ensicaen.fr/~dtschump/greycstoration/
+  
+Plugin website:
+  http://www.haypocalc.com/wiki/GREYCstoration_in_english

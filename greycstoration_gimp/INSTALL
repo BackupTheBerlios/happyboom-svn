@@ -1,0 +1,19 @@
+The install the Gimp plugin GREYCstoration, you have to compile it first.
+For this, you will need:
+
+- Gimp 2.2.x (or greater) and headers of the Gimp library
+  http://www.gimp.org/
+- Compiler GNU g++
+  http://gcc.gnu.org/
+- GTK 2.x (version 2.6 or greater?) and development headers of GTK+
+  http://www.gtk.org/
+
+Instruction to compile
+======================
+
+make && make install
+
+That's all :-)
+
+The plugin is only tested on Linux, but Michael Schumacher
+prepared Win32 binaries.

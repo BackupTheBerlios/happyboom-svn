@@ -1,0 +1,10 @@
+David Tschumperlé <David.Tschumperle AT greyc.ensicaen.fr>
+    o Author of the GREYCstoration algorithm
+David Rodríguez García <david AT livux.com>
+    o Patch to limit progress bar updates
+Michael Schumacher <schumaml AT gmx.de>
+    o Prepared Win32 binaries
+Pedro Côrte-Real <pedrocr AT gmail.com>
+    o nice(19) patch to limit CPU use
+Victor Stinner aka haypo <vitor.stinner AT haypocalc.com>
+    o First author of the patch
