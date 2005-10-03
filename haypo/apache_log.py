@@ -26,14 +26,14 @@ class ApacheLogParser:
         self._regex = re.compile(regex)
         self.handler = self.processLine
 
-    def processLine(self, line_number, line, info):
+    def processLine(self, filename, line_number, line, info):
         print "Line %u: %s %s" % (line_number, info["method"], info["url"])
 
-    def parseLine(self, line_number, line):
+    def parseLine(self, filename, line_number, line):
         try:
             m = self._regex.search(line)
             if m == None:
-                print "Can't parse line %u:\n%s" % (line_number, line)
+                print "Can't parse %s:%u:\n%s" % (filename, line_number, line)
                 return
             origin, host, user, date, method, url, code, size, referrer, browser = m.groups()
             kw = { \
@@ -47,7 +47,7 @@ class ApacheLogParser:
                 "size": size,
                 "referrer": referrer,
                 "browser": browser}
-            self.handler(line_number, line, kw)
+            self.handler(filename, line_number, line, kw)
         except KeyboardInterrupt:
             print "Interrupt line: %s" % line
             raise
@@ -69,7 +69,7 @@ class ApacheLogParser:
 #                    t = time.time()
 #                    progress = int( (line_number-1)*100/nb_lines )
 #                    print "Progress: %s%%" % (progress)
-                self.parseLine(line_number, line)
+                self.parseLine(filename, line_number, line)
                 line_number += 1
             print "File loaded."
         except KeyboardInterrupt:
@@ -95,11 +95,11 @@ class ApacheLogParser_Stat(ApacheLogParser):
         else:
             attr[key] = 1
 
-    def processLine(self, line_number, line, info):
+    def processLine(self, filename, line_number, line, info):
         url = info["url"]
         code = info["code"]
         referrer = info["referrer"]
-        
+
         # Clean url (remove hostname)
         m = self.regex_host.match(url)
         if m != None:
@@ -164,10 +164,22 @@ def printTopPage(r, max):
 def googleHosts():        
     return ["216\.239\.59\.104", \
         "66\.249\.93\.104", "66.102.9.104", \
-        "216.109.124.98", "(images|www)\.google\.(fr|com)"]
+        "216.109.124.98", "(images|www)\.google\.[a-z]{2,3}"]
+
+def msnHosts():
+    return ["search.msn.[a-z]{2,3}"]
 
 def yahooHosts():
     return ["[a-z]+.search.yahoo.com"]
+
+def altavistaHosts():
+    return ["www.altavista.com"]
+
+def faiSearchHosts():
+    return ["search[0-9]-[0-9].free.fr", "search.ke.voila.fr"]
+
+def searchEngineHosts():        
+    return googleHosts() + yahooHosts() + msnHosts() + altavistaHosts() + faiSearchHosts()
 
 def printTopReferrer(r, max):
     print "=== Top referrer ==="
@@ -178,10 +190,9 @@ def printTopReferrer(r, max):
 class HaypoCALC:
     def __init__(self):
         # Ignore referrer regex
-        hosts = ["(www\.)?haypocalc\.com"] # Haypocalc
-        hosts.append ("exoscin\.free\.fr") # Exoscin.free.fr
-        hosts += googleHosts()
-        hosts += yahooHosts()
+        hosts = ["(www\.)?haypocalc\.com"] # Ignore Haypocalc
+        hosts.append ("exoscin\.free\.fr") # Ignore exoscin.free.fr
+        hosts += searchEngineHosts()       # Ignore search engines
         self.ignore_referrer = [ re.compile(r"^http://("+"|".join(hosts)+")")  ]
 
         # Ignore url regex
@@ -215,9 +226,14 @@ def main():
         filename = sys.argv[1]
         r=ApacheLogParser_Stat("haypocalc.com")
         r.ignore_handler = h.ignoreHandler
+
         r.parseFile(filename)
-        printTopPage(r, 10)
-        printTopReferrer(r, 10)
+#        for month in range(1,31):
+#            filename = "/mnt/media/log-haypocalc/logs-08-2005/haypocalc.com-%02u-08-2005.log" % month
+#            r.parseFile(filename)
+        
+        printTopPage(r, 20)
+        printTopReferrer(r, 20)
     except KeyboardInterrupt:
         print "Program interrupted (CTRL+C)."
         
