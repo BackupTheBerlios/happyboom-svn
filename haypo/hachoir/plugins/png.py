@@ -64,9 +64,10 @@ class PngText(Filter):
         pos = self.stream.search("\0", 14)
         if pos == -1:
             raise Exception("Fails to find end of text")
-        self.read("keyword", "!%us" % (pos-old), "Keyword")
+        lg = (pos-old)
+        self.read("keyword", "!%us" % lg, "Keyword")
         self.read("separator", "!B", "Null byte used to separe strings")
-        lg = self.stream.getLastPos()-self.stream.tell()
+        lg = (self.parent.size-lg-1)
         self.read("text", "!%us" % lg, "Text")
 
     def __str__(self):
@@ -119,13 +120,13 @@ class PngChunk(Filter):
             "tEXt": PngText
         }
         if self.type in self.chunk_splitter:
+            oldpos = self.stream.tell()
             self.openChild()
             self.newChild("Chunk data (type %s)" % self.type)
             func = self.chunk_splitter[self.type]
-            new_stream = LimitedFileStream( self.stream.filename, self.stream.tell(), self.size )
-            self.data = func(new_stream, self)            
-            self.stream.seek(self.stream.tell() + self.size)
+            self.data = func(stream, self)            
             self.closeChild("Chunk data (type %s)" % self.type)
+            assert oldpos + self.size == self.stream.tell()
         else:
             self.read("data", "![size]s", "Chunk data")
         self.read("crc32", "!L", "Chunk CRC32")

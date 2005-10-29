@@ -39,7 +39,7 @@ class GladeInterface:
         self.build_table()
 
     def build_table(self):
-        self.table_store = gtk.TreeStore(str, str, str, str, str, str)
+        self.table_store = gtk.TreeStore(str, int, str, str, str, str)
         self.table.set_model(self.table_store)
         self.treeview_add_column(self.table, "Address", 0)
         self.treeview_add_column(self.table, "Size", 1)
