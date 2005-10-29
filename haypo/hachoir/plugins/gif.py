@@ -18,20 +18,20 @@ def displayGif(gif):
 class GifColor(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, stream, parent)
-        self.read("red", "!B", "Red")
-        self.read("green", "!B", "Green")
-        self.read("blue", "!B", "Blue")
+        self.read("red", "<B", "Red")
+        self.read("green", "<B", "Green")
+        self.read("blue", "<B", "Blue")
 
 class GifImage(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, stream, parent)
-        self.read("left", "!H", "Left")
-        self.read("top", "!H", "Top")
-        self.read("width", "!H", "Width")
-        self.read("height", "!H", "Height")
+        self.read("left", "<H", "Left")
+        self.read("top", "<H", "Top")
+        self.read("width", "<H", "Width")
+        self.read("height", "<H", "Height")
 
         # TODO: Fix this ...
-        self.read("flags", "!H", "Flags")
+        self.read("flags", "<H", "Flags")
         self.global_map = ((self.flags & 0x80) == 0x80)
         self.interlaced = ((self.flags & 0x40) == 0x40)
         self.bits_per_pixel = 1 + (self.flags & 0x07)
@@ -63,13 +63,13 @@ class GifColorMap(Filter):
 class GifExtensionChunk(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, stream, parent)
-        self.read("size", "!B", "Size (in bytes)")
-        self.read("content", "![size]s", "Content")
+        self.read("size", "<B", "Size (in bytes)")
+        self.read("content", "<[size]s", "Content")
 
 class GifExtension(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, stream, parent)
-        self.read("func", "!B", "Function")
+        self.read("func", "<B", "Function")
         self.chunks = []
         self.openChild()
         while True:
@@ -82,11 +82,11 @@ class GifExtension(Filter):
 class GifScreenDescriptor(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, stream, parent)
-        self.read("width", "!H", "Width")
-        self.read("height", "!H", "Height")
+        self.read("width", "<H", "Width")
+        self.read("height", "<H", "Height")
 
         # TODO: Fix this
-        self.read("flags", "!B", "Flags")
+        self.read("flags", "<B", "Flags")
         self.global_map = ((self.flags & 0x80) == 0x80) # ok
         self.color_res = 1 + ((self.flags >> 4) & 0x7) # ??
         self.bits_per_pixel = 1 + (self.flags & 0x7) # ok

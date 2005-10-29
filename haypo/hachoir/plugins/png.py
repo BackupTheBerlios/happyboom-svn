@@ -50,7 +50,7 @@ class PngPhysical(Filter):
 class PngGamma(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, stream, parent)
-        self.read("gamma", "!L", "Gamma (divided by 10,000)")
+        self.read("gamma", "!L", "Gamma (x10,000)")
         self.gamma = float(self.gamma)
         self.gamma = self.gamma / 10000
 
@@ -103,7 +103,7 @@ class PngFilter(Filter):
             self.newChild("New chunk")
             chunk = PngChunk(stream, parent=self)
             self.chunks.append( chunk )
-
+            self.updateChildTitle("Chunk (type %s)" % chunk.type)
         self.closeChild("Chunks")
         
 class PngChunk(Filter):

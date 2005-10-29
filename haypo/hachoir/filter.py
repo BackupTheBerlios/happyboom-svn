@@ -34,8 +34,8 @@ class Filter:
         self.__last_child_stream_pos = None 
 
     def closeChild(self, text):
-        self.__updateChild(self.__child_stream_pos, self.table_item)
-        self.__updateChild(self.__last_child_stream_pos, self.table_parent)
+        self.__updateChild(self.__last_child_stream_pos, self.table_item)
+        self.__updateChild(self.__child_stream_pos, self.table_parent)
         if display_filter_actions != self.depth: return
         size = self.stream.tell() - self.__child_stream_pos
         sys.stdout.write("%s<%s (%u bytes)>\n" % (self.indent, text, size))
@@ -47,13 +47,16 @@ class Filter:
         size = self.stream.tell() - pos
         hmi.hmi.set_table_value(table, 1, size) 
 
+    def updateChildTitle(self, text):
+        hmi.hmi.set_table_value(self.table_item, 4, text) 
+
     def newChild(self, text):
         file_pos = self.stream.tell()
         self.__updateChild(self.__last_child_stream_pos, self.table_item)
         self.table_item = hmi.hmi.add_table_child(self.table_parent, file_pos, 0, None, text)
+        self.__last_child_stream_pos = file_pos 
         if display_filter_actions < self.depth+1: return
         sys.stdout.write("%s[ %s ]\n" % (self.child_indent, text))
-        self.__last_child_stream_pos = file_pos 
 
     def __isStrPrintable(self, str):
         """
