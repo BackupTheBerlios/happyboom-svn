@@ -12,7 +12,6 @@ VERSION="2005-10-27"
 
 import sys, os, re, traceback
 from stream import FileStream
-import filter
 from plugin import getPlugin
 
 def usage(defval):
@@ -65,6 +64,7 @@ class Hachoir:
         self.depth = 5
 
     def run(self, filename):
+        import filter
         # Look for a plugin
         plugin = getPlugin(filename)
         if plugin != None:
@@ -120,7 +120,18 @@ def main():
         hachoir = Hachoir()
         for key in opt:
             setattr(hachoir, key, opt[key])
+
+        try:
+            import hmi
+        except ImportError, err:
+            print """Error: a Python module is missing:\n%s\n
+You can find PyGTK at: http://www.pygtk.org/
+and PyGlade at: http://glade.gnome.org/""" % (err)
+            sys.exit(1)
+        hmi.loadInterface()
         hachoir.run(filename)
+        hmi.hmi.run()
+
     except SystemExit:
         pass
     except Exception, err:

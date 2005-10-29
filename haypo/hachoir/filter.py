@@ -7,6 +7,7 @@ import re
 import sys
 import types
 import string
+import hmi
 
 class Filter:
     def __init__(self, stream, parent=None):
@@ -15,25 +16,43 @@ class Filter:
         self.parent = parent
         if self.parent:
             self.depth = parent.depth + 1
+            self.table_parent = parent.table_item
         else:
             self.depth = 1
+            self.table_item = None
+            self.table_parent = None 
         self.indent = " " * ((self.depth-1)*2)
         self.child_indent = " " * (self.depth*2)
+        self.table_item = None
 
     def __replaceFieldFormat(self, match):
         return str(getattr(self, match.group(1)))
 
     def openChild(self):
         self.__child_stream_pos = self.stream.tell()
+        self.__last_child_stream_pos = None 
 
     def closeChild(self, text):
+        self.__updateChild(self.__child_stream_pos, self.table_item)
+        self.__updateChild(self.__last_child_stream_pos, self.table_parent)
         if display_filter_actions != self.depth: return
         size = self.stream.tell() - self.__child_stream_pos
         sys.stdout.write("%s<%s (%u bytes)>\n" % (self.indent, text, size))
+        self.table_item = None
+        self.__last_child_stream_pos = None
+
+    def __updateChild(self, pos, table):
+        if pos == None or table == None: return
+        size = self.stream.tell() - pos
+        hmi.hmi.set_table_value(table, 1, size) 
 
     def newChild(self, text):
+        file_pos = self.stream.tell()
+        self.__updateChild(self.__last_child_stream_pos, self.table_item)
+        self.table_item = hmi.hmi.add_table_child(self.table_parent, file_pos, 0, None, text)
         if display_filter_actions < self.depth+1: return
         sys.stdout.write("%s[ %s ]\n" % (self.child_indent, text))
+        self.__last_child_stream_pos = file_pos 
 
     def __isStrPrintable(self, str):
         """
@@ -66,7 +85,7 @@ class Filter:
     def read(self, id, format, description, can_truncate=True):
         format = re.sub(r'\[([^]]+)\]', self.__replaceFieldFormat, format)
         size = struct.calcsize(format)
-        max = 80 
+        max = 60 
         if size<max or format[-1] != "s" or not can_truncate:
             rawdata = self.stream.getN(size)
             assert len(rawdata) == size
@@ -79,19 +98,22 @@ class Filter:
             self.stream.seek( self.stream.tell() + size - max )
         # Display content ?
         if self.depth <= display_filter_actions and 0<size:
-            # Write indentation
-            sys.stdout.write(self.indent)
+            file_pos = self.stream.tell() - size
 
-            # Write first 4 bytes in hexadecimal
+            # Convert data into hexadecimal
             i = 0
+            hex_data = ""
             for byte in rawdata:
                 # If there are more than 4 bytes, write "..."
                 if 4 <= i:
-                    sys.stdout.write(".. ")
+                    hex_data = hex_data + ".. "
                     i = i + 1
                     break
-                sys.stdout.write("%02X " % ord(byte))
+                hex_data = hex_data + "%02X " % ord(byte)
                 i = i + 1
+
+            # Write "<addr>: <indent><hex data>"
+            sys.stdout.write("%08X: %s%s" % (file_pos, self.indent, hex_data))
 
             # Align text to 4 bytes
             sys.stdout.write("   " * (5-i))
@@ -100,17 +122,31 @@ class Filter:
             sys.stdout.write("%s (%u bytes)" % (description, size))
 
             # Write content like id=value?
+            comment = ""
             if id != None:
                 t = type(data)
                 if t==types.IntType or t==types.LongType:
                     # Display integers
-                    sys.stdout.write(", %s = %u" % (id, data))
+                    comment = "%s = %u" % (id, data)
                 elif type(data)==types.StringType and len(data)<max:
                     # Display string (replace ASCII < 32 by \xCC)
-                    display = re.sub("([\x00-\x1F])", lambda m: "\\x%02X" % ord(m.group(1)), data)
-                    if self.__isStrPrintable(display):
-                        sys.stdout.write(", %s=\"%s\"" % (id, display))
+                    display = ""
+                    for c in data:
+                        if ord(c)<32:
+                            know = {"\n": "\\n", "\r": "\\r"}
+                            if c in know:
+                                display = display + know[c]
+                            else:
+                                display = display + "\\x%02X" % ord(c)
+                        elif c in string.printable:
+                            display = display + c
+                        else:
+                            display = display + "."
+                    comment = "%s=\"%s\"" % (id, display)
+            if comment != "":
+                sys.stdout.write(comment)
             sys.stdout.write("\n")
+            hmi.hmi.add_table(self.table_parent, file_pos, size, hex_data, id, description, comment)
 
         # Save result in the object
         if id != None:

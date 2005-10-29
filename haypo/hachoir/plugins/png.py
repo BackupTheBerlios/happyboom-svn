@@ -120,12 +120,12 @@ class PngChunk(Filter):
         }
         if self.type in self.chunk_splitter:
             self.openChild()
-            self.newChild("Decode chunk data (type %s)" % self.type)
+            self.newChild("Chunk data (type %s)" % self.type)
             func = self.chunk_splitter[self.type]
             new_stream = LimitedFileStream( self.stream.filename, self.stream.tell(), self.size )
             self.data = func(new_stream, self)            
             self.stream.seek(self.stream.tell() + self.size)
-            self.closeChild("Chunk data")
+            self.closeChild("Chunk data (type %s)" % self.type)
         else:
             self.read("data", "![size]s", "Chunk data")
         self.read("crc32", "!L", "Chunk CRC32")
