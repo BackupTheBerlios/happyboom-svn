@@ -24,6 +24,7 @@ class Filter:
         self.indent = " " * ((self.depth-1)*2)
         self.child_indent = " " * (self.depth*2)
         self.table_item = None
+        self.__last_child_stream_pos = None 
 
     def __replaceFieldFormat(self, match):
         return str(getattr(self, match.group(1)))

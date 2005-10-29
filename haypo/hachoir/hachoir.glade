@@ -17,6 +17,7 @@
   <property name="type_hint">GDK_WINDOW_TYPE_HINT_NORMAL</property>
   <property name="gravity">GDK_GRAVITY_NORTH_WEST</property>
   <property name="focus_on_map">True</property>
+  <signal name="destroy" handler="on_window_destroy" last_modification_time="Sat, 29 Oct 2005 02:58:52 GMT"/>
 
   <child>
     <widget class="GtkScrolledWindow" id="scrolledwindow1">
