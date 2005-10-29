@@ -66,7 +66,7 @@ class PngText(Filter):
             raise Exception("Fails to find end of text")
         self.read("keyword", "!%us" % (pos-old), "Keyword")
         self.read("separator", "!B", "Null byte used to separe strings")
-        lg = self.stream.getEnd()-self.stream.tell()
+        lg = self.stream.getLastPos()-self.stream.tell()
         self.read("text", "!%us" % lg, "Text")
 
     def __str__(self):
