@@ -26,11 +26,14 @@ def displayPE_ResourceDirectory(res):
     for item in res.items:
         displayPE_Resource(item)
 
-def displayExe(exe):
+def displayMS_Dos(exe):        
     print "[ MS-DOS HEADER ]"
     print "Init. SS:SP: %04X:%04X" % \
         (exe.init_ss_sp & 0xFFFF,
          exe.init_ss_sp >> 16 & 0xFFFF)
+
+def displayExe(exe):
+    displayMS_Dos(exe.ms_dos)
     if exe.pe:
 #        displayPE(exe.pe)
         for section in exe.pe_sections:
@@ -168,9 +171,9 @@ class PE_Filter(Filter):
             0x01F0: "IBM Power PC, little endian"}
         return cpu_name.get(self.cpu_type, "unknow")
 
-class ExeFilter(Filter):
-    def __init__(self, stream):
-        Filter.__init__(self, stream)
+class MS_Dos(Filter):
+    def __init__(self, stream, parent):
+        Filter.__init__(self, stream, parent)
         self.read("header", "2s", "File header")
         assert self.header == "MZ"
         self.read("filesize_mod_512", ">H", "Filesize mod 512")
@@ -194,10 +197,19 @@ class ExeFilter(Filter):
         self.read(None, "!10H", "Reserved")
         self.read("pe_offset", "<L", "Offset to PE header")
 
-        if self.reloc_offset == 0x40:
+class ExeFilter(Filter):
+    def __init__(self, stream):
+        Filter.__init__(self, stream)
+
+        self.openChild()
+        self.newChild("MS-Dos header")
+        self.ms_dos = MS_Dos(stream, self)
+        self.closeChild("MS-Dos header")
+
+        if self.ms_dos.reloc_offset == 0x40:
+            self.stream.seek(self.ms_dos.pe_offset)
             self.openChild()
             self.newChild("PE header")
-            self.stream.seek(self.pe_offset)
             self.pe = PE_Filter(stream, self)
             self.closeChild("PE header")
 

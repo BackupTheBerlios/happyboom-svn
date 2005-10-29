@@ -34,12 +34,14 @@ class Filter:
         self.__last_child_stream_pos = None 
 
     def closeChild(self, text):
-        self.__updateChild(self.__child_stream_pos, self.table_item)
+        self.__updateChild(self.__last_child_stream_pos, self.table_item)
+        if self.table_parent != None:
+            self.__updateChild(self.__child_stream_pos, self.table_parent)
+        self.table_item = None
+        self.__last_child_stream_pos = None
         if display_filter_actions != self.depth: return
         size = self.stream.tell() - self.__child_stream_pos
         sys.stdout.write("%s<%s (%u bytes)>\n" % (self.indent, text, size))
-        self.table_item = None
-        self.__last_child_stream_pos = None
 
     def __updateChild(self, pos, table):
         if pos == None or table == None: return False
