@@ -54,7 +54,7 @@ class LimitedFileStream(Stream):
         return self.__stream.tell()
 
     def seek(self, pos, where=0):
-        return self.__stream.seek(pos, where)
+        self.__stream.seek(pos, where)
         
     def getSize(self):
         return self.__size
@@ -78,7 +78,8 @@ class FileStream(Stream):
 
     def seek(self, pos, where=0):
         """ Read file seek document to understand where. """
-        return self.__file.seek(pos, where)
+        self.__file.seek(pos, where)
+        assert self.tell() <= self.__size
 
     def tell(self):
         return self.__file.tell()

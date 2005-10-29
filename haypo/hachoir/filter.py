@@ -52,6 +52,9 @@ class Filter:
     def updateChildTitle(self, text):
         hmi.hmi.set_table_value(self.table_item, 4, text) 
 
+    def updateChildComment(self, comment):
+        hmi.hmi.set_table_value(self.table_item, 5, comment) 
+
     def newChild(self, text):
         file_pos = self.stream.tell()
         self.__updateChild(self.__last_child_stream_pos, self.table_item)
@@ -139,7 +142,7 @@ class Filter:
                     display = ""
                     for c in data:
                         if ord(c)<32:
-                            know = {"\n": "\\n", "\r": "\\r"}
+                            know = {"\n": "\\n", "\r": "\\r", "\0": "\\0"}
                             if c in know:
                                 display = display + know[c]
                             else:
@@ -150,7 +153,7 @@ class Filter:
                             display = display + "."
                     comment = "%s=\"%s\"" % (id, display)
             if comment != "":
-                sys.stdout.write(comment)
+                sys.stdout.write(", %s" % comment)
             sys.stdout.write("\n")
             hmi.hmi.add_table(self.table_parent, file_pos, size, hex_data, id, description, comment)
 
