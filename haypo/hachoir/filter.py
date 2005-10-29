@@ -34,8 +34,7 @@ class Filter:
         self.__last_child_stream_pos = None 
 
     def closeChild(self, text):
-        self.__updateChild(self.__last_child_stream_pos, self.table_item)
-        self.__updateChild(self.__child_stream_pos, self.table_parent)
+        self.__updateChild(self.__child_stream_pos, self.table_item)
         if display_filter_actions != self.depth: return
         size = self.stream.tell() - self.__child_stream_pos
         sys.stdout.write("%s<%s (%u bytes)>\n" % (self.indent, text, size))
@@ -43,9 +42,10 @@ class Filter:
         self.__last_child_stream_pos = None
 
     def __updateChild(self, pos, table):
-        if pos == None or table == None: return
+        if pos == None or table == None: return False
         size = self.stream.tell() - pos
         hmi.hmi.set_table_value(table, 1, size) 
+        return True
 
     def updateChildTitle(self, text):
         hmi.hmi.set_table_value(self.table_item, 4, text) 
