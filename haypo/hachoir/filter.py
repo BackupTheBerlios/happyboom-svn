@@ -3,11 +3,10 @@ Base class for all splitter filters.
 """
 
 import struct
-import re
-import sys
-import types
+import re, sys
 import string
-import hmi
+import types
+import ui
 from chunk import Chunk, FormatChunk, ArrayChunk, FilterChunk
     
 class Filter:
@@ -31,6 +30,9 @@ class Filter:
         self._chunks = []
         self._chunks_dict = {}
 
+    def updateParent(self, parent, chunk):
+        pass
+
     def getChunk(self, chunk_id):
         return self._chunks_dict.get(chunk_id, None)
 
@@ -40,20 +42,23 @@ class Filter:
             type = chunk.getFormat()
         elif issubclass(type, FilterChunk):
             type = chunk.getFilter().id
-            #type = "(sub)"
-        hmi.hmi.add_table(self.table_parent, chunk.addr, chunk.size, type, "HEX", chunk.id, chunk.description, "")
+        ui.ui.add_table(self.table_parent, chunk.addr, chunk.size, type, chunk.id, chunk.description, chunk.getDisplayData())
 
-    def display(self):
-        hmi.hmi.enableParentButton(self.getParent() != None)
+    def display(self):  
+        # Update parent button
+        ui.ui.enableParentButton(self.getParent() != None)
+        
+        # Update status bar
         text = ""
         current = self
         while current != None:
             if text != "": text = " > " + text
             text = current.id + text
             current = current.getParent()
-        hmi.hmi.updateStatusBar(text)
+        ui.ui.updateStatusBar("%s: %s" % (text, self.description))
             
-        hmi.hmi.clear_table()
+        # Update table
+        ui.ui.clear_table()
         for chunk in self._chunks:
             if issubclass(chunk.__class__, ArrayChunk):
                 for subchunk in chunk:
@@ -63,45 +68,6 @@ class Filter:
 
     def __replaceFieldFormat(self, match):
         return str(getattr(self, match.group(1)))
-
-    def openChild(self):
-        return
-        self.__child_stream_pos = self._stream.tell()
-        self.__last_child_stream_pos = None 
-
-    def closeChild(self, text):
-        return
-        self.__updateChild(self.__last_child_stream_pos, self.table_item)
-        if self.table_parent != None:
-            self.__updateChild(self.__child_stream_pos, self.table_parent)
-        self.table_item = None
-        self.__last_child_stream_pos = None
-        if display_filter_actions != self.depth: return
-        size = self._stream.tell() - self.__child_stream_pos
-        sys.stdout.write("%s<%s (%u bytes)>\n" % (self.indent, text, size))
-
-    def __updateChild(self, pos, table):
-        if pos == None or table == None: return False
-        size = self._stream.tell() - pos
-        hmi.hmi.set_table_value(table, 1, size) 
-        return True
-
-    def updateChildTitle(self, text):
-        return
-        hmi.hmi.set_table_value(self.table_item, 4, text) 
-
-    def updateChildComment(self, comment):
-        return
-        hmi.hmi.set_table_value(self.table_item, 5, comment) 
-
-    def newChild(self, text):
-        return
-        file_pos = self._stream.tell()
-        self.__updateChild(self.__last_child_stream_pos, self.table_item)
-        self.table_item = hmi.hmi.add_table_child(self.table_parent, file_pos, 0, None, text)
-        self.__last_child_stream_pos = file_pos 
-        if display_filter_actions < self.depth+1: return
-        sys.stdout.write("%s[ %s ]\n" % (self.child_indent, text))
 
     def __isStrPrintable(self, str):
         """
@@ -135,43 +101,55 @@ class Filter:
         self._chunks.append(chunk)
         id = chunk.id
         if id != None:
-            if hasattr(self, id):
-                raise Exception("Chunk identifier %s already exist!" % id)
-            setattr(self, id, chunk.getData())
-            self._chunks_dict[id] = chunk
-        print "%sNew chunk: %s, addr=%s, size=%s (file pos=%s)" % (self.indent, chunk.id, chunk.addr, chunk.size, self._stream.tell())
+            m = re.compile(r"^([^[]+)\[\]$").match(id)
+            if m != None:
+                id = m.group(1)
+                if hasattr(self, id):
+                    array = getattr(self, id)
+                else:
+                    array = []
+                    setattr(self, id, array)
+                assert type(array) == types.ListType
+                chunk.id = "%s[%u]" % (id, len(array))
+                array.append(chunk)
+                if id not in self._chunks_dict:
+                    self._chunks_dict[id] = array 
+            else:
+                if hasattr(self, id):
+                    raise Exception("Chunk identifier %s already exist!" % id)
+                setattr(self, id, chunk.getData())
+                self._chunks_dict[id] = chunk
 
     def readChild(self, id, filter_class, description): 
-        self.openChild()
         oldpos = self._stream.tell()
-        self.newChild(description)
         filter = filter_class(self._stream, self)
         chunk = FilterChunk(id, filter.description, self._stream, oldpos, self._stream.tell() - oldpos, filter)
-        self.closeChild(description)
-        print "%s : %s = %s" % (chunk.__class__, chunk.id, chunk.getData())
         self._appendChunk(chunk)
-        print "New child chunk"
+        filter.updateParent(self, chunk)
 
     def readArray(self, id, filter_class, description, end_func): 
-        array = []
-        self.openChild()
         addr = self._stream.tell()
+        array = []
+        array_chunk = ArrayChunk(id, description, self._stream, addr, self._stream.tell() - addr, array)
+        self._appendChunk(array_chunk)
+
         nb = 0
-        while not end_func(self._stream):
+        last_filter = None
+        while not end_func(self._stream, array, last_filter):
             oldpos = self._stream.tell()
-            self.newChild("New chunk")
             filter = filter_class(self._stream, self)
             chunk_id = "%s[%u]" % (id, nb)
             nb = nb + 1
             chunk = FilterChunk(chunk_id, filter.description, self._stream, oldpos, self._stream.tell() - oldpos, filter)
             array.append( chunk )
-        self.closeChild("Chunks")
+            last_filter = filter
 
-        chunk = ArrayChunk(id, description, self._stream, addr, self._stream.tell() - addr, array)
-        self._appendChunk(chunk)
-        print "New chunk array"
+
+        for chunk in array:
+            chunk.getFilter().updateParent(self, chunk)
     
     def read(self, id, format, description, can_truncate=True):
+        """ Returns chunk """
         format = re.sub(r'\[([^]]+)\]', self.__replaceFieldFormat, format)
 #        if self.depth <= display_filter_actions and 0<size:
 #            chunk_data.output(self.indent)
@@ -182,7 +160,13 @@ class Filter:
         chunk = FormatChunk(id, description, self._stream, self._stream.tell(), format)
         self._stream.seek(chunk.size, 1)
         self._appendChunk(chunk)
+        return chunk
 
-    def getParent(self): return self._parent
+    def __str__(self):
+        return "Filter(%s) <id=%s, description=%s>" % \
+            (self.__class__, self.id, self.description)
+
+    def getParent(self):
+        return self._parent
 
 display_filter_actions = 1

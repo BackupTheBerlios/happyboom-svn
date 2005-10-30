@@ -101,8 +101,8 @@ class PngFilter(Filter):
         assert self.header == "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A"
         self.readArray("chunks", PngChunk, "Png chunks", self.checkEndOfChunks)
 
-    def checkEndOfChunks(self, stream):
-        return self._stream.eof()
+    def checkEndOfChunks(self, stream, array, png_chunk):
+        return stream.eof()
         
 class PngChunk(Filter):
     def __init__(self, stream, parent):
@@ -124,6 +124,10 @@ class PngChunk(Filter):
         else:
             self.read(None, "![size]s", "Chunk data")
         self.read("crc32", "!L", "Chunk CRC32")
+
+    def updateParent(self, parent, chunk):
+        self.description = "PNG chunk (type %s)" % self.type
+        chunk.description = "PNG chunk (type %s)" % self.type
 
     def __str__(self):
         return "PngChunk <size=%u, type=%s>" % (self.size, self.type)

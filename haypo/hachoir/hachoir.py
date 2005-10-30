@@ -65,7 +65,6 @@ class Hachoir:
         self.depth = 5
 
     def onGoParent(self):
-        print "Go parent:", self.filter
         if self.filter.getParent() == None: return
         self.filter = self.filter.getParent()
         self.filter.display()
@@ -142,17 +141,17 @@ def main():
             setattr(hachoir, key, opt[key])
 
         try:
-            import hmi
+            import ui 
         except ImportError, err:
             print """Error: a Python module is missing:\n%s\n
 You can find PyGTK at: http://www.pygtk.org/
 and PyGlade at: http://glade.gnome.org/""" % (err)
             sys.exit(1)
-        hmi.loadInterface()
-        hmi.hmi.on_row_click = hachoir.onRowClick
-        hmi.hmi.on_go_parent = hachoir.onGoParent
+        ui.loadInterface()
+        ui.ui.on_row_click = hachoir.onRowClick
+        ui.ui.on_go_parent = hachoir.onGoParent
         hachoir.run(filename)
-        hmi.hmi.run()
+        ui.ui.run()
 
     except SystemExit:
         pass

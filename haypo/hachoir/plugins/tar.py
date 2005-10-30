@@ -36,12 +36,13 @@ def displayFile(tar):
     
 def displayTar(tar):
     for file in tar.files:
+        file = file.getFilter()
         print "[ File %s ]" % file.name
         displayFile(file)
 
 class TarFile(Filter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, stream, parent)
+        Filter.__init__(self, "tar_file","Tar file", stream, parent)
         self.read("name", "!100s", "Name", False)
         self.name = self.name.strip("\0")
         self.read("mode", "!8s", "Mode")
@@ -99,26 +100,27 @@ class TarFile(Filter):
         if self.type not in name: return "Unknow type (%02X)" % ord(self.type)
         return name[self.type]
 
+    def updateParent(self, parent, chunk):
+        if not self.isEmpty():
+            text = "Tar File (%s: %s)" % (self.name, self.getType())
+        else:
+            text = "Tar File (terminator, empty header)"
+        chunk.description = self.description = text
+
 class TarFilter(Filter):
     def __init__(self, stream):
-        Filter.__init__(self, stream)
+        Filter.__init__(self, "tar_archive", "Tar archive", stream)
 
-        self.files = []
-        self.openChild()
-        while not self.stream.eof():
-            self.newChild("File")
-            file = TarFile(stream, self) 
-            if file.isEmpty():
-                self.updateChildTitle("Terminator (empty header)")
-                break 
-            self.files.append(file)
-            self.updateChildTitle("File (%s)" % file.getType())
-            self.updateChildComment("Filename = %s" % file.name)
-        self.closeChild("Files")
+        self.readArray("files", TarFile, "Tar Files", self.checkEndOfChunks)
         
-        padding = 4096 - self.stream.tell() % 4096
+        padding = 4096 - stream.tell() % 4096
         self.read(None, "!%ss" % padding, "Padding (4096 align)")
 
-        assert self.stream.eof()
+        assert stream.eof()
+
+    def checkEndOfChunks(self, stream, array, file):
+        if file != None:
+            if file.isEmpty(): return True
+        return stream.eof()
         
 registerPlugin("^.*\.tar$", "Tar archive", TarFilter, displayTar)

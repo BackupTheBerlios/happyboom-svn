@@ -5,9 +5,9 @@ import gtk
 import gtk.glade
 
 def loadInterface():
-    global hmi
+    global ui 
     glade = os.path.join(os.path.dirname(__file__), 'hachoir.glade')
-    hmi = GladeInterface(glade)
+    ui = GladeInterface(glade)
 
 class GladeInterface:
     def __init__(self, filename):
@@ -34,10 +34,8 @@ class GladeInterface:
 
     def updateStatusBar(self, text):
         self.statusbar.push(self.statusbar_state, text)
-        print "Status %s" % text
         
     def enableParentButton(self, enable):
-        print "Enable = ", enable
         self.toolbutton_parent.set_sensitive(enable)
 
     def clear_table(self):
@@ -48,10 +46,10 @@ class GladeInterface:
         row[column] = value
        
     def add_table_child(self, parent, addr, size, type, id, description):
-        return self.table_store.append(parent, ("%08X" % addr, size, type, None, id, description, None,))
+        return self.table_store.append(parent, ("%08X" % addr, type, size, None, id, description, None,))
        
-    def add_table(self, parent, addr, size, type, name, id, description, comment):
-        self.table_store.append(parent, ("%08X" % addr, size, type, name, id, description, comment,))
+    def add_table(self, parent, addr, size, type, id, description, value):
+        self.table_store.append(parent, ("%08X" % addr, type, size, id, value, description, ))
        
     def build_him(self):
         self.window.set_size_request(600,400)
@@ -63,19 +61,18 @@ class GladeInterface:
         
     def onTableClicked(self, widget, iter, data=None):
         row = self.table_store[iter]
-        self.on_row_click(row[4])
+        self.on_row_click(row[3])
 
     def build_table(self):
-        self.table_store = gtk.TreeStore(str, int, str, str, str, str, str)
+        self.table_store = gtk.TreeStore(str, str, int, str, str, str)
         self.table.set_model(self.table_store)
         self.table.connect("row-activated", self.onTableClicked)
         self.treeview_add_column(self.table, "Address", 0)
-        self.treeview_add_column(self.table, "Size", 1)
-        self.treeview_add_column(self.table, "Type", 2)
-        self.treeview_add_column(self.table, "Data", 3)
-        self.treeview_add_column(self.table, "Name", 4)
+        self.treeview_add_column(self.table, "Type", 1)
+        self.treeview_add_column(self.table, "Size", 2)
+        self.treeview_add_column(self.table, "Name", 3)
+        self.treeview_add_column(self.table, "Value", 4)
         self.treeview_add_column(self.table, "Description", 5)
-        self.treeview_add_column(self.table, "Comment", 6)
         self.table.set_reorderable(True)
         self.treeselection = self.table.get_selection()
 
@@ -89,7 +86,6 @@ class GladeInterface:
         col.set_sort_column_id(num)
  
     def on_toolbutton_parent(self, widget, data=None):
-        print "Pouet"
         self.on_go_parent()
 
     def on_open_activate(self, widget):
@@ -109,4 +105,4 @@ class GladeInterface:
         print "Quit."
         gtk.main_quit()
 
-hmi = None
+ui = None

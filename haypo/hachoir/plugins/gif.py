@@ -12,19 +12,22 @@ def displayGif(gif):
     print "Format: %s" % (gif.header)
     print "Size: %ux%u" % (gif.screen.width, gif.screen.height)
     print "Colormap: %s" % (gif.color_map)
+    i = 0
     for image in gif.images:
-        print image
+        image = image.getFilter()
+        print "Image %u: %s" % (i, image)
+        i = i + 1
 
 class GifColor(Filter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, stream, parent)
+        Filter.__init__(self, "gif_color", "GIF color (RGB)", stream, parent)
         self.read("red", "<B", "Red")
         self.read("green", "<B", "Green")
         self.read("blue", "<B", "Blue")
 
 class GifImage(Filter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, stream, parent)
+        Filter.__init__(self, "gif_image", "GIF image data", stream, parent)
         self.read("left", "<H", "Left")
         self.read("top", "<H", "Top")
         self.read("width", "<H", "Width")
@@ -36,7 +39,7 @@ class GifImage(Filter):
         self.interlaced = ((self.flags & 0x40) == 0x40)
         self.bits_per_pixel = 1 + (self.flags & 0x07)
         if not self.global_map:
-            self.local_map = GifColorMap(stream, 1 << self.bits_per_pixel, self)
+            self.readChild("local_map", GifColorMap, "Local color map")
         else:
             self.local_map = None
         # -- End of TODO
@@ -48,40 +51,40 @@ class GifImage(Filter):
              self.bits_per_pixel)
      
 class GifColorMap(Filter):
-    def __init__(self, stream, nb_colors, parent):
-        Filter.__init__(self, stream, parent)
-        self.map = []
-        self.openChild()
-        for i in range(0, nb_colors):
-            self.newChild("Color")
-            self.map.append( GifColor(stream, self) )
-        self.closeChild("Colors")
+    def __init__(self, stream, parent):
+        Filter.__init__(self, "gif_colormap", "GIF color map", stream, parent)
+        if issubclass(parent.__class__, GifImage):
+            self._nb_colors = (1 << parent.bits_per_pixel)
+        else:
+            assert issubclass(parent.__class__, GifFile)
+            self._nb_colors = (1 << parent.screen.bits_per_pixel)
+        self.readArray("map", GifColor, "Color map", self.checkEndOfMap)
+
+    def checkEndOfMap(self, stream, array, color):
+        return len(array) == self._nb_colors 
 
     def __str__(self):
         return "Gif colormap <colors=%u>" % (len(self.map))
         
 class GifExtensionChunk(Filter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, stream, parent)
+        Filter.__init__(self, "gif_ext_data", "GIF extension data", stream, parent)
         self.read("size", "<B", "Size (in bytes)")
         self.read("content", "<[size]s", "Content")
 
 class GifExtension(Filter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, stream, parent)
+        Filter.__init__(self, "gif_ext", "GIF extension", stream, parent)
         self.read("func", "<B", "Function")
-        self.chunks = []
-        self.openChild()
-        while True:
-            self.newChild("Extension chunk")
-            chunk = GifExtensionChunk(stream, self)
-            self.chunks.append( chunk )
-            if chunk.size == 0: break 
-        self.closeChild("Extension chunk")
+        self.readArray("chunks", GifExtensionChunk, "Extension chunks", self.checkEnd)
+
+    def checkEnd(self, stream, array, chunk):
+        if chunk == None: return False
+        return chunk.size == 0 
         
 class GifScreenDescriptor(Filter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, stream, parent)
+        Filter.__init__(self, "gif_screen_desc", "GIF screen descriptor", stream, parent)
         self.read("width", "<H", "Width")
         self.read("height", "<H", "Height")
 
@@ -95,38 +98,33 @@ class GifScreenDescriptor(Filter):
         self.background = stream.get8()
         zero = stream.get8()
         
-class GifFilter(Filter):
+class GifFile(Filter):
     def __init__(self, stream):
-        Filter.__init__(self, stream)
+        Filter.__init__(self, "gif_file", "GIF picture file", stream)
         # Header
         self.read("header", "6s", "File header")
         assert (self.header == "GIF87a") or (self.header == "GIF89a")
-        self.newChild("Screen descriptor")
-        self.screen = GifScreenDescriptor(stream, self)
+        
+        self.readChild("screen", GifScreenDescriptor, "Screen descriptor")
         if self.screen.global_map:
-            self.newChild("Color map")
-            self.color_map = GifColorMap(stream, 1 << self.screen.bits_per_pixel, self)
+            self.readChild("color_map", GifColorMap, "Color map")
         else:
             self.color_map = None
-        self.images = []
-        self.extensions = []
+            
         while True:
-            self.read("code", "c", "Separator code")
-            if self.code == "!":
-                self.openChild()
-                self.newChild("New extension")
-                self.extensions.append( GifExtension(stream, self) )
-                self.closeChild("Extension")
-            elif self.code == ",":
-                self.openChild()
-                self.newChild("New image")
-                self.images.append( GifImage(stream, self) )
-                self.closeChild("Image")
+            code = self.read(None, "c", "Separator code")
+            code = code.getData()
+            if code == "!":
+                self.readChild("extensions[]", GifExtension, "Extension")
+            elif code == ",":
+                self.readChild("images[]", GifImage, "Image")
+                # TODO: Write GifImage code :-)
+                print "WARNING: GIF FILTER CAN NOT READ IMAGE CONTENT YET, SO ABORT READING!"
                 return
-            elif self.code == ";":
+            elif code == ";":
                 # GIF Terminator
                 return
             else:
-                raise Exception("Wrong GIF image separator: ASCII %02X." % ord(self.code))
+                raise Exception("Wrong GIF image separator: ASCII %02X." % ord(code))
 
-registerPlugin("^.*\.(gif|GIF)$", "GIF picture", GifFilter, displayGif)
+registerPlugin("^.*\.(gif|GIF)$", "GIF picture", GifFile, displayGif)

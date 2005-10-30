@@ -1,7 +1,8 @@
 """
 EXE filter.
 
-Status: alpha 
+Status: read ms-dos and pe headers
+Todo: support resources ... and disassembler ? :-)
 Author: Victor Stinner
 """
 
@@ -37,13 +38,15 @@ def displayExe(exe):
     if exe.pe:
 #        displayPE(exe.pe)
         for section in exe.pe_sections:
+            section = section.getFilter()
             displayPE_Section(section)
         for res in exe.pe_resources:
+            res = res.getFilter()
             displayPE_ResourceDirectory(res)
             
 class PE_ResourceData(Filter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, stream, parent)
+        Filter.__init__(self, "pe_rsrc_data", "PE resource data", stream, parent)
         self.read("offset", "<L", "Offset")
         self.read("size", "<L", "Size")
         self.read("page_code", "<L", "Page code (language)")
@@ -59,13 +62,13 @@ class PE_ResourceData(Filter):
 
 class PE_ResourceEntry(Filter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, stream, parent)
+        Filter.__init__(self, "pe_rsrc_entry", "PE resource entry", stream, parent)
         self.read("id", "<L", "ID or name")
         self.read("offset", "<L", "Offset")
         
 class PE_ResourceDirectory(Filter):
     def __init__(self, stream, parent, offset_res_section):
-        Filter.__init__(self, stream, parent)
+        Filter.__init__(self, "pe_rsrc_dir", "PE resource directory", stream, parent)
         self.offset_res_section = offset_res_section
         self.read("option", "<L", "Options")
         self.read("creation_date", "<L", "Creation date")
@@ -84,7 +87,7 @@ class PE_ResourceDirectory(Filter):
 
 class PE_Section(Filter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, stream, parent)
+        Filter.__init__(self, "pe_section", "PE section", stream, parent)
         self.read("name", "8s", "Name")
         self.name = self.name.strip("\0")
         self.read("rva", "<L", "RVA")
@@ -99,13 +102,13 @@ class PE_Section(Filter):
 
 class PE_Directory(Filter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, stream, parent)
+        Filter.__init__(self, "pe_dir", "PE directory", stream, parent)
         self.read("size", "<L", "Size")
         self.read("rva", "<L", "RVA")
 
 class PE_OptionnalHeader(Filter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, stream, parent)
+        Filter.__init__(self, "pe_opt_hdr", "PE optionnal header", stream, parent)
         self.read("header", "<H", "Header")
         assert self.header == 0x010B
         self.read("linker_maj_ver", "B", "Linker major version")
@@ -138,16 +141,14 @@ class PE_OptionnalHeader(Filter):
         self.read("loader_options", "<L", "Loader options")
         self.read("nb_directories", "<L", "Number of directories (16)")
         assert self.nb_directories == 16
-        self.directories = []
-        self.openChild()
-        for i in range(self.nb_directories):
-            self.newChild("PE directory")            
-            self.directories.append( PE_Directory(stream, self) )
-        self.closeChild("PE directories")            
+        self.readArray("directories", PE_Directory, "PE directories", self.checkEndOfDir)
+
+    def checkEndOfDir(self, stream, array, dir):
+        return len(self.directories) == self.nb_directories
 
 class PE_Filter(Filter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, stream, parent)
+        Filter.__init__(self, "pe_header", "PE header", stream, parent)
         self.read("header", "4s", "File header")
         assert self.header == "PE\0\0"
         self.read("cpu_type", "<H", "CPU type")
@@ -173,7 +174,7 @@ class PE_Filter(Filter):
 
 class MS_Dos(Filter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, stream, parent)
+        Filter.__init__(self, "msdos_header", "MS-Dos executable header", stream, parent)
         self.read("header", "2s", "File header")
         assert self.header == "MZ"
         self.read("filesize_mod_512", ">H", "Filesize mod 512")
@@ -197,36 +198,28 @@ class MS_Dos(Filter):
         self.read(None, "!10H", "Reserved")
         self.read("pe_offset", "<L", "Offset to PE header")
 
-class ExeFilter(Filter):
-    def __init__(self, stream):
-        Filter.__init__(self, stream)
+class ExeFile(Filter):
+    def checkEndOfSections(self, stream, array, section):
+        return len(array) == self.pe.nb_sections
 
-        self.openChild()
-        self.newChild("MS-Dos header")
-        self.ms_dos = MS_Dos(stream, self)
-        self.closeChild("MS-Dos header")
+    def __init__(self, stream):
+        Filter.__init__(self, "exe_file", "EXE file", stream)
+
+        self.readChild("ms_dos", MS_Dos, "MS-Dos header")
 
         if self.ms_dos.reloc_offset == 0x40:
-            self.stream.seek(self.ms_dos.pe_offset)
-            self.openChild()
-            self.newChild("PE header")
-            self.pe = PE_Filter(stream, self)
-            self.closeChild("PE header")
+            stream.seek(self.ms_dos.pe_offset, 0)
 
-            self.openChild()
-            self.newChild("PE optionnal header")            
-            self.pe_optionnal_header = PE_OptionnalHeader(stream, self)
-            self.closeChild("PE optionnal header")            
-
-            self.openChild()
-            self.pe_sections = []
-            for i in range(self.pe.nb_sections):
-                self.newChild("PE section")            
-                self.pe_sections.append( PE_Section(stream, self) )
-            self.closeChild("PE sections")     
+            self.readChild("pe", PE_Filter, "PE header")
+            self.readChild("pe_opt", PE_OptionnalHeader, "PE optionnal header")
+            self.readArray("pe_sections", PE_Section, "PE sections", self.checkEndOfSections)
 
             # Look for resource section
             self.pe_resources = []
+            return
+
+            # TODO: Fix this ...
+            
             offset_res_section = None
             for section in self.pe_sections:
                 if section.name == ".rsrc":
@@ -242,4 +235,4 @@ class ExeFilter(Filter):
         else:
             self.pe = None
 
-registerPlugin("^.*\.(exe|EXE)$", "MS-Dos / Windows filter", ExeFilter, displayExe)
+registerPlugin("^.*\.(exe|EXE)$", "MS-Dos / Windows executable filter", ExeFile, displayExe)
