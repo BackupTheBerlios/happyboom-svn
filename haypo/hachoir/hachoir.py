@@ -85,30 +85,30 @@ class Hachoir:
         import filter
         # Look for a plugin
         plugin = getPlugin(filename)
-        if plugin != None:
-            regex, plugin_name, split_func, display_func = plugin
-            if self.verbose:
-                print "Split file \"%s\": %s." % (filename, plugin_name)
-            
-            # Create stream
-            stream = FileStream(filename)
-
-            # Split 
-            filter.display_filter_actions = self.depth
-            if 0 < self.depth:
-                print "=== Split file %s ===" % filename
-            self.filter = split_func(stream)
-            if 0 < self.depth:
-                print ""
-            self.filter.display()
-
-            # Display
-            if self.display:
-                print "=== File %s data ===" % filename
-                display_func(self.filter)
-        else:
+        if plugin == None:
             print "No suitable plugin for \"%s\"." % (filename)
-            sys.exit(1)
+            return False
+        regex, plugin_name, split_func, display_func = plugin
+        if self.verbose:
+            print "Split file \"%s\": %s." % (filename, plugin_name)
+        
+        # Create stream
+        stream = FileStream(filename)
+
+        # Split 
+        filter.display_filter_actions = self.depth
+        if 0 < self.depth:
+            print "=== Split file %s ===" % filename
+        self.filter = split_func(stream)
+        if 0 < self.depth:
+            print ""
+        self.filter.display()
+
+        # Display
+        if self.display:
+            print "=== File %s data ===" % filename
+            display_func(self.filter)
+        return True
 
 def main():
     try:        
@@ -147,10 +147,12 @@ def main():
 You can find PyGTK at: http://www.pygtk.org/
 and PyGlade at: http://glade.gnome.org/""" % (err)
             sys.exit(1)
-        ui.loadInterface()
+        ui.loadInterface(hachoir)
         ui.ui.on_row_click = hachoir.onRowClick
         ui.ui.on_go_parent = hachoir.onGoParent
-        hachoir.run(filename)
+        ok = hachoir.run(filename)
+        if not ok:
+            sys.exit(1)
         ui.ui.run()
 
     except SystemExit:

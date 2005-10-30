@@ -112,7 +112,11 @@ class FormatChunk(Chunk):
             display = ""
             for c in data:
                 if ord(c)<32:
-                    know = {"\n": "\\n", "\r": "\\r", "\0": "\\0"}
+                    know = { \
+                        "\n": "\\n",
+                        "\r": "\\r",
+                        "\t": "\\t",
+                        "\0": "\\0"}
                     if c in know:
                         display = display + know[c]
                     else:

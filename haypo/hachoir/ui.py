@@ -4,13 +4,13 @@ pygtk.require ('2.0')
 import gtk
 import gtk.glade
 
-def loadInterface():
+def loadInterface(hachoir):
     global ui 
     glade = os.path.join(os.path.dirname(__file__), 'hachoir.glade')
-    ui = GladeInterface(glade)
+    ui = GladeInterface(glade, hachoir)
 
 class GladeInterface:
-    def __init__(self, filename):
+    def __init__(self, filename, hachoir):
         self.on_row_click = None # event(chunk_id)
         self.on_go_parent = None # event(chunk_id)
         self.xml = gtk.glade.XML(filename)
@@ -24,6 +24,7 @@ class GladeInterface:
         self.window.connect("key-press-event", self.onKeyUp)
         self.table = self.xml.get_widget('table')
         self.table_store = None
+        self.hachoir = hachoir
         self.build_him()
 
     def run(self):
@@ -90,6 +91,14 @@ class GladeInterface:
 
     def on_open_activate(self, widget):
         print "Open (do nothing yet)"
+        chooser = gtk.FileChooserDialog( \
+            title="Choose file",
+            action=gtk.FILE_CHOOSER_ACTION_OPEN,
+            buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
+        if chooser.run() == gtk.RESPONSE_OK:
+            filename = chooser.get_filename() 
+            self.hachoir.run(filename)
+        chooser.destroy()
 
     def on_about_activate(self, widget):
         print "About (do nothing yet)"

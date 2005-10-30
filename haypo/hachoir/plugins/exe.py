@@ -89,7 +89,7 @@ class PE_Section(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "pe_section", "PE section", stream, parent)
         self.read("name", "8s", "Name")
-        self.name = self.name.strip("\0")
+        self.name = self.name.strip(" \0")
         self.read("rva", "<L", "RVA")
         self.read("size", "<L", "Size")
         self.read("file_size", "<L", "File size")
