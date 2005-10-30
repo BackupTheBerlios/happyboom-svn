@@ -13,6 +13,7 @@ VERSION="2005-10-27"
 import sys, os, re, traceback
 from stream import FileStream
 from plugin import getPlugin
+from chunk import FilterChunk
 
 def usage(defval):
     print "%s version %s" % (PROGRAM, VERSION)
@@ -63,6 +64,24 @@ class Hachoir:
         self.display = True
         self.depth = 5
 
+    def onGoParent(self):
+        print "Go parent:", self.filter
+        if self.filter.getParent() == None: return
+        self.filter = self.filter.getParent()
+        self.filter.display()
+        
+    def onRowClick(self, chunk_id):
+        if chunk_id == None: return
+        m = re.compile(r"^([^[]+)\[([0-9]+)\]$").match(chunk_id)
+        if m != None:
+            array = self.filter.getChunk(m.group(1))
+            chunk = array[int(m.group(2))]
+        else:
+            chunk = self.filter.getChunk(chunk_id)
+        if issubclass(chunk.__class__, FilterChunk):
+            self.filter = chunk.getFilter()
+            self.filter.display()
+
     def run(self, filename):
         import filter
         # Look for a plugin
@@ -79,14 +98,15 @@ class Hachoir:
             filter.display_filter_actions = self.depth
             if 0 < self.depth:
                 print "=== Split file %s ===" % filename
-            split = split_func(stream)
+            self.filter = split_func(stream)
             if 0 < self.depth:
                 print ""
+            self.filter.display()
 
             # Display
             if self.display:
                 print "=== File %s data ===" % filename
-                display_func(split)
+                display_func(self.filter)
         else:
             print "No suitable plugin for \"%s\"." % (filename)
             sys.exit(1)
@@ -129,6 +149,8 @@ You can find PyGTK at: http://www.pygtk.org/
 and PyGlade at: http://glade.gnome.org/""" % (err)
             sys.exit(1)
         hmi.loadInterface()
+        hmi.hmi.on_row_click = hachoir.onRowClick
+        hmi.hmi.on_go_parent = hachoir.onGoParent
         hachoir.run(filename)
         hmi.hmi.run()
 

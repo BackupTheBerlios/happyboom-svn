@@ -11,14 +11,15 @@ from plugin import registerPlugin
 
 def displayPng(png):
     for chunk in png.chunks:
-        if issubclass(chunk.data.__class__, Filter):
-            print chunk.data
+        chunk = chunk.getFilter()
+        if hasattr(chunk, "chunk_data"):
+            print chunk.chunk_data
         else:
             print "(unknow chunk type \"%s\")" % chunk.type
 
 class PngHeader(Filter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, stream, parent)
+        Filter.__init__(self, "png_header", "PNG header", stream, parent)
         self.read("width", "!L", "Width (pixels)")
         self.read("height", "!L", "Height (pixels)")
         self.read("bit_depth", "!B", "Bit depth")
@@ -34,7 +35,7 @@ class PngHeader(Filter):
 
 class PngPhysical(Filter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, stream, parent)
+        Filter.__init__(self, "png_physical", "PNG physical", stream, parent)
         self.read("pixel_per_unit_x", "!L", "Pixel per unit, X axis")
         self.read("pixel_per_unit_y", "!L", "Pixel per unit, Y axis")
         self.read("unit_type", "!B", "Unit type")
@@ -49,7 +50,7 @@ class PngPhysical(Filter):
 
 class PngGamma(Filter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, stream, parent)
+        Filter.__init__(self, "png_gamma", "PNG gamma", stream, parent)
         self.read("gamma", "!L", "Gamma (x10,000)")
         self.gamma = float(self.gamma)
         self.gamma = self.gamma / 10000
@@ -59,15 +60,15 @@ class PngGamma(Filter):
 
 class PngText(Filter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, stream, parent)
-        old = self.stream.tell()
-        pos = self.stream.search("\0", 14)
+        Filter.__init__(self, "png_text", "PNG text", stream, parent)
+        old = self._stream.tell()
+        pos = self._stream.search("\0", 14)
         if pos == -1:
             raise Exception("Fails to find end of text")
         lg = (pos-old)
         self.read("keyword", "!%us" % lg, "Keyword")
         self.read("separator", "!B", "Null byte used to separe strings")
-        lg = (self.parent.size-lg-1)
+        lg = (self._parent.size-lg-1)
         self.read("text", "!%us" % lg, "Text")
 
     def __str__(self):
@@ -76,7 +77,7 @@ class PngText(Filter):
 
 class PngTime(Filter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, stream, parent)
+        Filter.__init__(self, "png_time", "PNG time", stream, parent)
         self.read("year", "!H", "Year")
         self.read("month", "!B", "Month")
         self.read("day", "!B", "Day")
@@ -95,21 +96,17 @@ class PngFilter(Filter):
     """
 
     def __init__(self, stream):
-        Filter.__init__(self, stream)
-        self.read("header", "8s", "File header")
+        Filter.__init__(self, "png_file", "PNG file", stream)
+        self.read("header", "!8s", "File header")
         assert self.header == "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A"
-        self.chunks = []
-        self.openChild()
-        while not self.stream.eof():
-            self.newChild("New chunk")
-            chunk = PngChunk(stream, parent=self)
-            self.chunks.append( chunk )
-            self.updateChildTitle("Chunk (type %s)" % chunk.type)
-        self.closeChild("Chunks")
+        self.readArray("chunks", PngChunk, "Png chunks", self.checkEndOfChunks)
+
+    def checkEndOfChunks(self, stream):
+        return self._stream.eof()
         
 class PngChunk(Filter):
-    def __init__(self, stream, parent=None):
-        Filter.__init__(self, stream, parent)
+    def __init__(self, stream, parent):
+        Filter.__init__(self, "png_chunk", "PNG chunk", stream, parent)
         self.read("size", "!L", "Chunk size")
         self.read("type", "!4s", "Chunk type")
         self.chunk_splitter = {
@@ -120,15 +117,12 @@ class PngChunk(Filter):
             "tEXt": PngText
         }
         if self.type in self.chunk_splitter:
-            oldpos = self.stream.tell()
-            self.openChild()
-            self.newChild("Chunk data (type %s)" % self.type)
-            func = self.chunk_splitter[self.type]
-            self.data = func(stream, self)            
-            self.closeChild("Chunk data (type %s)" % self.type)
-            assert oldpos + self.size == self.stream.tell()
+            oldpos = self._stream.tell()
+            child_filter = self.chunk_splitter[self.type]
+            self.readChild("chunk_data", child_filter, "Chunk data")
+            assert oldpos + self.size == self._stream.tell()
         else:
-            self.read("data", "![size]s", "Chunk data")
+            self.read(None, "![size]s", "Chunk data")
         self.read("crc32", "!L", "Chunk CRC32")
 
     def __str__(self):

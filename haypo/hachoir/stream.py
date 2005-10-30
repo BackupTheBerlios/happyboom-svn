@@ -152,7 +152,7 @@ class FileStream(Stream):
 
     def getN(self, size):
         data = self.__file.read(size)
-        # Do endian things
+        assert len(data) == size
         return data
 
     def getEnd(self):
