@@ -24,12 +24,12 @@ class Stream:
     def search(self, str, size_max=None):
         return -1
 
-def StringStream(data, endian="!"):
+def StringStream(data):
     file = StringIO(data)
-    return FileStream(file, endian)
+    return FileStream(file)
 
 class LimitedFileStream(Stream):
-    def __init__(self, filename, start=0, size=0, endian="<"):
+    def __init__(self, filename, start=0, size=0):
         self.__stream = FileStream(filename)
         if start<0: start = 0
         if self.__stream.getSize() < start+size: size = self.__stream.getSize()-start
@@ -63,7 +63,7 @@ class LimitedFileStream(Stream):
         return self.__end
     
 class FileStream(Stream):
-    def __init__(self, filename, endian="<"):
+    def __init__(self, filename):
         """
         Endian: See setEndian function. 
         """
@@ -74,7 +74,6 @@ class FileStream(Stream):
         self.__file.seek(0,2) # Seek to end
         self.__size = self.__file.tell()
         self.__file.seek(0,0) # Seel to beginning
-        self.setEndian(endian)
 
     def seek(self, pos, where=0):
         """ Read file seek document to understand where. """
@@ -88,7 +87,6 @@ class FileStream(Stream):
         """
         pos_max: Position of last tested byte
         """
-        # TODO: Use max ...
         if 2048<=len(binary_string):
             raise Exception("Search string too big.")
         size = 2048 
@@ -125,31 +123,6 @@ class FileStream(Stream):
         self.seek(oldpos)
         return pos
 
-    def setEndian(self, endian):
-        """
-        Endian: "<" for little endian, ">" for big endian, "!" for network endian.
-        """
-
-        self.__endian = endian
-        self.__unpack8u = "B"
-        self.__unpack16u = "%sH" % self.__endian
-        self.__unpack32u = "%sI" % self.__endian
-
-    def get8(self):
-        data = self.__file.read(1)
-        data = struct.unpack(self.__unpack8u, data)
-        return data[0]
-
-    def get16(self):
-        data = self.__file.read(2)
-        data = struct.unpack(self.__unpack16u, data)
-        return data[0]
-
-    def get32(self):
-        data = self.__file.read(4)
-        data = struct.unpack(self.__unpack32u, data)
-        return data[0]
-
     def getN(self, size):
         data = self.__file.read(size)
         assert len(data) == size
@@ -161,7 +134,6 @@ class FileStream(Stream):
         """
         
         data = self.__file.read()
-        # Do endian things
         return data
 
     def destroy(self):

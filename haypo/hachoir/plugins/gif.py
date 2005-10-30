@@ -95,8 +95,8 @@ class GifScreenDescriptor(Filter):
         self.bits_per_pixel = 1 + (self.flags & 0x7) # ok
         # -- End of TODO
         
-        self.background = stream.get8()
-        zero = stream.get8()
+        self.read("background", "<B", "Background color")
+        self.read(None, "<B", "Not used (zero)")
         
 class GifFile(Filter):
     def __init__(self, stream):
