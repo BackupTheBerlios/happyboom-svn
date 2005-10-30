@@ -111,6 +111,7 @@ class GifFile(Filter):
         else:
             self.color_map = None
             
+        self.images = []
         while True:
             code = self.read(None, "c", "Separator code")
             code = code.getData()

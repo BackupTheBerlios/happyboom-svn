@@ -40,9 +40,9 @@ def displayTar(tar):
         print "[ File %s ]" % file.name
         displayFile(file)
 
-class TarFile(Filter):
+class TarFileEntry(Filter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, "tar_file","Tar file", stream, parent)
+        Filter.__init__(self, "tar_file_entry","Tar file entry", stream, parent)
         self.read("name", "!100s", "Name", False)
         self.name = self.name.strip("\0")
         self.read("mode", "!8s", "Mode")
@@ -70,7 +70,7 @@ class TarFile(Filter):
         #self.read(None, "!167s", "Padding (zero)")
         self.read(None, "!167s", "Padding (zero)")
         if self.type in ("\0", "0"):
-            self.read("filedata", "!{size}s", "File data")
+            self.read("filedata", "!{size}s", "File data", True)
         if stream.tell() % 512 != 0:
             padding = 512 - stream.tell() % 512
             self.read(None, "!%ss" % padding, "Padding (512 align)")
@@ -107,11 +107,11 @@ class TarFile(Filter):
             text = "Tar File (terminator, empty header)"
         chunk.description = self.description = text
 
-class TarFilter(Filter):
+class TarFile(Filter):
     def __init__(self, stream):
-        Filter.__init__(self, "tar_archive", "Tar archive", stream)
+        Filter.__init__(self, "tar_file", "TAR archive file", stream)
 
-        self.readArray("files", TarFile, "Tar Files", self.checkEndOfChunks)
+        self.readArray("files", TarFileEntry, "Tar Files", self.checkEndOfChunks)
         
         padding = 4096 - stream.tell() % 4096
         self.read(None, "!%ss" % padding, "Padding (4096 align)")
@@ -123,4 +123,4 @@ class TarFilter(Filter):
             if file.isEmpty(): return True
         return stream.eof()
         
-registerPlugin("^.*\.tar$", "Tar archive", TarFilter, displayTar)
+registerPlugin("^.*\.tar$", "Tar archive", TarFile, displayTar)

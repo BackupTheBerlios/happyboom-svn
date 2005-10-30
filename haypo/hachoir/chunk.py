@@ -31,9 +31,16 @@ class Chunk(object):
     size = property(_getSize)        
     
 class ArrayChunk(Chunk):
-    def __init__(self, id, description, stream, addr, size, array, parent):
-        Chunk.__init__(self, id, description, stream, addr, size, parent)
+    def __init__(self, id, description, stream, array, parent):
+        Chunk.__init__(self, id, description, stream, stream.tell(), 0, parent)
         self._array = array
+
+    def _getSize(self):
+        size = 0
+        for item in self._array:
+            size = size + item.size
+        return size
+    size = property(_getSize)        
     
     def getData(self, max_size=None):
         return self._array
@@ -62,7 +69,6 @@ class FormatChunk(Chunk):
         self.__addr = addr
         self.__format = format
         self.value = None
-        self.truncate = False
 
     def _getSize(self):
         return struct.calcsize(self._getRealFormat())
@@ -83,8 +89,6 @@ class FormatChunk(Chunk):
     def getRawData(self, max_size=None):
         """ max_size can be None """
         self.__stream.seek(self.addr)
-        if max_size == None and self.truncate:
-            max_size = 40
         if (max_size == None or self.size<max_size) or not self.isString():
             data = self.__stream.getN(self.size)
             return data, False

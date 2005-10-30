@@ -104,7 +104,7 @@ class Filter:
         line = getattr(self, id)
         setattr(self, id, line[:-len(eol)])
 
-    def _appendChunk(self, chunk):
+    def _appendChunk(self, chunk, can_truncate=False):
         self._chunks.append(chunk)
         id = chunk.id
         if id != None:
@@ -124,7 +124,11 @@ class Filter:
             else:
                 if hasattr(self, id):
                     raise Exception("Chunk identifier \"%s\" already exist!" % id)
-                setattr(self, id, chunk.getData())
+                if can_truncate:
+                    data = chunk.getData(40)
+                else:
+                    data = chunk.getData()
+                setattr(self, id, data)
                 self._chunks_dict[id] = chunk
 
     def readChild(self, id, filter_class, description): 
@@ -135,9 +139,8 @@ class Filter:
         self._stream.seek(chunk.addr + chunk.size)
 
     def readArray(self, id, filter_class, description, end_func): 
-        addr = self._stream.tell()
         array = []
-        array_chunk = ArrayChunk(id, description, self._stream, addr, self._stream.tell() - addr, array, self)
+        array_chunk = ArrayChunk(id, description, self._stream, array, self)
         self._appendChunk(array_chunk)
 
         nb = 0
@@ -152,7 +155,7 @@ class Filter:
 
         for chunk in array:
             chunk.getFilter().updateParent(self, chunk)
-        self._stream.seek(chunk.addr + chunk.size)
+        self._stream.seek(array_chunk.addr + array_chunk.size)
     
     def read(self, id, format, description, can_truncate=True):
         """ Returns chunk """
@@ -163,9 +166,8 @@ class Filter:
 #        else:
 #            data = chunk_data.getData(None)
         chunk = FormatChunk(id, description, self._stream, self._stream.tell(), format, self)
-        chunk.truncate = can_truncate 
         self._stream.seek(chunk.size, 1)
-        self._appendChunk(chunk)
+        self._appendChunk(chunk, can_truncate)
         self._stream.seek(chunk.addr + chunk.size)
         return chunk
 
