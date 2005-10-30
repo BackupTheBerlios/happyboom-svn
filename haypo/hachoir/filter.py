@@ -29,6 +29,16 @@ class Filter:
         self.__last_child_stream_pos = None 
         self._chunks = []
         self._chunks_dict = {}
+        self._addr = self._stream.tell()
+
+    def getAddr(self):
+        return self._addr
+
+    def getSize(self):
+        size = 0
+        for chunk in self._chunks:
+            size = size + chunk.size
+        return size
 
     def updateParent(self, parent, chunk):
         pass
@@ -65,9 +75,6 @@ class Filter:
                     self.displayChunk(subchunk)
             else:
                 self.displayChunk(chunk)
-
-    def __replaceFieldFormat(self, match):
-        return str(getattr(self, match.group(1)))
 
     def __isStrPrintable(self, str):
         """
@@ -116,50 +123,50 @@ class Filter:
                     self._chunks_dict[id] = array 
             else:
                 if hasattr(self, id):
-                    raise Exception("Chunk identifier %s already exist!" % id)
+                    raise Exception("Chunk identifier \"%s\" already exist!" % id)
                 setattr(self, id, chunk.getData())
                 self._chunks_dict[id] = chunk
 
     def readChild(self, id, filter_class, description): 
-        oldpos = self._stream.tell()
         filter = filter_class(self._stream, self)
-        chunk = FilterChunk(id, filter.description, self._stream, oldpos, self._stream.tell() - oldpos, filter)
+        chunk = FilterChunk(id, filter.description, self._stream, filter)
         self._appendChunk(chunk)
         filter.updateParent(self, chunk)
+        self._stream.seek(chunk.addr + chunk.size)
 
     def readArray(self, id, filter_class, description, end_func): 
         addr = self._stream.tell()
         array = []
-        array_chunk = ArrayChunk(id, description, self._stream, addr, self._stream.tell() - addr, array)
+        array_chunk = ArrayChunk(id, description, self._stream, addr, self._stream.tell() - addr, array, self)
         self._appendChunk(array_chunk)
 
         nb = 0
         last_filter = None
         while not end_func(self._stream, array, last_filter):
-            oldpos = self._stream.tell()
             filter = filter_class(self._stream, self)
             chunk_id = "%s[%u]" % (id, nb)
             nb = nb + 1
-            chunk = FilterChunk(chunk_id, filter.description, self._stream, oldpos, self._stream.tell() - oldpos, filter)
+            chunk = FilterChunk(chunk_id, filter.description, self._stream, filter)
             array.append( chunk )
             last_filter = filter
 
-
         for chunk in array:
             chunk.getFilter().updateParent(self, chunk)
+        self._stream.seek(chunk.addr + chunk.size)
     
     def read(self, id, format, description, can_truncate=True):
         """ Returns chunk """
-        format = re.sub(r'\[([^]]+)\]', self.__replaceFieldFormat, format)
 #        if self.depth <= display_filter_actions and 0<size:
 #            chunk_data.output(self.indent)
 #        if can_truncate:
 #            data = chunk_data.getData(60)
 #        else:
 #            data = chunk_data.getData(None)
-        chunk = FormatChunk(id, description, self._stream, self._stream.tell(), format)
+        chunk = FormatChunk(id, description, self._stream, self._stream.tell(), format, self)
+        chunk.truncate = can_truncate 
         self._stream.seek(chunk.size, 1)
         self._appendChunk(chunk)
+        self._stream.seek(chunk.addr + chunk.size)
         return chunk
 
     def __str__(self):

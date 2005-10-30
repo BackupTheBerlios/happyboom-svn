@@ -52,7 +52,7 @@ class GladeInterface:
         self.table_store.append(parent, ("%08X" % addr, type, size, id, value, description, ))
        
     def build_him(self):
-        self.window.set_size_request(600,400)
+        self.window.set_size_request(760,300)
         self.build_table()
 
     def onKeyUp(self, widget, key, data=None):

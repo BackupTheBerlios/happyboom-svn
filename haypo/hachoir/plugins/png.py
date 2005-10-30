@@ -122,7 +122,7 @@ class PngChunk(Filter):
             self.readChild("chunk_data", child_filter, "Chunk data")
             assert oldpos + self.size == self._stream.tell()
         else:
-            self.read(None, "![size]s", "Chunk data")
+            self.read(None, "!{size}s", "Chunk data")
         self.read("crc32", "!L", "Chunk CRC32")
 
     def updateParent(self, parent, chunk):

@@ -70,7 +70,7 @@ class GifExtensionChunk(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "gif_ext_data", "GIF extension data", stream, parent)
         self.read("size", "<B", "Size (in bytes)")
-        self.read("content", "<[size]s", "Content")
+        self.read("content", "<{size}s", "Content")
 
 class GifExtension(Filter):
     def __init__(self, stream, parent):

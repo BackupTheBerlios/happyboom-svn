@@ -70,7 +70,7 @@ class TarFile(Filter):
         #self.read(None, "!167s", "Padding (zero)")
         self.read(None, "!167s", "Padding (zero)")
         if self.type in ("\0", "0"):
-            self.read("filedata", "![size]s", "File data")
+            self.read("filedata", "!{size}s", "File data")
         if stream.tell() % 512 != 0:
             padding = 512 - stream.tell() % 512
             self.read(None, "!%ss" % padding, "Padding (512 align)")
