@@ -35,9 +35,13 @@ def parseArgs(val):
         usage(def_val)
         sys.exit(2)
    
-    if len(args) != 1:
+    if 1 < len(args):
         usage(def_val)
         sys.exit(2)
+    if len(args) == 1:
+        filename = args[0]
+    else:
+        filename = None
         
     for o, a in opts:
         if o == "--help":
@@ -52,7 +56,7 @@ def parseArgs(val):
             val["depth"] = int(a)
         if o == "--verbose":
             val["verbose"] = True
-    return (val, args[0],)
+    return (val, filename,)
 
 def main():
     try:        
@@ -63,7 +67,7 @@ def main():
         modules = []
         for file in plugins_files:
             m = file_py.match(file)
-            if m != None:
+            if file != "__init__.py" and m != None:
                 module = "plugins."+m.group(1)
                 __import__(module)
                 modules.append(m.group(1))
@@ -74,28 +78,21 @@ def main():
             "verbose": False,
             "display": True
         }
-        if len(sys.argv) < 2:
-            usage(opt)
-            sys.exit(1)
-
         opt, filename = parseArgs(opt)
 
         hachoir = Hachoir()
         for key in opt:
             setattr(hachoir, key, opt[key])
-
         try:
             import ui 
+            print ui.ui
         except ImportError, err:
             print """Error: a Python module is missing:\n%s\n
 You can find PyGTK at: http://www.pygtk.org/
 and PyGlade at: http://glade.gnome.org/""" % (err)
             sys.exit(1)
         ui.loadInterface(hachoir)
-        ui.ui.on_row_click = hachoir.onRowClick
-        ui.ui.on_go_parent = hachoir.onGoParent
         hachoir.run(filename)
-        ui.ui.run()
 
     except SystemExit:
         pass

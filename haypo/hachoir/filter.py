@@ -8,7 +8,8 @@ import string
 import types
 import ui
 from chunk import Chunk, FormatChunk, ArrayChunk, FilterChunk
-    
+from format import splitFormat    
+
 class Filter:
     def __init__(self, id, description, stream, parent=None):
         self.id = id
@@ -50,37 +51,58 @@ class Filter:
         return new_id 
 
     def updateChunkId(self, chunk, new_id):
-        if new_id in self._chunks_dict: return False
-        del self._chunks_dict[chunk.id]
+        if chunk.id == new_id: return
+        if new_id in self._chunks_dict or hasattr(self, new_id):
+            raise Exception("Chunk identifier \"%s\" already exist!" % new_id)
+        if hasattr(self, chunk.id):
+            value = getattr(self, chunk.id)
+            delattr(self, chunk.id)
+            setattr(self, new_id, value)
+        if chunk.id in self._chunks_dict:
+            del self._chunks_dict[chunk.id]
         self._chunks_dict[new_id] = chunk
-        return True
         
     def addRawChunk(self, prev_chunk, id, size, description):
-        id = self.getUniqChunkId(id)
         addr = prev_chunk.addr + prev_chunk.size
-        chunk = FormatChunk(id, description, self.getStream(), addr, "!%us" % size, self)
+        chunk = FormatChunk(id, description, self.getStream(), addr, "!%ss" % size, self)
         chunk_pos = self._chunks.index(prev_chunk)+1
         self._appendChunk(chunk, position=chunk_pos)
 
-    def rescan(self, from_chunk):
-        print "Rescan filter ..."
+    def rescan(self, from_chunk, diff_size, new_id=None, new_description=None):
         if from_chunk != None:
             start = self._chunks.index(from_chunk)+1
             prev_chunk = from_chunk
         else:
             start = 0
             prev_chunk = None
+        if start == len(self._chunks):
+            print "Here"
+            if diff_size < 0:
+                if new_id != None:
+                    id = new_id
+                else:
+                    id = from_chunk.id
+                id = self.getUniqChunkId(id)
+                if new_description != None:
+                    description = new_description
+                else:
+                    description = from_chunk.description
+                self.addRawChunk(from_chunk, id, "{@end@}", description)
+            return
+
         pos = start
         try:
             for chunk in self._chunks[start:]:
                 # Update start address
                 if prev_chunk != None:
-                    print "New addr = %s + %s" % (prev_chunk.addr, prev_chunk.size) 
                     chunk.addr = prev_chunk.addr + prev_chunk.size
                 else:
                     chunk.addr = self.addr
-                print "Update chunk [addr=%s,id=%s]" % (chunk.addr, chunk.id)
                 chunk.update()
+                if pos == len(self._chunks)-1 and issubclass(chunk.__class__, FormatChunk):
+                    format = splitFormat(chunk.getFormat())
+                    if format[1] != "{@end@}":
+                        chunk.convertToStringSize("{@end@}")
                 prev_chunk = chunk
                 pos = pos + 1
         except Exception, msg:

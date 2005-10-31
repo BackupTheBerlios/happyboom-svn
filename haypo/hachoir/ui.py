@@ -9,6 +9,9 @@ def loadInterface(hachoir):
     global ui 
     glade = os.path.join(os.path.dirname(__file__), 'hachoir.glade')
     ui = GladeInterface(glade, hachoir)
+    hachoir.ui = ui 
+    hachoir.ui.on_row_click = hachoir.onRowClick
+    hachoir.ui.on_go_parent = hachoir.onGoParent
 
 class GladeInterface:
     def __init__(self, filename, hachoir):
@@ -36,8 +39,15 @@ class GladeInterface:
                 treeview.set_cursor( path, col, 0)
                 self.table_popup.show(pthinfo, event)
             return 1
+        
+    def updateToolbar(self):
+        self.toolbutton_open.set_sensitive(self.hachoir.main_filter != None)
+        self.toolbutton_save.set_sensitive(self.hachoir.main_filter != None)
+        if self.hachoir.main_filter == None:
+            self.toolbutton_parent.set_sensitive(False)
 
     def run(self):
+        self.updateToolbar()
         try:
             gtk.main()
         except KeyboardInterrupt:
@@ -63,11 +73,14 @@ class GladeInterface:
         self.table_store.append(parent, (addr, format, size, id, value, description, ))
        
     def load_window (self):
-        xml = gtk.glade.XML(self.glade_xml, "window")
-        self.window = xml.get_widget('window')
+        xml = gtk.glade.XML(self.glade_xml, "main_window")
+        self.window = xml.get_widget('main_window')
         self.statusbar = xml.get_widget('statusbar')
         self.toolbar = xml.get_widget('toolbar')
         self.toolbutton_parent = xml.get_widget('toolbutton_parent')
+        self.toolbutton_new = xml.get_widget('toolbutton_new')
+        self.toolbutton_open = xml.get_widget('toolbutton_open')
+        self.toolbutton_save = xml.get_widget('toolbutton_save')
         self.statusbar_state = self.statusbar.get_context_id("State")
         self.table = xml.get_widget('table')
         self.table_store = None
@@ -114,15 +127,39 @@ class GladeInterface:
     def on_toolbutton_parent(self, widget, data=None):
         self.on_go_parent()
 
+    def on_toolbutton_new(self, widget):
+        self.on_open_activate(widget)
+        
     def on_open_activate(self, widget):
-        print "Open (do nothing yet)"
         chooser = gtk.FileChooserDialog( \
-            title="Choose file",
+            title="Choose file to split",
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
         if chooser.run() == gtk.RESPONSE_OK:
             filename = chooser.get_filename() 
-            self.hachoir.run(filename)
+            self.hachoir.load(filename)
+        chooser.destroy()
+
+    def on_toolbutton_open(self, widget):
+        chooser = gtk.FileChooserDialog( \
+            title="Choose filter",
+            action=gtk.FILE_CHOOSER_ACTION_OPEN,
+            buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
+        if chooser.run() == gtk.RESPONSE_OK:
+            filename = chooser.get_filename() 
+            print "TODO: Load %s" % filename
+            self.hachoir.loadUser(filename)
+        chooser.destroy()
+
+    def on_toolbutton_save(self, widget):
+        print "Save"
+        chooser = gtk.FileChooserDialog( \
+            title="Save filter into ...",
+            action=gtk.FILE_CHOOSER_ACTION_SAVE,
+            buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_SAVE,gtk.RESPONSE_OK))
+        if chooser.run() == gtk.RESPONSE_OK:
+            filename = chooser.get_filename() 
+            self.hachoir.saveUser(filename)
         chooser.destroy()
 
     def on_about_activate(self, widget):

@@ -2,10 +2,11 @@ import struct
 import re
 import types
 import string
+from format import checkFormat
 
 class Chunk(object):
     def __init__(self, id, description, stream, addr, size, parent):
-        self._id = id
+        self.__id = id
         self.description = description
         self._size = size
         self._addr = addr
@@ -17,7 +18,7 @@ class Chunk(object):
 
     def __str__(self):
         return "Chunk(%s) <addr=%s, size=%s, id=%s, description=%s>" % \
-            (self.__class__, self._addr, self.size, self._id, self.description)
+            (self.__class__, self._addr, self.size, self.id, self.description)
         
     def getRawData(self, max_size=None):
         return None
@@ -35,16 +36,14 @@ class Chunk(object):
     def _setAddr(self, addr): self._addr = addr
     def _getAddr(self): return self._addr
     def _getSize(self): return self._size
-    def _getId(self): return self._id
-    def _setId(self, id):
-        print "Set id to %s" % id
-        if not self._parent.updateChunkId(self, id):
-            print "Can't set chunk identifier to \"%s\" (maybe already used)." % id
-            return
-        self._id = id
+    def __getId(self): return self.__id
+    def __setId(self, id):
+        if self.__id == id: return
+        self._parent.updateChunkId(self, id)
+        self.__id = id
     addr = property(_getAddr, _setAddr)        
     size = property(_getSize)        
-    id = property(_getId, _setId)
+    id = property(__getId, __setId)
     
 class ArrayChunk(Chunk):
     def __init__(self, id, description, stream, array, parent):
@@ -127,31 +126,55 @@ class FormatChunk(Chunk):
         return struct.calcsize(self.getRealFormat())
     size = property(_getSize)        
 
+    def __replaceFormatSize(self, format):
+        return re.sub(r'\{([^}]+)\}', self.__replaceFieldFormat, format)
+
     def getRealFormat(self):
-        return re.sub(r'\{([^}]+)\}', self.__replaceFieldFormat, self.__format)
+        return self.__replaceFormatSize(self.__format)
 
     def getFormat(self): return self.__format
     
-    def checkFormat(self, format):
-        m = re.compile("^[!<>]?([0-9]+|\{[a-z_]+\})?[BHLs]$").match(format)
-        return (m != None)
-        
+    def convertToStringSize(self, size):
+        self.__format = "!%ss" % size
+
     def setFormat(self, format, method, new_id=None, new_description=None):
         """ Method:
         - split => create new raw array if chunk is smaller
         - rescan => if size changed, rescan chunks"""
+
+        # Check format
+        if not checkFormat(format):
+            raise Exception("Invalid FormatChunk format: \"%s\"!" % format)
+        
+        # Check new size
+        size = struct.calcsize(self.__replaceFormatSize(format))
+        if self.__stream.getLastPos() < self.addr + size:
+            raise Exception("Can't set chunk %s to format \"%s\": size too big!" % (self.id, format))
+
+        # Update format
         old_size = self.size
-        if not self.checkFormat(format):
+        if not checkFormat(format):
             print "Wrong format: \"%s\"!" % format
             return
         self.__format = format
         new_size = self.size
         diff_size = new_size - old_size
+
+        # Update id and description
+        old_id = self.id
+        if new_id != None:
+            new_id = self.getParent().getUniqChunkId(new_id)
+            self.id = new_id
+        old_description = self.description
+        if new_description != None:
+            self.description = new_description
+
+        # Update filter if needed
         if diff_size != 0:
-            if method == "split" and diff_size < 0:
-                self._parent.addRawChunk(self, new_id, -diff_size, new_description)
-            else:
-                self._parent.rescan(self)
+#            if method == "split" and diff_size < 0:
+#                self._parent.addRawChunk(self, old_id, -diff_size, old_description)
+#            else:
+            self._parent.rescan(self, diff_size, new_id=old_id, new_description=old_description)
         self._parent.redisplay()
 
     def isArray(self):
@@ -175,7 +198,12 @@ class FormatChunk(Chunk):
 
     def __replaceFieldFormat(self, match):
 #        return str(getattr(self, match.group(1)))
-        return str(getattr(self._parent, match.group(1)))
+        id = match.group(1)
+        if id == "@end@":
+            size = self.__stream.getLastPos() - self.addr
+        else:
+            size = getattr(self._parent, id)
+        return str(size)
    
     def getData(self, max_size=None):
         data, truncated = self.getRawData(max_size)

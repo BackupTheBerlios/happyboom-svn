@@ -2,6 +2,7 @@ from filter import Filter
 from chunk import ArrayChunk, FilterChunk
 from xml.dom.minidom import getDOMImplementation, parse
 from program import VERSION
+from xml.dom.ext import PrettyPrint
 
 class UserChunk:
     def __init__(self, id, format, description):
@@ -24,20 +25,14 @@ class UserFilter(Filter):
         Filter.__init__(self, "user_filter", "User filter", stream)
         for chunk in descriptor.chunks:
             if chunk.format == "sub":
-                print "Sub %s" % chunk.sub_format
-#                format = chunk.sub_format.split('.')
-#                module = ".".join(format[:-1])
-#                format = format[-1]
-                #__import__(module, globals(), locals(), [format])
-                mod = __import__("plugins.png", globals(), locals(), ["PngChunk"])
-                print mod.PngChunk
-                chunk_class = mod.PngChunk
+                modules = chunk.sub_format.split('.')
+                chunk_class = modules[-1]
+                module = ".".join(modules[:-1])
+                mod = __import__(module, globals(), locals(), [chunk_class])
+                chunk_class = getattr(mod, chunk_class)
                 self.readChild(chunk.id, chunk_class, chunk.description)
-                print "Sub ok"
             else:
                 self.read(chunk.id, chunk.format, chunk.description)
-            print "- End chunk"
-        print "- End end"
 
 class UserFilterDescriptor:
     def __init__(self, filter=None, xml_file=None):
@@ -47,6 +42,11 @@ class UserFilterDescriptor:
         elif xml_file != None:
             self.createFromXML(xml_file)
             
+    def writeIntoXML(self, filename):
+        file = open(filename, "w")
+        PrettyPrint(self.toXML(), file)
+        file.close()
+        
     def createFromXML(self, filename):
         xml = parse(filename)
         self.chunks = []
