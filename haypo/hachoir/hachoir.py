@@ -7,14 +7,9 @@ Because it's written in Python, it would be easy to write new plugins
 Author: Victor Stinner
 """
 
-PROGRAM="Hachoir"
-VERSION="2005-10-27"
-
 import sys, os, re, traceback
-from stream import FileStream
-from plugin import getPlugin
-from chunk import FilterChunk
-from default import DefaultFilter, displayDefault
+from hachoir_class import Hachoir
+from program import PROGRAM, VERSION
 
 def usage(defval):
     print "%s version %s" % (PROGRAM, VERSION)
@@ -59,54 +54,6 @@ def parseArgs(val):
             val["verbose"] = True
     return (val, args[0],)
 
-class Hachoir:
-    def __init__(self):
-        self.verbose = False
-        self.display = True
-        self.depth = 5
-
-    def onGoParent(self):
-        if self.filter.getParent() == None: return
-        self.filter = self.filter.getParent()
-        self.filter.display()
-        
-    def onRowClick(self, chunk_id):
-        if chunk_id == None: return
-        chunk = self.filter.getChunk(chunk_id)
-        if issubclass(chunk.__class__, FilterChunk):
-            self.filter = chunk.getFilter()
-            self.filter.display()
-
-    def run(self, filename):
-        import filter
-        # Look for a plugin
-        plugin = getPlugin(filename)
-        if plugin == None:
-            regex, plugin_name, split_func, display_func = None, "default", DefaultFilter, displayDefault 
-        else:
-            regex, plugin_name, split_func, display_func = plugin
-        if self.verbose:
-            print "Split file \"%s\": %s." % (filename, plugin_name)
-        
-        # Create stream
-        stream = FileStream(filename)
-
-        # Split 
-        filter.display_filter_actions = self.depth
-        if 0 < self.depth:
-            print "=== Split file %s ===" % filename
-        self.filter = split_func(stream)
-        if 0 < self.depth:
-            print ""
-        self.filter.display()
-
-        # Display
-        if self.display:
-            print "=== File %s data ===" % filename
-            display_func(self.filter)
-
-        return True
-
 def main():
     try:        
         import imp
@@ -147,9 +94,7 @@ and PyGlade at: http://glade.gnome.org/""" % (err)
         ui.loadInterface(hachoir)
         ui.ui.on_row_click = hachoir.onRowClick
         ui.ui.on_go_parent = hachoir.onGoParent
-        ok = hachoir.run(filename)
-        if not ok:
-            sys.exit(1)
+        hachoir.run(filename)
         ui.ui.run()
 
     except SystemExit:

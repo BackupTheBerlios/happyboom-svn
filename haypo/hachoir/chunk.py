@@ -5,7 +5,7 @@ import string
 
 class Chunk(object):
     def __init__(self, id, description, stream, addr, size, parent):
-        self.id = id
+        self._id = id
         self.description = description
         self._size = size
         self._addr = addr
@@ -17,7 +17,7 @@ class Chunk(object):
 
     def __str__(self):
         return "Chunk(%s) <addr=%s, size=%s, id=%s, description=%s>" % \
-            (self.__class__, self._addr, self.size, self.id, self.description)
+            (self.__class__, self._addr, self.size, self._id, self.description)
         
     def getRawData(self, max_size=None):
         return None
@@ -34,10 +34,17 @@ class Chunk(object):
     def getParent(self): return self._parent
     def _setAddr(self, addr): self._addr = addr
     def _getAddr(self): return self._addr
-    def _getSize(self):
-        return self._size
+    def _getSize(self): return self._size
+    def _getId(self): return self._id
+    def _setId(self, id):
+        print "Set id to %s" % id
+        if not self._parent.updateChunkId(self, id):
+            print "Can't set chunk identifier to \"%s\" (maybe already used)." % id
+            return
+        self._id = id
     addr = property(_getAddr, _setAddr)        
     size = property(_getSize)        
+    id = property(_getId, _setId)
     
 class ArrayChunk(Chunk):
     def __init__(self, id, description, stream, array, parent):
@@ -129,7 +136,7 @@ class FormatChunk(Chunk):
         m = re.compile("^[!<>]?([0-9]+|\{[a-z_]+\})?[BHLs]$").match(format)
         return (m != None)
         
-    def setFormat(self, format, method):
+    def setFormat(self, format, method, new_id=None, new_description=None):
         """ Method:
         - split => create new raw array if chunk is smaller
         - rescan => if size changed, rescan chunks"""
@@ -142,7 +149,7 @@ class FormatChunk(Chunk):
         diff_size = new_size - old_size
         if diff_size != 0:
             if method == "split" and diff_size < 0:
-                self._parent.addRawChunk(self, -diff_size)
+                self._parent.addRawChunk(self, new_id, -diff_size, new_description)
             else:
                 self._parent.rescan(self)
         self._parent.redisplay()

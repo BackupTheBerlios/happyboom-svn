@@ -1,0 +1,2 @@
+PROGRAM="Hachoir"
+VERSION="2005-10-27"

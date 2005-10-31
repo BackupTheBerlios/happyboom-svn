@@ -26,12 +26,16 @@ class TablePopup:
         if self.new_chunk.runNewChunk() == gtk.RESPONSE_CANCEL: return
         assert issubclass(self.chunk.__class__, FormatChunk) and self.chunk.isString()
         format = self.new_chunk.getFormat()
-        self.chunk.setFormat(format, "split")
+        id = self.new_chunk.getId()
+        desc = self.new_chunk.getDescription()
+        self.chunk.setFormat(format, "split", id, desc)
 
     def onSetFormat(self, event):
         if issubclass(self.chunk.__class__, FormatChunk):
             if self.new_chunk.runSetFormat(self.chunk) == gtk.RESPONSE_CANCEL: return
             format = self.new_chunk.getFormat()
+            self.chunk.id = self.new_chunk.getId()
+            self.chunk.description = self.new_chunk.getDescription()
             self.chunk.setFormat(format, "rescan")
         else:
             print "Can't set format of chunk of type %s" % self.chunk.__class__

@@ -31,6 +31,9 @@ class Filter:
         self._chunks_dict = {}
         self._addr = self._stream.tell()
 
+    def getChunks(self):
+        return self._chunks
+
     def getUniqChunkId(self, id):
         if id not in self._chunks_dict: return id
         m = re.compile("^(.*)([0-9]+)$").match(id)
@@ -46,10 +49,16 @@ class Filter:
             new_id = "%s%u" % (root, uniq)
         return new_id 
 
-    def addRawChunk(self, prev_chunk, size):
-        id = self.getUniqChunkId("raw")
+    def updateChunkId(self, chunk, new_id):
+        if new_id in self._chunks_dict: return False
+        del self._chunks_dict[chunk.id]
+        self._chunks_dict[new_id] = chunk
+        return True
+        
+    def addRawChunk(self, prev_chunk, id, size, description):
+        id = self.getUniqChunkId(id)
         addr = prev_chunk.addr + prev_chunk.size
-        chunk = FormatChunk(id, "Raw data", self.getStream(), addr, "!%us" % size, self)
+        chunk = FormatChunk(id, description, self.getStream(), addr, "!%us" % size, self)
         chunk_pos = self._chunks.index(prev_chunk)+1
         self._appendChunk(chunk, position=chunk_pos)
 
@@ -223,12 +232,7 @@ class Filter:
     
     def read(self, id, format, description, can_truncate=True):
         """ Returns chunk """
-#        if self.depth <= display_filter_actions and 0<size:
-#            chunk_data.output(self.indent)
-#        if can_truncate:
-#            data = chunk_data.getData(60)
-#        else:
-#            data = chunk_data.getData(None)
+#        print "* Read chunk %s: format %s" % (id, format)
         chunk = FormatChunk(id, description, self._stream, self._stream.tell(), format, self)
         self._stream.seek(chunk.size, 1)
         self._appendChunk(chunk, can_truncate)
@@ -244,5 +248,3 @@ class Filter:
 
     def getStream(self):
         return self._stream
-
-display_filter_actions = 1
