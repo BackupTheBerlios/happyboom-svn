@@ -3,6 +3,7 @@ import pygtk
 pygtk.require ('2.0')
 import gtk
 import gtk.glade
+from ui_popup import TablePopup
 
 def loadInterface(hachoir):
     global ui 
@@ -11,21 +12,30 @@ def loadInterface(hachoir):
 
 class GladeInterface:
     def __init__(self, filename, hachoir):
+        self.hachoir = hachoir
+        self.glade_xml = filename
         self.on_row_click = None # event(chunk_id)
         self.on_go_parent = None # event(chunk_id)
-        self.xml = gtk.glade.XML(filename)
-        self.xml.signal_autoconnect(self)
-        self.window = self.xml.get_widget('window')
-        self.about_window = self.xml.get_widget('about_window')
-        self.statusbar = self.xml.get_widget('statusbar')
-        self.toolbar = self.xml.get_widget('toolbar')
-        self.toolbutton_parent = self.xml.get_widget('toolbutton_parent')
-        self.statusbar_state = self.statusbar.get_context_id("State")
-        self.window.connect("key-press-event", self.onKeyUp)
-        self.table = self.xml.get_widget('table')
-        self.table_store = None
-        self.hachoir = hachoir
-        self.build_him()
+        self.about_dialog = None
+        self.build_ui()
+
+    def getTableChunk(self, col):
+        chunk_id = self.table_store[col][3]
+        if chunk_id == None: return None
+        return self.hachoir.filter.getChunk(chunk_id)
+
+    def on_treeview_button_press_event(self, treeview, event):
+        if event.button == 3:
+            x = int(event.x)
+            y = int(event.y)
+            time = event.time
+            pthinfo = treeview.get_path_at_pos(x, y)
+            if pthinfo != None:
+                path, col, cellx, celly = pthinfo
+                treeview.grab_focus()
+                treeview.set_cursor( path, col, 0)
+                self.table_popup.show(pthinfo, event)
+            return 1
 
     def run(self):
         try:
@@ -46,13 +56,28 @@ class GladeInterface:
         row = self.table_store[iter]
         row[column] = value
        
-    def add_table_child(self, parent, addr, size, type, id, description):
-        return self.table_store.append(parent, ("%08X" % addr, type, size, None, id, description, None,))
+    def add_table_child(self, parent, addr, size, format, id, description):
+        return self.table_store.append(parent, (addr, format, size, None, id, description, None,))
        
-    def add_table(self, parent, addr, size, type, id, description, value):
-        self.table_store.append(parent, ("%08X" % addr, type, size, id, value, description, ))
+    def add_table(self, parent, addr, size, format, id, description, value):
+        self.table_store.append(parent, (addr, format, size, id, value, description, ))
        
-    def build_him(self):
+    def load_window (self):
+        xml = gtk.glade.XML(self.glade_xml, "window")
+        self.window = xml.get_widget('window')
+        self.statusbar = xml.get_widget('statusbar')
+        self.toolbar = xml.get_widget('toolbar')
+        self.toolbutton_parent = xml.get_widget('toolbutton_parent')
+        self.statusbar_state = self.statusbar.get_context_id("State")
+        self.table = xml.get_widget('table')
+        self.table_store = None
+        xml.signal_autoconnect(self)
+        
+    def build_ui(self):
+        self.load_window()
+        self.table_popup = TablePopup(self, self.glade_xml)
+        self.window.connect("key-press-event", self.onKeyUp)
+        self.table.connect("button_press_event", self.on_treeview_button_press_event)
         self.window.set_size_request(760,300)
         self.build_table()
 
@@ -69,7 +94,7 @@ class GladeInterface:
         self.table.set_model(self.table_store)
         self.table.connect("row-activated", self.onTableClicked)
         self.treeview_add_column(self.table, "Address", 0)
-        self.treeview_add_column(self.table, "Type", 1)
+        self.treeview_add_column(self.table, "Format", 1)
         self.treeview_add_column(self.table, "Size", 2)
         self.treeview_add_column(self.table, "Name", 3)
         self.treeview_add_column(self.table, "Value", 4)
@@ -101,8 +126,10 @@ class GladeInterface:
         chooser.destroy()
 
     def on_about_activate(self, widget):
-        print "About (do nothing yet)"
-        self.about_window.show()
+        if self.about_dialog == None:
+            self.about_xml = gtk.glade.XML(self.glade_xml, "about_dialog")
+            self.about_dialog = self.about_xml.get_widget('about_dialog')
+        self.about_dialog.show()
 
     def on_quit_activate(self, widget):
         self.quit()

@@ -90,7 +90,7 @@ class PngTime(Filter):
             (self.year, self.month, self.day,
              self.hour, self.minute, self.second)
 
-class PngFilter(Filter):
+class PngFile(Filter):
     """
     Split a PNG file into chunks.
     """
@@ -125,11 +125,11 @@ class PngChunk(Filter):
             self.read(None, "!{size}s", "Chunk data")
         self.read("crc32", "!L", "Chunk CRC32")
 
-    def updateParent(self, parent, chunk):
+    def updateParent(self, chunk):
         self.description = "PNG chunk (type %s)" % self.type
         chunk.description = "PNG chunk (type %s)" % self.type
 
     def __str__(self):
         return "PngChunk <size=%u, type=%s>" % (self.size, self.type)
 
-registerPlugin("^.*\.(PNG|png)$", "PNG picture", PngFilter, displayPng)
+registerPlugin("^.*\.(PNG|png)$", "PNG picture", PngFile, displayPng)

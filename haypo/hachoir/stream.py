@@ -78,7 +78,8 @@ class FileStream(Stream):
     def seek(self, pos, where=0):
         """ Read file seek document to understand where. """
         self.__file.seek(pos, where)
-        assert self.tell() <= self.__size
+        if self.__size < self.tell():
+            raise Exception("Error when seek to (%s,%s) in a stream." % (pos, where))
 
     def tell(self):
         return self.__file.tell()
@@ -125,7 +126,8 @@ class FileStream(Stream):
 
     def getN(self, size):
         data = self.__file.read(size)
-        assert len(data) == size
+        if len(data) != size:
+            raise Exception("Can't read %u bytes in a stream (get %u bytes)." % (size, len(data)))
         return data
 
     def getEnd(self):

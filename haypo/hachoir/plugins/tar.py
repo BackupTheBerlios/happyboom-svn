@@ -100,7 +100,7 @@ class TarFileEntry(Filter):
         if self.type not in name: return "Unknow type (%02X)" % ord(self.type)
         return name[self.type]
 
-    def updateParent(self, parent, chunk):
+    def updateParent(self, chunk):
         if not self.isEmpty():
             text = "Tar File (%s: %s)" % (self.name, self.getType())
         else:

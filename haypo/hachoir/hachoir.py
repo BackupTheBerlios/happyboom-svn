@@ -14,6 +14,7 @@ import sys, os, re, traceback
 from stream import FileStream
 from plugin import getPlugin
 from chunk import FilterChunk
+from default import DefaultFilter, displayDefault
 
 def usage(defval):
     print "%s version %s" % (PROGRAM, VERSION)
@@ -71,12 +72,7 @@ class Hachoir:
         
     def onRowClick(self, chunk_id):
         if chunk_id == None: return
-        m = re.compile(r"^([^[]+)\[([0-9]+)\]$").match(chunk_id)
-        if m != None:
-            array = self.filter.getChunk(m.group(1))
-            chunk = array[int(m.group(2))]
-        else:
-            chunk = self.filter.getChunk(chunk_id)
+        chunk = self.filter.getChunk(chunk_id)
         if issubclass(chunk.__class__, FilterChunk):
             self.filter = chunk.getFilter()
             self.filter.display()
@@ -86,9 +82,9 @@ class Hachoir:
         # Look for a plugin
         plugin = getPlugin(filename)
         if plugin == None:
-            print "No suitable plugin for \"%s\"." % (filename)
-            return False
-        regex, plugin_name, split_func, display_func = plugin
+            regex, plugin_name, split_func, display_func = None, "default", DefaultFilter, displayDefault 
+        else:
+            regex, plugin_name, split_func, display_func = plugin
         if self.verbose:
             print "Split file \"%s\": %s." % (filename, plugin_name)
         
@@ -108,6 +104,7 @@ class Hachoir:
         if self.display:
             print "=== File %s data ===" % filename
             display_func(self.filter)
+
         return True
 
 def main():

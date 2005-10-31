@@ -57,7 +57,8 @@ class GifColorMap(Filter):
             self._nb_colors = (1 << parent.bits_per_pixel)
         else:
             assert issubclass(parent.__class__, GifFile)
-            self._nb_colors = (1 << parent.screen.bits_per_pixel)
+            screen = parent.getChunk("screen").getFilter()
+            self._nb_colors = (1 << screen.bits_per_pixel)
         self.readArray("map", GifColor, "Color map", self.checkEndOfMap)
 
     def checkEndOfMap(self, stream, array, color):

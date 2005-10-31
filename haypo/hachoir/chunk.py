@@ -10,6 +10,10 @@ class Chunk(object):
         self._size = size
         self._addr = addr
         self._parent = parent
+        self._stream = stream
+
+    def update(self):
+        raise Exception("Chunk of type %s doesn't implement the method update()!" % self.__class__)
 
     def __str__(self):
         return "Chunk(%s) <addr=%s, size=%s, id=%s, description=%s>" % \
@@ -18,22 +22,49 @@ class Chunk(object):
     def getRawData(self, max_size=None):
         return None
         
+    def getStream(self):
+        return self._stream
+
     def getData(self, max_size=None):
         return None
 
     def getDisplayData(self):
         return self.getData()
 
+    def getParent(self): return self._parent
+    def _setAddr(self, addr): self._addr = addr
     def _getAddr(self): return self._addr
     def _getSize(self):
         return self._size
-    addr = property(_getAddr)        
+    addr = property(_getAddr, _setAddr)        
     size = property(_getSize)        
     
 class ArrayChunk(Chunk):
     def __init__(self, id, description, stream, array, parent):
         Chunk.__init__(self, id, description, stream, stream.tell(), 0, parent)
         self._array = array
+
+    def update(self):
+        prev_chunk = None
+        pos = 0
+        try:
+            for chunk in self._array:
+                if prev_chunk != None:
+                    chunk.addr = prev_chunk.addr + prev_chunk.size
+                else:
+                    chunk.addr = self.addr
+                chunk.update()
+                prev_chunk = chunk
+                pos = pos + 1
+        except Exception, msg:
+            print "Exception while updating an array:\n%s" % msg
+            chunk = self._array[pos]
+            addr = chunk.addr
+            size = self._stream.getSize() - addr
+            del self._array[pos:]
+            if size != 0:
+                chunk = FormatChunk("raw", "Raw data", chunk.getStream(), addr, "!%us" % size, self)
+                self._array.append(chunk)
 
     def _getSize(self):
         size = 0
@@ -52,6 +83,17 @@ class FilterChunk(Chunk):
     def __init__(self, id, description, stream, filter):
         Chunk.__init__(self, id, description, stream, filter.getAddr(), filter.getSize(), filter)
         self._filter = filter
+
+    def update(self):
+        filter_class = self._filter.__class__
+        stream = self._filter.getStream()
+        stream.seek(self.addr)
+        self._filter = filter_class(stream, self._filter.getParent())
+        self._filter.updateParent(self)
+        
+    def _getSize(self):
+        return self._filter.getSize()
+    size = property(_getSize)        
         
     def getDisplayData(self):
         return "(...)" 
@@ -70,18 +112,46 @@ class FormatChunk(Chunk):
         self.__format = format
         self.value = None
 
+    def update(self):
+        # Don't need to do anything
+        pass
+
     def _getSize(self):
-        return struct.calcsize(self._getRealFormat())
+        return struct.calcsize(self.getRealFormat())
     size = property(_getSize)        
 
-    def _getRealFormat(self):
+    def getRealFormat(self):
         return re.sub(r'\{([^}]+)\}', self.__replaceFieldFormat, self.__format)
 
     def getFormat(self): return self.__format
+    
+    def checkFormat(self, format):
+        m = re.compile("^[!<>]?([0-9]+|\{[a-z_]+\})?[BHLs]$").match(format)
+        return (m != None)
+        
+    def setFormat(self, format, method):
+        """ Method:
+        - split => create new raw array if chunk is smaller
+        - rescan => if size changed, rescan chunks"""
+        old_size = self.size
+        if not self.checkFormat(format):
+            print "Wrong format: \"%s\"!" % format
+            return
+        self.__format = format
+        new_size = self.size
+        diff_size = new_size - old_size
+        if diff_size != 0:
+            if method == "split" and diff_size < 0:
+                self._parent.addRawChunk(self, -diff_size)
+            else:
+                self._parent.rescan(self)
+        self._parent.redisplay()
 
     def isArray(self):
         if self.isString(): return False
-        return re.compile("^.?[0-9]+.*$").match(self.__format) != None
+        m = re.compile("^.?([0-9]+)[^0-9]+$").match(self.__format)
+        if m == None: return False
+        return m.group(1) != "1"
         
     def isString(self):
         return self.__format[-1] == "s"
@@ -103,7 +173,7 @@ class FormatChunk(Chunk):
     def getData(self, max_size=None):
         data, truncated = self.getRawData(max_size)
         if not truncated:
-            format = self._getRealFormat()
+            format = self.getRealFormat()
             data = struct.unpack(format, data)
             if not self.isArray():
                 data = data[0]
@@ -113,6 +183,8 @@ class FormatChunk(Chunk):
 #        if self.id == None: return "-"
         data = self.getData(20)
         if type(data)==types.StringType:
+            if len(data) == 0:
+                return "(empty)"
             display = ""
             for c in data:
                 if ord(c)<32:

@@ -31,6 +31,58 @@ class Filter:
         self._chunks_dict = {}
         self._addr = self._stream.tell()
 
+    def getUniqChunkId(self, id):
+        if id not in self._chunks_dict: return id
+        m = re.compile("^(.*)([0-9]+)$").match(id)
+        if m != None:
+            root = m.group(1)
+            uniq = int(m.group(2))+1
+        else:
+            root = id
+            uniq = 2
+        new_id = "%s%u" % (root, uniq)
+        while new_id in self._chunks_dict:
+            uniq = uniq+1
+            new_id = "%s%u" % (root, uniq)
+        return new_id 
+
+    def addRawChunk(self, prev_chunk, size):
+        id = self.getUniqChunkId("raw")
+        addr = prev_chunk.addr + prev_chunk.size
+        chunk = FormatChunk(id, "Raw data", self.getStream(), addr, "!%us" % size, self)
+        chunk_pos = self._chunks.index(prev_chunk)+1
+        self._appendChunk(chunk, position=chunk_pos)
+
+    def rescan(self, from_chunk):
+        print "Rescan filter ..."
+        if from_chunk != None:
+            start = self._chunks.index(from_chunk)+1
+            prev_chunk = from_chunk
+        else:
+            start = 0
+            prev_chunk = None
+        pos = start
+        try:
+            for chunk in self._chunks[start:]:
+                # Update start address
+                if prev_chunk != None:
+                    print "New addr = %s + %s" % (prev_chunk.addr, prev_chunk.size) 
+                    chunk.addr = prev_chunk.addr + prev_chunk.size
+                else:
+                    chunk.addr = self.addr
+                print "Update chunk [addr=%s,id=%s]" % (chunk.addr, chunk.id)
+                chunk.update()
+                prev_chunk = chunk
+                pos = pos + 1
+        except Exception, msg:
+            print "Exception while updating a filter:\n%s" % msg
+            chunk = self._chunks[pos]
+            size = self._stream.getSize() - chunk.addr
+            del self._chunks[pos:]
+            if size != 0:
+                chunk = FormatChunk("raw", "Raw data", chunk.getStream(), chunk.addr, "!%us" % size, self)
+                self._appendChunk(chunk)
+
     def getAddr(self):
         return self._addr
 
@@ -40,11 +92,17 @@ class Filter:
             size = size + chunk.size
         return size
 
-    def updateParent(self, parent, chunk):
+    def updateParent(self, chunk):
         pass
 
     def getChunk(self, chunk_id):
-        return self._chunks_dict.get(chunk_id, None)
+        m = re.compile(r"^([^[]+)\[([0-9]+)\]$").match(chunk_id)
+        if m != None:
+            array = self._chunks_dict.get(m.group(1), None)
+            if array == None: return None
+            return array[int(m.group(2))]
+        else:
+            return self._chunks_dict.get(chunk_id, None)
 
     def displayChunk(self, chunk):
         type = chunk.__class__
@@ -53,6 +111,9 @@ class Filter:
         elif issubclass(type, FilterChunk):
             type = chunk.getFilter().id
         ui.ui.add_table(self.table_parent, chunk.addr, chunk.size, type, chunk.id, chunk.description, chunk.getDisplayData())
+
+    def redisplay(self):  
+        self.display()
 
     def display(self):  
         # Update parent button
@@ -104,8 +165,11 @@ class Filter:
         line = getattr(self, id)
         setattr(self, id, line[:-len(eol)])
 
-    def _appendChunk(self, chunk, can_truncate=False):
-        self._chunks.append(chunk)
+    def _appendChunk(self, chunk, can_truncate=False, position=None):
+        if position != None:
+            self._chunks.insert(position, chunk)
+        else:
+            self._chunks.append(chunk)
         id = chunk.id
         if id != None:
             m = re.compile(r"^([^[]+)\[\]$").match(id)
@@ -135,7 +199,7 @@ class Filter:
         filter = filter_class(self._stream, self)
         chunk = FilterChunk(id, filter.description, self._stream, filter)
         self._appendChunk(chunk)
-        filter.updateParent(self, chunk)
+        filter.updateParent(chunk)
         self._stream.seek(chunk.addr + chunk.size)
 
     def readArray(self, id, filter_class, description, end_func): 
@@ -154,7 +218,7 @@ class Filter:
             last_filter = filter
 
         for chunk in array:
-            chunk.getFilter().updateParent(self, chunk)
+            chunk.getFilter().updateParent(chunk)
         self._stream.seek(array_chunk.addr + array_chunk.size)
     
     def read(self, id, format, description, can_truncate=True):
@@ -177,5 +241,8 @@ class Filter:
 
     def getParent(self):
         return self._parent
+
+    def getStream(self):
+        return self._stream
 
 display_filter_actions = 1
