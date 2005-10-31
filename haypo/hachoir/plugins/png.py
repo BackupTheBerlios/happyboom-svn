@@ -96,7 +96,7 @@ class PngFile(Filter):
     """
 
     def __init__(self, stream):
-        Filter.__init__(self, "png_file", "PNG file", stream)
+        Filter.__init__(self, "png_file", "PNG file", stream, None)
         self.read("header", "!8s", "File header")
         assert self.header == "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A"
         self.readArray("chunks", PngChunk, "Png chunks", self.checkEndOfChunks)

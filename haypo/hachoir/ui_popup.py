@@ -4,6 +4,7 @@ import gtk
 import gtk.glade
 from chunk import FormatChunk
 from ui_new_chunk import NewChunkDialog
+from format import splitFormat # TODO: remove this line
 
 class TablePopup:
     def __init__(self, ui, filename):
@@ -16,7 +17,7 @@ class TablePopup:
 
     def show(self, path_info, event):
         col = path_info[0][0]
-        self.chunk = self.ui.getTableChunk(col)
+        self.chunk = self.ui.window.getTableChunk(col)
         if self.chunk == None:
             print "Can't get chunk"
             return
@@ -29,6 +30,16 @@ class TablePopup:
         id = self.new_chunk.getId()
         desc = self.new_chunk.getDescription()
         self.chunk.setFormat(format, "split", id, desc)
+
+    def onNewFilter(self, event):
+        if self.new_chunk.runNewChunk() == gtk.RESPONSE_CANCEL: return
+        assert issubclass(self.chunk.__class__, FormatChunk) and self.chunk.isString()
+        format = self.new_chunk.getFormat()
+        split_format = splitFormat(format)
+        size = int(split_format[1])
+        id = self.new_chunk.getId()
+        desc = self.new_chunk.getDescription()
+        self.chunk.getParent().addNewFilter(self.chunk, id, size, desc)
 
     def onSetFormat(self, event):
         if issubclass(self.chunk.__class__, FormatChunk):

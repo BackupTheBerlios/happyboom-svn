@@ -21,9 +21,9 @@ class UserSubChunk(UserChunk):
         self.sub_format = sub_format
 
 class UserFilter(Filter):
-    def __init__(self, descriptor, stream):
-        Filter.__init__(self, "user_filter", "User filter", stream)
-        for chunk in descriptor.chunks:
+    def __init__(self, desc, stream, parent):
+        Filter.__init__(self, desc.id, desc.description, stream, parent)
+        for chunk in desc.chunks:
             if chunk.format == "sub":
                 modules = chunk.sub_format.split('.')
                 chunk_class = modules[-1]
@@ -41,6 +41,9 @@ class UserFilterDescriptor:
             self.createFromFilter(filter)
         elif xml_file != None:
             self.createFromXML(xml_file)
+        else:
+            self.id = None 
+            self.description = None 
             
     def writeIntoXML(self, filename):
         file = open(filename, "w")
@@ -50,7 +53,10 @@ class UserFilterDescriptor:
     def createFromXML(self, filename):
         xml = parse(filename)
         self.chunks = []
-        self.__loadXML(xml.documentElement)
+        root = xml.documentElement
+        self.id = root.getAttribute("id")
+        self.description = root.getAttribute("description")
+        self.__loadXML(root)
         
     def __loadXML(self, node):
         for chunk in node.childNodes:
@@ -73,6 +79,8 @@ class UserFilterDescriptor:
         doc = impl.createDocument(None, "user_filter", None)
         root = doc.documentElement
         root.setAttribute("hachoir_version", VERSION)
+        root.setAttribute("id", self.id)
+        root.setAttribute("description", self.id)
         self.__toXML(doc, root)
         return doc
 
@@ -85,9 +93,11 @@ class UserFilterDescriptor:
             node.appendChild(item)
             if issubclass(chunk.__class__, UserSubChunk):
                 item.setAttribute("sub_format", chunk.sub_format)
-                chunk.sub.__toXML(doc, item)
+#                chunk.sub.__toXML(doc, item)
 
     def createFromFilter(self, filter):
+        self.id = filter.id 
+        self.description = filter.description
         self.chunks = []
         self.__createFromChunks(filter.getChunks())
 
@@ -98,7 +108,8 @@ class UserFilterDescriptor:
             else:
                 if issubclass(chunk.__class__, FilterChunk):
                     format = str(chunk.getFilter().__class__)
-                    sub = UserFilterDescriptor(filter=chunk.getFilter())
+                    #sub = UserFilterDescriptor(filter=chunk.getFilter())
+                    sub = None
                     user = UserSubChunk(chunk.id, sub, format, chunk.description)
                 else:
                     user = UserChunk(chunk.id, chunk.getFormat(), chunk.description)

@@ -86,15 +86,22 @@ class ArrayChunk(Chunk):
         return self._array[index]
         
 class FilterChunk(Chunk):
-    def __init__(self, id, description, stream, filter):
-        Chunk.__init__(self, id, description, stream, filter.getAddr(), filter.getSize(), filter)
+    def __init__(self, id, filter, parent):
+        Chunk.__init__(self, id, filter.description, filter.getStream(), filter.getAddr(), filter.getSize(), parent)
         self._filter = filter
+        self._filter.filter_chunk = self
 
     def update(self):
         filter_class = self._filter.__class__
         stream = self._filter.getStream()
+        parent = self._filter.getParent()
         stream.seek(self.addr)
-        self._filter = filter_class(stream, self._filter.getParent())
+        filter = filter_class(stream, parent)
+        self.setFilter(filter)
+
+    def setFilter(self, filter):
+        print "Set filter to %s" % filter.id
+        self._filter = filter
         self._filter.updateParent(self)
         
     def _getSize(self):

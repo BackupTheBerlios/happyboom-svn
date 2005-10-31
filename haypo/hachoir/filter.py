@@ -11,7 +11,7 @@ from chunk import Chunk, FormatChunk, ArrayChunk, FilterChunk
 from format import splitFormat    
 
 class Filter:
-    def __init__(self, id, description, stream, parent=None):
+    def __init__(self, id, description, stream, parent):
         self.id = id
         self.description = description
         self._sub_struct = {}
@@ -24,6 +24,7 @@ class Filter:
             self.depth = 1
             self.table_item = None
             self.table_parent = None 
+        self.filter_chunk = None 
         self.indent = " " * ((self.depth-1)*2)
         self.child_indent = " " * (self.depth*2)
         self.table_item = None
@@ -66,7 +67,7 @@ class Filter:
         addr = prev_chunk.addr + prev_chunk.size
         chunk = FormatChunk(id, description, self.getStream(), addr, "!%ss" % size, self)
         chunk_pos = self._chunks.index(prev_chunk)+1
-        self._appendChunk(chunk, position=chunk_pos)
+        self._appendChunk(chunk, can_truncate=True, position=chunk_pos)
 
     def rescan(self, from_chunk, diff_size, new_id=None, new_description=None):
         if from_chunk != None:
@@ -141,26 +142,26 @@ class Filter:
             type = chunk.getFormat()
         elif issubclass(type, FilterChunk):
             type = chunk.getFilter().id
-        ui.ui.add_table(self.table_parent, chunk.addr, chunk.size, type, chunk.id, chunk.description, chunk.getDisplayData())
+        ui.window.add_table(self.table_parent, chunk.addr, chunk.size, type, chunk.id, chunk.description, chunk.getDisplayData())
 
     def redisplay(self):  
         self.display()
-
-    def display(self):  
-        # Update parent button
-        ui.ui.enableParentButton(self.getParent() != None)
-        
-        # Update status bar
+    
+    def updateStatusBar(self):
         text = ""
         current = self
         while current != None:
             if text != "": text = " > " + text
             text = current.id + text
             current = current.getParent()
-        ui.ui.updateStatusBar("%s: %s" % (text, self.description))
+        ui.window.updateStatusBar("%s: %s" % (text, self.description))
+
+    def display(self):  
+        ui.window.enableParentButton(self.getParent() != None)
+        self.updateStatusBar()
             
         # Update table
-        ui.ui.clear_table()
+        ui.window.clear_table()
         for chunk in self._chunks:
             if issubclass(chunk.__class__, ArrayChunk):
                 for subchunk in chunk:
@@ -228,7 +229,7 @@ class Filter:
 
     def readChild(self, id, filter_class, description): 
         filter = filter_class(self._stream, self)
-        chunk = FilterChunk(id, filter.description, self._stream, filter)
+        chunk = FilterChunk(id, filter, self)
         self._appendChunk(chunk)
         filter.updateParent(chunk)
         self._stream.seek(chunk.addr + chunk.size)
@@ -244,7 +245,7 @@ class Filter:
             filter = filter_class(self._stream, self)
             chunk_id = "%s[%u]" % (id, nb)
             nb = nb + 1
-            chunk = FilterChunk(chunk_id, filter.description, self._stream, filter)
+            chunk = FilterChunk(chunk_id, filter, self)
             array.append( chunk )
             last_filter = filter
 
@@ -264,6 +265,20 @@ class Filter:
     def __str__(self):
         return "Filter(%s) <id=%s, description=%s>" % \
             (self.__class__, self.id, self.description)
+
+    def addNewFilter(self, chunk, id, size, desc):
+        chunk.setFormat("!%us" % size, "split", id, desc)
+
+        stream = self.getStream()
+        stream.seek(chunk.addr)
+        filter = Filter(id, desc, stream, self)
+        filter._appendChunk(chunk)
+        new_chunk = FilterChunk(chunk.id, filter, self)
+        pos = self._chunks.index(chunk)
+        self._chunks[pos] = new_chunk
+        self._chunks_dict[chunk.id] = new_chunk
+        self.redisplay()
+        return filter
 
     def getParent(self):
         return self._parent

@@ -16,7 +16,6 @@ class NewChunkDialog:
         self.format_widget = xml.get_widget("format")
         self.id_widget = xml.get_widget("identifier")
         self.desc_widget = xml.get_widget("description")
-        self.response = gtk.RESPONSE_CANCEL
 
     def getId(self):
         return self.id_widget.get_text()

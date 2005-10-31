@@ -20,18 +20,25 @@ class Hachoir:
     def onRowClick(self, chunk_id):
         if chunk_id == None: return
         chunk = self.filter.getChunk(chunk_id)
+        print "Click: %s" % chunk
         if issubclass(chunk.__class__, FilterChunk):
             self.filter = chunk.getFilter()
             self.filter.display()
 
     def loadUser(self, filename):
-        stream = self.main_filter.getStream()
-        stream.seek(0)
+        old_filter = self.filter
         user = UserFilterDescriptor(xml_file=filename)
-        self.filter = UserFilter(user, stream)
-        self.main_filter = self.filter
+        stream = self.filter.getStream()
+        stream.seek(0)
+        parent = self.filter.getParent()
+        self.filter = UserFilter(user, stream, parent)
+        if parent == None:
+            self.main_filter = self.filter
+        else:
+            chunk = old_filter.filter_chunk
+            chunk.setFilter(self.filter)
         self.filter.display()
-        self.ui.updateToolbar()
+        self.ui.window.updateToolbar()
     
     def saveUser(self, filename):
         my = UserFilterDescriptor(filter=self.main_filter)
@@ -61,7 +68,7 @@ class Hachoir:
         if self.display:
             print "=== File %s data ===" % filename
             display_func(self.filter)
-        self.ui.updateToolbar()
+        self.ui.window.updateToolbar()
 
     def run(self, filename):
         if filename != None:
