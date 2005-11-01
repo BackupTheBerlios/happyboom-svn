@@ -7,6 +7,7 @@ Author: Victor Stinner
 
 from filter import Filter
 from plugin import registerPlugin
+from error import warning
 
 def displayGif(gif):
     print "Format: %s" % (gif.header)
@@ -121,7 +122,7 @@ class GifFile(Filter):
             elif code == ",":
                 self.readChild("images[]", GifImage, "Image")
                 # TODO: Write GifImage code :-)
-                print "WARNING: GIF FILTER CAN NOT READ IMAGE CONTENT YET, SO ABORT READING!"
+                warning("GIF FILTER CAN NOT READ IMAGE CONTENT YET, SO ABORT READING!")
                 return
             elif code == ";":
                 # GIF Terminator

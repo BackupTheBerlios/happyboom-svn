@@ -48,46 +48,6 @@ class Chunk(object):
     size = property(_getSize)        
     id = property(__getId, __setId)
     
-class ArrayChunk(Chunk):
-    def __init__(self, id, description, stream, array, parent):
-        Chunk.__init__(self, id, description, stream, stream.tell(), 0, parent)
-        self._array = array
-
-    def update(self):
-        prev_chunk = None
-        pos = 0
-        try:
-            for chunk in self._array:
-                if prev_chunk != None:
-                    chunk.addr = prev_chunk.addr + prev_chunk.size
-                else:
-                    chunk.addr = self.addr
-                chunk.update()
-                prev_chunk = chunk
-                pos = pos + 1
-        except Exception, msg:
-            error("Exception while updating an array:\n%s" % msg)
-            chunk = self._array[pos]
-            addr = chunk.addr
-            size = self._stream.getSize() - addr
-            del self._array[pos:]
-            if size != 0:
-                chunk = FormatChunk("raw", "Raw data", chunk.getStream(), addr, "!%us" % size, self)
-                self._array.append(chunk)
-
-    def _getSize(self):
-        size = 0
-        for item in self._array:
-            size = size + item.size
-        return size
-    size = property(_getSize)        
-    
-    def getData(self, max_size=None):
-        return self._array
-
-    def __getitem__(self, index):
-        return self._array[index]
-        
 class FilterChunk(Chunk):
     def __init__(self, id, filter, parent):
         Chunk.__init__(self, id, filter.getDescription(), filter.getStream(), filter.getAddr(), filter.getSize(), parent)
@@ -102,6 +62,11 @@ class FilterChunk(Chunk):
     def setFilter(self, filter):
         self._filter = filter
         self._filter.updateParent(self)
+    
+    def _setAddr(self, addr):
+        self._addr = addr
+        self._filter.setAddr(addr)
+    addr = property(Chunk._getAddr, _setAddr)        
         
     def _getSize(self):
         return self._filter.getSize()
@@ -174,10 +139,10 @@ class FormatChunk(Chunk):
 
         # Update filter if needed
         if diff_size != 0:
-#            if method == "split" and diff_size < 0:
-#                self._parent.addRawChunk(self, old_id, -diff_size, old_description)
-#            else:
-            self._parent.rescan(self, diff_size, new_id=old_id, new_description=old_description)
+            if method == "split" and diff_size < 0:
+                self._parent.addRawChunk(self, old_id, -diff_size, old_description)
+            else:
+                self._parent.rescan(self, diff_size, new_id=old_id, new_description=old_description)
         self._parent.updateFormatChunk(self)
 
     def isArray(self):
@@ -203,7 +168,7 @@ class FormatChunk(Chunk):
 #        return str(getattr(self, match.group(1)))
         id = match.group(1)
         if id == "@end@":
-            size = self.__stream.getLastPos() - self.addr
+            size = self.__stream.getLastPos() - self.addr + 1
         else:
             size = getattr(self._parent, id)
         return str(size)

@@ -1,5 +1,5 @@
 from filter import Filter
-from chunk import ArrayChunk, FilterChunk
+from chunk import FilterChunk
 from xml.dom.minidom import getDOMImplementation, parse
 from program import VERSION
 from xml.dom.ext import PrettyPrint
@@ -103,7 +103,8 @@ class UserFilterDescriptor:
 
     def __createFromChunks(self, chunks):
         for chunk in chunks:
-            if issubclass(chunk.__class__, ArrayChunk):
+            if False: #issubclass(chunk.__class__, ArrayChunk):
+                # TODO: Fix ArrayFilter
                 self.__createFromChunks(chunk)
             else:
                 if issubclass(chunk.__class__, FilterChunk):

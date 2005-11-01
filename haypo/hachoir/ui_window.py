@@ -22,7 +22,7 @@ class MainWindow:
         xml.signal_autoconnect(self)
         self.window.connect("key-press-event", self.onKeyUp)
         self.table.connect("button_press_event", self.on_treeview_button_press_event)
-        self.window.set_size_request(760,300)
+        self.window.set_size_request(760,500)
         self.build_table()
         
     def updateToolbar(self):

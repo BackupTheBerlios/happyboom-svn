@@ -5,6 +5,7 @@ Status: Alpha
 Author: Victor Stinner
 """
 
+import re
 from datetime import datetime
 from filter import Filter
 from plugin import registerPlugin
@@ -79,8 +80,10 @@ class TarFileEntry(Filter):
 
     def octal2int(self, str):
         str = str.strip("\0")
+        if str=="": return 0
+        assert re.match("^[0-7]+$", str)
         try:
-            return int(str.strip("\0"),8)
+            return int(str,8)
         except:
             return 0
 

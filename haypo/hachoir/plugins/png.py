@@ -61,8 +61,10 @@ class PngGamma(Filter):
 class PngText(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "png_text", "PNG text", stream, parent)
+        max_length = parent.size
+        print "max",max_length
         old = self._stream.tell()
-        pos = self._stream.search("\0", 14)
+        pos = self._stream.search("\0", max_length)
         if pos == -1:
             raise Exception("Fails to find end of text")
         lg = (pos-old)

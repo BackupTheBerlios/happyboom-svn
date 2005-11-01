@@ -263,7 +263,7 @@
       <signal name="activate" handler="onNewChunk" last_modification_time="Sun, 30 Oct 2005 23:08:19 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image20">
+	<widget class="GtkImage" id="image32">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-cut</property>
 	  <property name="icon_size">1</property>
@@ -277,14 +277,14 @@
   </child>
 
   <child>
-    <widget class="GtkImageMenuItem" id="new_filter1">
+    <widget class="GtkImageMenuItem" id="new_filter">
       <property name="visible">True</property>
       <property name="label" translatable="yes">New _filter</property>
       <property name="use_underline">True</property>
       <signal name="activate" handler="onNewFilter" last_modification_time="Mon, 31 Oct 2005 06:42:27 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image21">
+	<widget class="GtkImage" id="image33">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-cut</property>
 	  <property name="icon_size">1</property>
@@ -298,14 +298,14 @@
   </child>
 
   <child>
-    <widget class="GtkImageMenuItem" id="convert_string_chunk_to_filter">
+    <widget class="GtkImageMenuItem" id="convert_to_filter">
       <property name="visible">True</property>
       <property name="label" translatable="yes">_Convert string chunk to filter</property>
       <property name="use_underline">True</property>
       <signal name="activate" handler="onConvertToFilter" last_modification_time="Tue, 01 Nov 2005 01:30:56 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image22">
+	<widget class="GtkImage" id="image34">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-convert</property>
 	  <property name="icon_size">1</property>
@@ -319,14 +319,14 @@
   </child>
 
   <child>
-    <widget class="GtkImageMenuItem" id="set_chunk_format">
+    <widget class="GtkImageMenuItem" id="set_format">
       <property name="visible">True</property>
       <property name="label" translatable="yes">Set chunk _format</property>
       <property name="use_underline">True</property>
       <signal name="activate" handler="onSetFormat" last_modification_time="Sun, 30 Oct 2005 23:27:49 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image23">
+	<widget class="GtkImage" id="image35">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-edit</property>
 	  <property name="icon_size">1</property>
@@ -347,7 +347,7 @@
       <signal name="activate" handler="onDeleteChunk" last_modification_time="Tue, 01 Nov 2005 01:54:40 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image24">
+	<widget class="GtkImage" id="image36">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-delete</property>
 	  <property name="icon_size">1</property>
@@ -500,7 +500,8 @@
 	  <child>
 	    <widget class="GtkComboBoxEntry" id="format">
 	      <property name="visible">True</property>
-	      <property name="items" translatable="yes">s
+	      <property name="items" translatable="yes">c
+s
 B
 H
 L</property>

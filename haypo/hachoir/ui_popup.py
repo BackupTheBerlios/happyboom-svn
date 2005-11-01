@@ -14,7 +14,14 @@ class TablePopup:
         self.popup = xml.get_widget('table_popup')
         xml.signal_autoconnect(self)
         self.chunk = None
-        self.new_chunk = NewChunkDialog(self.ui.glade_xml)
+        self.new_chunk_dlg = NewChunkDialog(self.ui.glade_xml)
+
+        # Popup items
+        self.new_chunk = xml.get_widget("new_chunk")
+        self.new_filter = xml.get_widget("new_filter")
+        self.convert_to_filter = xml.get_widget("convert_to_filter")
+        self.set_format = xml.get_widget("set_format")
+        self.delete_chunk = xml.get_widget("delete_chunk")
 
     def show(self, path_info, event):
         col = path_info[0][0]
@@ -22,47 +29,57 @@ class TablePopup:
         if self.chunk == None:
             error("Can't get chunk")
             return
+
+        is_format_chunk = issubclass(self.chunk.__class__, FormatChunk)
+        self.new_chunk.set_sensitive(is_format_chunk)
+        self.new_filter.set_sensitive(is_format_chunk)
+        self.convert_to_filter.set_sensitive(is_format_chunk)
+        self.set_format.set_sensitive(is_format_chunk)
+
+        can_delete = (self.chunk.getParent().getParent() != None)
+        if not can_delete:
+            chunks = self.chunk.getParent().getChunks()
+            can_delete = (chunks.index(self.chunk) < len(chunks)-1) or not is_format_chunk
+
+        self.delete_chunk.set_sensitive(can_delete)
         self.popup.popup( None, None, None, event.button, event.time)
 
     def onDeleteChunk(self, event):
         self.chunk.getParent().deleteChunk(self.chunk)
 
     def onConvertToFilter(self, event):
-        if not issubclass(self.chunk.__class__, FormatChunk):
-            print "Only works on format chunk"
+        assert issubclass(self.chunk.__class__, FormatChunk)
         self.chunk.getParent().convertChunkToFilter(self.chunk)
         
     def onNewChunk(self, event):
-        if self.new_chunk.runNewChunk() == gtk.RESPONSE_CANCEL: return
-        assert issubclass(self.chunk.__class__, FormatChunk) and self.chunk.isString()
-        format = self.new_chunk.getFormat()
-        id = self.new_chunk.getId()
-        desc = self.new_chunk.getDescription()
+        if self.new_chunk_dlg.runNewChunk() == gtk.RESPONSE_CANCEL: return
+        assert issubclass(self.chunk.__class__, FormatChunk)
+        format = self.new_chunk_dlg.getFormat()
+        id = self.new_chunk_dlg.getId()
+        desc = self.new_chunk_dlg.getDescription()
         self.chunk.setFormat(format, "split", id, desc)
         self.chunk.getParent().redisplay()
 
     def onNewFilter(self, event):
-        if self.new_chunk.runNewChunk() == gtk.RESPONSE_CANCEL: return
+        if self.new_chunk_dlg.runNewChunk() == gtk.RESPONSE_CANCEL: return
         assert issubclass(self.chunk.__class__, FormatChunk) and self.chunk.isString()
-        format = self.new_chunk.getFormat()
+        format = self.new_chunk_dlg.getFormat()
         split_format = splitFormat(format)
         size = split_format[1]
-        id = self.new_chunk.getId()
-        desc = self.new_chunk.getDescription()
+        id = self.new_chunk_dlg.getId()
+        desc = self.new_chunk_dlg.getDescription()
         self.chunk.getParent().addNewFilter(self.chunk, id, size, desc)
 
     def onSetFormat(self, event):
-        if issubclass(self.chunk.__class__, FormatChunk):
-            if self.new_chunk.runSetFormat(self.chunk) == gtk.RESPONSE_CANCEL: return
-            format = self.new_chunk.getFormat()
-            self.chunk.id = self.new_chunk.getId()
-            self.chunk.description = self.new_chunk.getDescription()
-            try:
-                self.chunk.setFormat(format, "rescan")
-            except Exception, msg:
-                error("Exception while trying to set chunk %s format to \"%s\"." \
-                    % (self.chunk.id, format))
-                pass
-            self.chunk.getParent().redisplay()
-        else:
-            error("Can't set format of chunk of type %s" % self.chunk.__class__)
+        assert issubclass(self.chunk.__class__, FormatChunk)
+        if self.new_chunk_dlg.runSetFormat(self.chunk) == gtk.RESPONSE_CANCEL: return
+        format = self.new_chunk_dlg.getFormat()
+        self.chunk.id = self.new_chunk_dlg.getId()
+        self.chunk.description = self.new_chunk_dlg.getDescription()
+        try:
+            self.chunk.setFormat(format, "rescan")
+        except Exception, msg:
+            error("Exception while trying to set chunk %s format to \"%s\"." \
+                % (self.chunk.id, format))
+            pass
+        self.chunk.getParent().redisplay()
