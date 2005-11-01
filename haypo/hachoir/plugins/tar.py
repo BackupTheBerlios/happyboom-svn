@@ -67,13 +67,12 @@ class TarFileEntry(Filter):
         self.gname = self.gname.strip("\0")
         self.read("devmajor", "!8s", "Dev major")
         self.read("devminor", "!8s", "Dev minor")
-        #self.read(None, "!167s", "Padding (zero)")
-        self.read(None, "!167s", "Padding (zero)")
+        self.read("header_padding", "!167s", "Padding (zero)")
         if self.type in ("\0", "0"):
             self.read("filedata", "!{size}s", "File data", True)
         if stream.tell() % 512 != 0:
             padding = 512 - stream.tell() % 512
-            self.read(None, "!%ss" % padding, "Padding (512 align)")
+            self.read("padding", "!%ss" % padding, "Padding (512 align)")
 
     def isEmpty(self):
         return self.name == ""
@@ -109,12 +108,12 @@ class TarFileEntry(Filter):
 
 class TarFile(Filter):
     def __init__(self, stream):
-        Filter.__init__(self, "tar_file", "TAR archive file", stream)
+        Filter.__init__(self, "tar_file", "TAR archive file", stream, None)
 
         self.readArray("files", TarFileEntry, "Tar Files", self.checkEndOfChunks)
         
         padding = 4096 - stream.tell() % 4096
-        self.read(None, "!%ss" % padding, "Padding (4096 align)")
+        self.read("padding", "!%ss" % padding, "Padding (4096 align)")
 
         assert stream.eof()
 

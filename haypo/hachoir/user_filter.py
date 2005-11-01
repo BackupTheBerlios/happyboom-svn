@@ -96,8 +96,8 @@ class UserFilterDescriptor:
 #                chunk.sub.__toXML(doc, item)
 
     def createFromFilter(self, filter):
-        self.id = filter.id 
-        self.description = filter.description
+        self.id = filter.getId()
+        self.description = filter.getDescription()
         self.chunks = []
         self.__createFromChunks(filter.getChunks())
 

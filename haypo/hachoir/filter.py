@@ -9,11 +9,13 @@ import types
 import ui
 from chunk import Chunk, FormatChunk, ArrayChunk, FilterChunk
 from format import splitFormat    
+from error import error
+from tools import getBacktrace
 
 class Filter:
     def __init__(self, id, description, stream, parent):
-        self.id = id
-        self.description = description
+        self._id = id
+        self._description = description
         self._sub_struct = {}
         self._stream = stream
         self._parent = parent
@@ -32,6 +34,33 @@ class Filter:
         self._chunks = []
         self._chunks_dict = {}
         self._addr = self._stream.tell()
+
+    def clone(self):
+        if self.__class__ == Filter:
+            return None
+        self.getStream().seek(self.getAddr())
+        return self.__class__(self.getStream(), self.getParent())
+
+    def getId(self): return self._id
+    def setId(self, id): self._id = id
+    def getDescription(self): return self._description
+    def setDescription(self, description): self._description = description
+
+    def deleteChunk(self, chunk):
+        if len(self._chunks) < 2:
+            error("Can't not the chunk %s (there is only one chunk)." % chunk.id)
+            return            
+        chunk_size = chunk.size
+        pos = self._chunks.index(chunk)
+        assert chunk.id in self._chunks_dict and hasattr(self, chunk.id)
+        del self._chunks[pos]
+        del self._chunks_dict[chunk.id]
+        delattr(self, chunk.id)        
+        # Delete last chunk of a sub filter? It true, truncate the sub filter
+        if self.getParent() != None and pos == len(self._chunks):
+            chunk_size = 0
+        self.rescanFromPos(pos, -chunk_size)
+        self.redisplay()
 
     def getChunks(self):
         return self._chunks
@@ -72,25 +101,38 @@ class Filter:
     def rescan(self, from_chunk, diff_size, new_id=None, new_description=None):
         if from_chunk != None:
             start = self._chunks.index(from_chunk)+1
-            prev_chunk = from_chunk
         else:
             start = 0
+        self.rescanFromPos(start, diff_size, new_id, new_description)
+            
+    def rescanFromPos(self, start, diff_size, new_id=None, new_description=None):
+        assert 0<=start and start <= len(self._chunks)
+        if 0<start:
+            prev_chunk = self._chunks[start-1]
+        else:
             prev_chunk = None
+
+        # Update last chunk size if needed
         if start == len(self._chunks):
-            print "Here"
             if diff_size < 0:
+                assert prev_chunk != None
                 if new_id != None:
                     id = new_id
                 else:
-                    id = from_chunk.id
+                    id = prev_chunk.id
                 id = self.getUniqChunkId(id)
                 if new_description != None:
                     description = new_description
                 else:
-                    description = from_chunk.description
-                self.addRawChunk(from_chunk, id, "{@end@}", description)
-            return
+                    description = prev_chunk.description
+                if self.getParent() == None:
+                    size = "{@end@}"
+                else:
+                    size = -diff_size
+                self.addRawChunk(prev_chunk, id, size, description)
+                diff_size = 0
 
+        # Update chunks address
         pos = start
         try:
             for chunk in self._chunks[start:]:
@@ -98,22 +140,30 @@ class Filter:
                 if prev_chunk != None:
                     chunk.addr = prev_chunk.addr + prev_chunk.size
                 else:
-                    chunk.addr = self.addr
+                    chunk.addr = self.getAddr()
                 chunk.update()
                 if pos == len(self._chunks)-1 and issubclass(chunk.__class__, FormatChunk):
                     format = splitFormat(chunk.getFormat())
-                    if format[1] != "{@end@}":
-                        chunk.convertToStringSize("{@end@}")
+                    if self.getParent() == None:
+                        if format[1] != "{@end@}":
+                            chunk.convertToStringSize("{@end@}")
+                    else:
+                        size = chunk.size - diff_size
+                        chunk.convertToStringSize(size)
                 prev_chunk = chunk
                 pos = pos + 1
         except Exception, msg:
-            print "Exception while updating a filter:\n%s" % msg
+            error("Exception while updating a filter:\n%s\n%s" \
+                % (msg,getBacktrace()))
             chunk = self._chunks[pos]
             size = self._stream.getSize() - chunk.addr
             del self._chunks[pos:]
             if size != 0:
                 chunk = FormatChunk("raw", "Raw data", chunk.getStream(), chunk.addr, "!%us" % size, self)
                 self._appendChunk(chunk)
+                
+        if self.getParent() != None:
+            self.getParent().rescan(self.filter_chunk, 0)
 
     def getAddr(self):
         return self._addr
@@ -129,19 +179,24 @@ class Filter:
 
     def getChunk(self, chunk_id):
         m = re.compile(r"^([^[]+)\[([0-9]+)\]$").match(chunk_id)
+        chunk = None
         if m != None:
             array = self._chunks_dict.get(m.group(1), None)
-            if array == None: return None
-            return array[int(m.group(2))]
+            if array != None:
+                chunk = array[int(m.group(2))]
         else:
-            return self._chunks_dict.get(chunk_id, None)
+            chunk = self._chunks_dict.get(chunk_id, None)
+        if chunk == None:
+            raise Exception("Filter %s has no chunk with id \"%s\"." \
+                % (self.getId(), chunk_id))
+        return chunk
 
     def displayChunk(self, chunk):
         type = chunk.__class__
         if issubclass(type, FormatChunk):
             type = chunk.getFormat()
         elif issubclass(type, FilterChunk):
-            type = chunk.getFilter().id
+            type = chunk.getFilter().getId()
         ui.window.add_table(self.table_parent, chunk.addr, chunk.size, type, chunk.id, chunk.description, chunk.getDisplayData())
 
     def redisplay(self):  
@@ -152,9 +207,9 @@ class Filter:
         current = self
         while current != None:
             if text != "": text = " > " + text
-            text = current.id + text
+            text = current.getId() + text
             current = current.getParent()
-        ui.window.updateStatusBar("%s: %s" % (text, self.description))
+        ui.window.updateStatusBar("%s: %s" % (text, self.getDescription()))
 
     def display(self):  
         ui.window.enableParentButton(self.getParent() != None)
@@ -197,35 +252,40 @@ class Filter:
         line = getattr(self, id)
         setattr(self, id, line[:-len(eol)])
 
+    def updateFormatChunk(self, chunk):
+        if chunk.id == None: return
+        data = chunk.getData()
+        setattr(self, chunk.id, data)       
+
     def _appendChunk(self, chunk, can_truncate=False, position=None):
         if position != None:
             self._chunks.insert(position, chunk)
         else:
             self._chunks.append(chunk)
         id = chunk.id
-        if id != None:
-            m = re.compile(r"^([^[]+)\[\]$").match(id)
-            if m != None:
-                id = m.group(1)
-                if hasattr(self, id):
-                    array = getattr(self, id)
-                else:
-                    array = []
-                    setattr(self, id, array)
-                assert type(array) == types.ListType
-                chunk.id = "%s[%u]" % (id, len(array))
-                array.append(chunk)
-                if id not in self._chunks_dict:
-                    self._chunks_dict[id] = array 
+        assert id != None
+        m = re.compile(r"^([^[]+)\[\]$").match(id)
+        if m != None:
+            id = m.group(1)
+            if hasattr(self, id):
+                array = getattr(self, id)
             else:
-                if hasattr(self, id):
-                    raise Exception("Chunk identifier \"%s\" already exist!" % id)
-                if can_truncate:
-                    data = chunk.getData(40)
-                else:
-                    data = chunk.getData()
-                setattr(self, id, data)
-                self._chunks_dict[id] = chunk
+                array = []
+                setattr(self, id, array)
+            assert type(array) == types.ListType
+            chunk.id = "%s[%u]" % (id, len(array))
+            array.append(chunk)
+            if id not in self._chunks_dict:
+                self._chunks_dict[id] = array 
+        else:
+            if hasattr(self, id):
+                raise Exception("Chunk identifier \"%s\" already exist!" % id)
+            if can_truncate:
+                data = chunk.getData(40)
+            else:
+                data = chunk.getData()
+            setattr(self, id, data)
+            self._chunks_dict[id] = chunk
 
     def readChild(self, id, filter_class, description): 
         filter = filter_class(self._stream, self)
@@ -264,15 +324,21 @@ class Filter:
 
     def __str__(self):
         return "Filter(%s) <id=%s, description=%s>" % \
-            (self.__class__, self.id, self.description)
+            (self.__class__, self.getId(), self.getDescription())
 
     def addNewFilter(self, chunk, id, size, desc):
-        chunk.setFormat("!%us" % size, "split", id, desc)
+        chunk.setFormat("!%ss" % size, "split", id, desc)
+        self.convertChunkToFilter(chunk)
 
+    def convertChunkToFilter(self, chunk):
+        # Create new filter
         stream = self.getStream()
         stream.seek(chunk.addr)
-        filter = Filter(id, desc, stream, self)
-        filter._appendChunk(chunk)
+        filter = Filter(chunk.id, chunk.description, stream, self)
+        chunk.setParent(filter)
+        filter._appendChunk(chunk, can_truncate=True)
+        
+        # Create new chunk and add it into self 
         new_chunk = FilterChunk(chunk.id, filter, self)
         pos = self._chunks.index(chunk)
         self._chunks[pos] = new_chunk

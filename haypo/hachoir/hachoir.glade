@@ -107,6 +107,7 @@
 	      <child>
 		<widget class="GtkToolButton" id="toolbutton_new">
 		  <property name="visible">True</property>
+		  <property name="tooltip" translatable="yes">Open new file and split it</property>
 		  <property name="stock_id">gtk-new</property>
 		  <property name="visible_horizontal">True</property>
 		  <property name="visible_vertical">True</property>
@@ -122,6 +123,7 @@
 	      <child>
 		<widget class="GtkToolButton" id="toolbutton_open">
 		  <property name="visible">True</property>
+		  <property name="tooltip" translatable="yes">Open a filter and apply it to this level</property>
 		  <property name="stock_id">gtk-open</property>
 		  <property name="visible_horizontal">True</property>
 		  <property name="visible_vertical">True</property>
@@ -137,6 +139,7 @@
 	      <child>
 		<widget class="GtkToolButton" id="toolbutton_save">
 		  <property name="visible">True</property>
+		  <property name="tooltip" translatable="yes">Save current filter into a XML file</property>
 		  <property name="stock_id">gtk-save</property>
 		  <property name="visible_horizontal">True</property>
 		  <property name="visible_vertical">True</property>
@@ -165,6 +168,7 @@
 	      <child>
 		<widget class="GtkToolButton" id="toolbutton_parent">
 		  <property name="visible">True</property>
+		  <property name="tooltip" translatable="yes">Go to parent filter</property>
 		  <property name="label" translatable="yes">Parent</property>
 		  <property name="use_underline">True</property>
 		  <property name="stock_id">gtk-go-up</property>
@@ -182,6 +186,7 @@
 	      <child>
 		<widget class="GtkToolButton" id="toolbutton_property">
 		  <property name="visible">True</property>
+		  <property name="tooltip" translatable="yes">Set filter properties</property>
 		  <property name="stock_id">gtk-properties</property>
 		  <property name="visible_horizontal">True</property>
 		  <property name="visible_vertical">True</property>
@@ -258,7 +263,7 @@
       <signal name="activate" handler="onNewChunk" last_modification_time="Sun, 30 Oct 2005 23:08:19 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image5">
+	<widget class="GtkImage" id="image20">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-cut</property>
 	  <property name="icon_size">1</property>
@@ -279,7 +284,7 @@
       <signal name="activate" handler="onNewFilter" last_modification_time="Mon, 31 Oct 2005 06:42:27 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image6">
+	<widget class="GtkImage" id="image21">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-cut</property>
 	  <property name="icon_size">1</property>
@@ -293,16 +298,16 @@
   </child>
 
   <child>
-    <widget class="GtkImageMenuItem" id="join_chunks">
+    <widget class="GtkImageMenuItem" id="convert_string_chunk_to_filter">
       <property name="visible">True</property>
-      <property name="label" translatable="yes">_Join chunks</property>
+      <property name="label" translatable="yes">_Convert string chunk to filter</property>
       <property name="use_underline">True</property>
-      <signal name="activate" handler="onJoinChunks" last_modification_time="Sun, 30 Oct 2005 23:08:19 GMT"/>
+      <signal name="activate" handler="onConvertToFilter" last_modification_time="Tue, 01 Nov 2005 01:30:56 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image7">
+	<widget class="GtkImage" id="image22">
 	  <property name="visible">True</property>
-	  <property name="stock">gtk-go-up</property>
+	  <property name="stock">gtk-convert</property>
 	  <property name="icon_size">1</property>
 	  <property name="xalign">0.5</property>
 	  <property name="yalign">0.5</property>
@@ -321,9 +326,30 @@
       <signal name="activate" handler="onSetFormat" last_modification_time="Sun, 30 Oct 2005 23:27:49 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image8">
+	<widget class="GtkImage" id="image23">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-edit</property>
+	  <property name="icon_size">1</property>
+	  <property name="xalign">0.5</property>
+	  <property name="yalign">0.5</property>
+	  <property name="xpad">0</property>
+	  <property name="ypad">0</property>
+	</widget>
+      </child>
+    </widget>
+  </child>
+
+  <child>
+    <widget class="GtkImageMenuItem" id="delete_chunk">
+      <property name="visible">True</property>
+      <property name="label" translatable="yes">Delete chunk</property>
+      <property name="use_underline">True</property>
+      <signal name="activate" handler="onDeleteChunk" last_modification_time="Tue, 01 Nov 2005 01:54:40 GMT"/>
+
+      <child internal-child="image">
+	<widget class="GtkImage" id="image24">
+	  <property name="visible">True</property>
+	  <property name="stock">gtk-delete</property>
 	  <property name="icon_size">1</property>
 	  <property name="xalign">0.5</property>
 	  <property name="yalign">0.5</property>
@@ -340,7 +366,7 @@
   <property name="destroy_with_parent">True</property>
   <property name="name" translatable="yes">Hachoir version 2005-10-30</property>
   <property name="copyright" translatable="yes">Copyright 2005 Victor Stinner</property>
-  <property name="comments" translatable="yes">Split binary stream into chunks ...</property>
+  <property name="comments" translatable="yes">Split binary stream into filters and chunks ...</property>
   <property name="license" translatable="yes">Under GNU GPL licence</property>
   <property name="website">http://www.haypocalc.com/wiki/Hachoir</property>
   <property name="website_label" translatable="yes">Website</property>

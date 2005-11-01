@@ -107,12 +107,11 @@ class MainWindow:
         self.on_open_activate(widget)
 
     def on_toolbutton_property(self, widget):
-        print "Property"
         filter = self.ui.hachoir.filter
         dlg = self.ui.property_dialog
         if dlg.run(filter) == gtk.RESPONSE_CANCEL: return
-        filter.id = dlg.getId() 
-        filter.description = dlg.getDescription()
+        filter.setId( dlg.getId() )
+        filter.setDescription( dlg.getDescription() )
         filter.updateStatusBar()
         
     def on_open_activate(self, widget):
@@ -136,7 +135,6 @@ class MainWindow:
         chooser.destroy()
 
     def on_toolbutton_save(self, widget):
-        print "Save"
         chooser = gtk.FileChooserDialog( \
             title="Save filter into ...",
             action=gtk.FILE_CHOOSER_ACTION_SAVE,
@@ -147,7 +145,7 @@ class MainWindow:
         chooser.destroy()
 
     def on_about_activate(self, widget):
-        self.about_dialog.show()
+        self.ui.about_dialog.show()
 
     def on_quit_activate(self, widget):
         self.ui.quit()

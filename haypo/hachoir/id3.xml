@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<user_filter hachoir_version='2005-10-27' id="id3_tag" description="MP3 ID3 tag">
+  <chunk format='!3s' id='header' description='Header (ID3)'/>
+  <chunk format='!1B' id='ver_major' description='Version (major)'/>
+  <chunk format='!B' id='ver_minor' description='Version (minor)'/>
+  <chunk format='!B' id='flags' description='Flags'/>
+  <chunk format='!L' id='size' description='Size'/>
+  <chunk format='!{@end@}s' id='data' description='Data'/>
+</user_filter>

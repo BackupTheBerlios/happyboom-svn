@@ -39,7 +39,7 @@ class NcftpBookmark(Filter):
 
 class NcftpFile(Filter):
     def __init__(self, stream):
-        Filter.__init__(self, "ncftp_file", "NCFTP bookmark file", stream)
+        Filter.__init__(self, "ncftp_file", "NCFTP bookmark file", stream, None)
         self.readLine("header", "Header (first line")
         self.readLine("nb_bookmark", "Number of bookmarks")
         self.readArray("bookmarks", NcftpBookmark, "Bookmarks", self.checkEOF)

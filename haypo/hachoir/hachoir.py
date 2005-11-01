@@ -10,6 +10,8 @@ Author: Victor Stinner
 import sys, os, re, traceback
 from hachoir_class import Hachoir
 from program import PROGRAM, VERSION
+from log import log
+from error import error
 
 def usage(defval):
     print "%s version %s" % (PROGRAM, VERSION)
@@ -71,7 +73,7 @@ def main():
                 module = "plugins."+m.group(1)
                 __import__(module)
                 modules.append(m.group(1))
-        print "Loaded: %u plugings (%s)" % (len(modules), ", ".join(modules))
+        log.info("Loaded: %u plugings (%s)" % (len(modules), ", ".join(modules)))
 
         opt = {
             "depth": 2,
@@ -85,11 +87,10 @@ def main():
             setattr(hachoir, key, opt[key])
         try:
             import ui 
-            print ui.ui
         except ImportError, err:
-            print """Error: a Python module is missing:\n%s\n
+            error("""Error: a Python module is missing:\n%s\n
 You can find PyGTK at: http://www.pygtk.org/
-and PyGlade at: http://glade.gnome.org/""" % (err)
+and PyGlade at: http://glade.gnome.org/""" % (err))
             sys.exit(1)
         ui.loadInterface(hachoir)
         hachoir.run(filename)
@@ -97,8 +98,7 @@ and PyGlade at: http://glade.gnome.org/""" % (err)
     except SystemExit:
         pass
     except Exception, err:
-        print "Exception:\n%s" % (err)
-        print "".join(traceback.format_exception( \
+        where = "".join(traceback.format_exception( \
             sys.exc_type, sys.exc_value, sys.exc_traceback))
-
+        error("Exception:\n%s\n%s" % (err, where))
 if __name__=="__main__": main()    

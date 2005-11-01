@@ -3,9 +3,6 @@ import pygtk
 pygtk.require ('2.0')
 import gtk
 import gtk.glade
-from ui_popup import TablePopup
-from ui_window import MainWindow
-from ui_property import PropertyDialog
 
 def loadInterface(hachoir):
     global ui 
@@ -38,6 +35,9 @@ class GladeInterface:
         self.about_dialog.hide()
         
     def build_ui(self):
+        from ui_window import MainWindow
+        from ui_popup import TablePopup
+        from ui_property import PropertyDialog
         self.window = MainWindow(self)
         self.loadAbout()
         self.table_popup = TablePopup(self, self.glade_xml)

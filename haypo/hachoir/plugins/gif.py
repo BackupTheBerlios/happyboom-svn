@@ -97,11 +97,11 @@ class GifScreenDescriptor(Filter):
         # -- End of TODO
         
         self.read("background", "<B", "Background color")
-        self.read(None, "<B", "Not used (zero)")
+        self.read("notused", "<B", "Not used (zero)")
         
 class GifFile(Filter):
     def __init__(self, stream):
-        Filter.__init__(self, "gif_file", "GIF picture file", stream)
+        Filter.__init__(self, "gif_file", "GIF picture file", stream, None)
         # Header
         self.read("header", "6s", "File header")
         assert (self.header == "GIF87a") or (self.header == "GIF89a")
@@ -114,7 +114,7 @@ class GifFile(Filter):
             
         self.images = []
         while True:
-            code = self.read(None, "c", "Separator code")
+            code = self.read("separator[]", "c", "Separator code")
             code = code.getData()
             if code == "!":
                 self.readChild("extensions[]", GifExtension, "Extension")

@@ -92,7 +92,7 @@ class ZipFileEntry(Filter):
         
 class ZipFile(Filter):
     def __init__(self, stream):
-        Filter.__init__(self, "zip_file", "ZIP archive file", stream)
+        Filter.__init__(self, "zip_file", "ZIP archive file", stream, None)
         # File data
         self.signature = None
         self.central_directory = []

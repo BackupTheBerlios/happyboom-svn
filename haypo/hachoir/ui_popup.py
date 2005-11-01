@@ -5,6 +5,7 @@ import gtk.glade
 from chunk import FormatChunk
 from ui_new_chunk import NewChunkDialog
 from format import splitFormat # TODO: remove this line
+from error import error
 
 class TablePopup:
     def __init__(self, ui, filename):
@@ -19,10 +20,18 @@ class TablePopup:
         col = path_info[0][0]
         self.chunk = self.ui.window.getTableChunk(col)
         if self.chunk == None:
-            print "Can't get chunk"
+            error("Can't get chunk")
             return
         self.popup.popup( None, None, None, event.button, event.time)
 
+    def onDeleteChunk(self, event):
+        self.chunk.getParent().deleteChunk(self.chunk)
+
+    def onConvertToFilter(self, event):
+        if not issubclass(self.chunk.__class__, FormatChunk):
+            print "Only works on format chunk"
+        self.chunk.getParent().convertChunkToFilter(self.chunk)
+        
     def onNewChunk(self, event):
         if self.new_chunk.runNewChunk() == gtk.RESPONSE_CANCEL: return
         assert issubclass(self.chunk.__class__, FormatChunk) and self.chunk.isString()
@@ -30,13 +39,14 @@ class TablePopup:
         id = self.new_chunk.getId()
         desc = self.new_chunk.getDescription()
         self.chunk.setFormat(format, "split", id, desc)
+        self.chunk.getParent().redisplay()
 
     def onNewFilter(self, event):
         if self.new_chunk.runNewChunk() == gtk.RESPONSE_CANCEL: return
         assert issubclass(self.chunk.__class__, FormatChunk) and self.chunk.isString()
         format = self.new_chunk.getFormat()
         split_format = splitFormat(format)
-        size = int(split_format[1])
+        size = split_format[1]
         id = self.new_chunk.getId()
         desc = self.new_chunk.getDescription()
         self.chunk.getParent().addNewFilter(self.chunk, id, size, desc)
@@ -47,9 +57,12 @@ class TablePopup:
             format = self.new_chunk.getFormat()
             self.chunk.id = self.new_chunk.getId()
             self.chunk.description = self.new_chunk.getDescription()
-            self.chunk.setFormat(format, "rescan")
+            try:
+                self.chunk.setFormat(format, "rescan")
+            except Exception, msg:
+                error("Exception while trying to set chunk %s format to \"%s\"." \
+                    % (self.chunk.id, format))
+                pass
+            self.chunk.getParent().redisplay()
         else:
-            print "Can't set format of chunk of type %s" % self.chunk.__class__
-
-    def onJoinChunks(self, event):
-        print "join chunk"
+            error("Can't set format of chunk of type %s" % self.chunk.__class__)

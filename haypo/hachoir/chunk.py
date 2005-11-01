@@ -3,6 +3,7 @@ import re
 import types
 import string
 from format import checkFormat
+from error import error
 
 class Chunk(object):
     def __init__(self, id, description, stream, addr, size, parent):
@@ -32,6 +33,8 @@ class Chunk(object):
     def getDisplayData(self):
         return self.getData()
 
+    def setParent(self, parent):
+        self._parent = parent
     def getParent(self): return self._parent
     def _setAddr(self, addr): self._addr = addr
     def _getAddr(self): return self._addr
@@ -63,7 +66,7 @@ class ArrayChunk(Chunk):
                 prev_chunk = chunk
                 pos = pos + 1
         except Exception, msg:
-            print "Exception while updating an array:\n%s" % msg
+            error("Exception while updating an array:\n%s" % msg)
             chunk = self._array[pos]
             addr = chunk.addr
             size = self._stream.getSize() - addr
@@ -87,20 +90,16 @@ class ArrayChunk(Chunk):
         
 class FilterChunk(Chunk):
     def __init__(self, id, filter, parent):
-        Chunk.__init__(self, id, filter.description, filter.getStream(), filter.getAddr(), filter.getSize(), parent)
+        Chunk.__init__(self, id, filter.getDescription(), filter.getStream(), filter.getAddr(), filter.getSize(), parent)
         self._filter = filter
         self._filter.filter_chunk = self
 
     def update(self):
-        filter_class = self._filter.__class__
-        stream = self._filter.getStream()
-        parent = self._filter.getParent()
-        stream.seek(self.addr)
-        filter = filter_class(stream, parent)
-        self.setFilter(filter)
+        new = self._filter.clone()
+        if new == None: return
+        self.setFilter(new)
 
     def setFilter(self, filter):
-        print "Set filter to %s" % filter.id
         self._filter = filter
         self._filter.updateParent(self)
         
@@ -160,9 +159,6 @@ class FormatChunk(Chunk):
 
         # Update format
         old_size = self.size
-        if not checkFormat(format):
-            print "Wrong format: \"%s\"!" % format
-            return
         self.__format = format
         new_size = self.size
         diff_size = new_size - old_size
@@ -182,7 +178,7 @@ class FormatChunk(Chunk):
 #                self._parent.addRawChunk(self, old_id, -diff_size, old_description)
 #            else:
             self._parent.rescan(self, diff_size, new_id=old_id, new_description=old_description)
-        self._parent.redisplay()
+        self._parent.updateFormatChunk(self)
 
     def isArray(self):
         if self.isString(): return False

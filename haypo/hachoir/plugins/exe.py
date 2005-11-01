@@ -199,11 +199,8 @@ class MS_Dos(Filter):
         self.read("pe_offset", "<L", "Offset to PE header")
 
 class ExeFile(Filter):
-    def checkEndOfSections(self, stream, array, section):
-        return len(array) == self.pe.nb_sections
-
     def __init__(self, stream):
-        Filter.__init__(self, "exe_file", "EXE file", stream)
+        Filter.__init__(self, "exe_file", "EXE file", stream, None)
 
         self.readChild("ms_dos", MS_Dos, "MS-Dos header")
 
@@ -234,5 +231,8 @@ class ExeFile(Filter):
                 self.closeChild("PE resources header")            
         else:
             self.pe = None
+
+    def checkEndOfSections(self, stream, array, section):
+        return len(array) == self.pe.nb_sections
 
 registerPlugin("^.*\.(exe|EXE)$", "MS-Dos / Windows executable filter", ExeFile, displayExe)

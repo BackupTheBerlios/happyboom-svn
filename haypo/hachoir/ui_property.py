@@ -21,8 +21,8 @@ class PropertyDialog:
         return self.desc_widget.get_text()
 
     def run(self, filter):
-        self.id_widget.set_text(filter.id)
-        self.desc_widget.set_text(filter.description)
+        self.id_widget.set_text(filter.getId())
+        self.desc_widget.set_text(filter.getDescription())
         r = self.window.run()
         self.window.hide()
         return r
