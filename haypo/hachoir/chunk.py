@@ -1,9 +1,9 @@
 import struct
 import re
 import types
-import string
-from format import checkFormat
+from format import checkFormat, splitFormat
 from error import error
+from tools import convertDataToPrintableString
 
 class Chunk(object):
     def __init__(self, id, description, stream, addr, size, parent):
@@ -13,25 +13,35 @@ class Chunk(object):
         self._addr = addr
         self._parent = parent
         self._stream = stream
+        self.post_process = None
+        self.display = None
+
+    def postProcess(self):        
+        if self.post_process != None:
+            self.display = self.post_process(self)
+
+    def getFormat(self):
+        return self.__class__
 
     def update(self):
-        raise Exception("Chunk of type %s doesn't implement the method update()!" % self.__class__)
+        self.display = None
+        self.postProcess()
 
     def __str__(self):
         return "Chunk(%s) <addr=%s, size=%s, id=%s, description=%s>" % \
             (self.__class__, self._addr, self.size, self.id, self.description)
         
-    def getRawData(self, max_size=None):
-        return None
-        
     def getStream(self):
         return self._stream
 
-    def getData(self, max_size=None):
+    def getValue(self, max_size=None):
         return None
 
     def getDisplayData(self):
-        return self.getData()
+        if self.display != None:
+            return self.display
+        else:
+            return self.getValue()
 
     def setParent(self, parent):
         self._parent = parent
@@ -47,17 +57,25 @@ class Chunk(object):
     addr = property(_getAddr, _setAddr)        
     size = property(_getSize)        
     id = property(__getId, __setId)
+    value = property(getValue)
     
 class FilterChunk(Chunk):
     def __init__(self, id, filter, parent):
         Chunk.__init__(self, id, filter.getDescription(), filter.getStream(), filter.getAddr(), filter.getSize(), parent)
         self._filter = filter
         self._filter.filter_chunk = self
+    
+    def postProcess(self):        
+        self._filter.postProcess()
+
+    def getFormat(self):
+        return self._filter.getId()
 
     def update(self):
         new = self._filter.clone()
-        if new == None: return
-        self.setFilter(new)
+        if new != None:
+            self.setFilter(new)
+        Chunk.update(self)
 
     def setFilter(self, filter):
         self._filter = filter
@@ -75,33 +93,115 @@ class FilterChunk(Chunk):
     def getDisplayData(self):
         return "(...)" 
         
-    def getData(self, max_size=None):
+    def getValue(self, max_size=None):
         return self._filter
+    value = property(getValue)
 
     def getFilter(self):
         return self._filter
 
+class StringChunk(Chunk):
+    def __init__(self, id, description, stream, str_type, parent):
+        Chunk.__init__(self, id, description, stream, stream.tell(), 0, parent)
+        self._str_type = str_type
+        self._read()
+
+    def getFormat(self):
+        return "c-string"
+
+    def _read(self):
+#        if self._str_type == "C": ...
+        self._stream.seek(self.addr)
+        self._size = self._stream.searchLength("\0", True)
+        assert self._size != -1
+        self.str = self._stream.getN(self._size-1)
+
+    def update(self):
+        Chunk.update(self)
+        self._read()
+
+    def getValue(self, max_size=None):
+        return self.str
+    value = property(getValue)
+
+    def getDisplayData(self):
+        return convertDataToPrintableString(self.str)
+        
+class FormatChunkCache:
+    def __init__(self, chunk):
+        self._value = {}
+        self._addr = None
+        self._format = None
+        self._size = None
+        self._chunk = chunk
+        
+    def _isArray(self, format):
+        if self._chunk.isString(): return False
+        endian, size, type = splitFormat(format)
+        return (size != "1" and size != "")
+
+    def _getRawData(self, max_size=None):
+        stream = self._chunk.getStream()
+        stream.seek(self._addr)
+        if (max_size == None or self._size<max_size) or not self._chunk.isString():
+            data = stream.getN(self._size)
+            return data, False
+        else:
+            data = stream.getN(max_size)
+            return data+"(...)", True
+
+    def update(self):
+        real_format = self._chunk.getRealFormat(self._chunk.getFormat())
+        if self._addr != self._chunk.addr or self._format != real_format:
+            # Invalidate the cache
+            self._value = {}
+            self._format = real_format
+            self._addr = self._chunk.addr
+            self._size = struct.calcsize(self._format)
+
+    def getSize(self):
+        self.update()
+        return self._size
+
+    def getValue(self, max_size=None):
+        self.update()
+        if max_size not in self._value:
+            data, truncated = self._getRawData(max_size)
+            if not truncated:
+                data = struct.unpack(self._format, data)
+                if not self._isArray(self._format):
+                    data = data[0]
+            self._value[max_size] = data               
+        return self._value[max_size]
+
 class FormatChunk(Chunk):
     def __init__(self, id, description, stream, addr, format, parent):
         Chunk.__init__(self, id, description, stream, addr, 0, parent)
-        self.__stream = stream
-        self.__addr = addr
+        if not checkFormat(format):
+            raise Exception("Invalid FormatChunk format: \"%s\"!" % format)
         self.__format = format
-        self.value = None
+        self._cache = FormatChunkCache(self)
 
-    def update(self):
-        # Don't need to do anything
-        pass
+    def getFormat(self):
+        return self.__format
 
     def _getSize(self):
-        return struct.calcsize(self.getRealFormat())
+        return self._cache.getSize()
     size = property(_getSize)        
 
-    def __replaceFormatSize(self, format):
+    def getRealFormat(self, format):
         return re.sub(r'\{([^}]+)\}', self.__replaceFieldFormat, format)
 
-    def getRealFormat(self):
-        return self.__replaceFormatSize(self.__format)
+    def isString(self):
+        return self.__format[-1] == "s"
+
+    def __replaceFieldFormat(self, match):
+        id = match.group(1)
+        if id == "@end@":
+            size = self._stream.getLastPos() - self.addr + 1
+        else:
+            size = getattr(self._parent, id)
+        return str(size)
 
     def getFormat(self): return self.__format
     
@@ -118,8 +218,8 @@ class FormatChunk(Chunk):
             raise Exception("Invalid FormatChunk format: \"%s\"!" % format)
         
         # Check new size
-        size = struct.calcsize(self.__replaceFormatSize(format))
-        if self.__stream.getLastPos() < self.addr + size:
+        size = struct.calcsize(self.getRealFormat(format))
+        if self._stream.getLastPos() < self.addr + size:
             raise Exception("Can't set chunk %s to format \"%s\": size too big!" % (self.id, format))
 
         # Update format
@@ -144,65 +244,16 @@ class FormatChunk(Chunk):
             else:
                 self._parent.rescan(self, diff_size, new_id=old_id, new_description=old_description)
         self._parent.updateFormatChunk(self)
-
-    def isArray(self):
-        if self.isString(): return False
-        m = re.compile("^.?([0-9]+)[^0-9]+$").match(self.__format)
-        if m == None: return False
-        return m.group(1) != "1"
-        
-    def isString(self):
-        return self.__format[-1] == "s"
-
-    def getRawData(self, max_size=None):
-        """ max_size can be None """
-        self.__stream.seek(self.addr)
-        if (max_size == None or self.size<max_size) or not self.isString():
-            data = self.__stream.getN(self.size)
-            return data, False
-        else:
-            data = self.__stream.getN(max_size)
-            return data+"(...)", True
-
-    def __replaceFieldFormat(self, match):
-#        return str(getattr(self, match.group(1)))
-        id = match.group(1)
-        if id == "@end@":
-            size = self.__stream.getLastPos() - self.addr + 1
-        else:
-            size = getattr(self._parent, id)
-        return str(size)
    
-    def getData(self, max_size=None):
-        data, truncated = self.getRawData(max_size)
-        if not truncated:
-            format = self.getRealFormat()
-            data = struct.unpack(format, data)
-            if not self.isArray():
-                data = data[0]
-        return data
+    def getValue(self, max_size=None):
+        return self._cache.getValue(max_size)
+    value = property(getValue)
 
     def getDisplayData(self):
-#        if self.id == None: return "-"
-        data = self.getData(20)
+        if self.display != None:
+            return self.display
+        data = self.getValue(20)
         if type(data)==types.StringType:
-            if len(data) == 0:
-                return "(empty)"
-            display = ""
-            for c in data:
-                if ord(c)<32:
-                    know = { \
-                        "\n": "\\n",
-                        "\r": "\\r",
-                        "\t": "\\t",
-                        "\0": "\\0"}
-                    if c in know:
-                        display = display + know[c]
-                    else:
-                        display = display + "\\x%02X" % ord(c)
-                elif c in string.printable:
-                    display = display + c
-                else:
-                    display = display + "."
-            return "\"%s\"" % display
-        return data 
+            return convertDataToPrintableString(data)
+        else:
+            return data 

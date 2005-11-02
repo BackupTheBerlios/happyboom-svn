@@ -45,6 +45,11 @@ class UserFilterDescriptor:
             self.id = None 
             self.description = None 
             
+    def exportPython(self, filename):
+        file = open(filename, "w")
+        file.write(self.toPython())
+        file.close()
+            
     def writeIntoXML(self, filename):
         file = open(filename, "w")
         PrettyPrint(self.toXML(), file)
@@ -73,6 +78,20 @@ class UserFilterDescriptor:
                 else:
                     user_chunk = UserChunk(id, format, description)
                 self.chunks.append(user_chunk)
+
+    def toPython(self):
+        f = open('export.template', 'r')
+        tpl = f.read()
+        f.close()
+
+        chunks = ""
+        for chunk in self.chunks:
+            if chunks != "": chunks = chunks + "\n"
+            chunks = chunks \
+                + " " * 8 \
+                + "self.read(\"%s\", \"%s\", \"%s\")" \
+                  % (chunk.id, chunk.format, chunk.description)
+        return tpl.replace("{id}", self.id).replace("{description}", self.description).replace("{chunks}", chunks)
 
     def toXML(self):
         impl = getDOMImplementation()

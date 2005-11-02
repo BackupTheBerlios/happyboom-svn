@@ -198,6 +198,22 @@
 		  <property name="homogeneous">True</property>
 		</packing>
 	      </child>
+
+	      <child>
+		<widget class="GtkToolButton" id="toolbutton_export">
+		  <property name="visible">True</property>
+		  <property name="tooltip" translatable="yes">Export current filter to python script</property>
+		  <property name="stock_id">gtk-convert</property>
+		  <property name="visible_horizontal">True</property>
+		  <property name="visible_vertical">True</property>
+		  <property name="is_important">False</property>
+		  <signal name="clicked" handler="on_toolbutton_export" last_modification_time="Wed, 02 Nov 2005 00:47:19 GMT"/>
+		</widget>
+		<packing>
+		  <property name="expand">False</property>
+		  <property name="homogeneous">True</property>
+		</packing>
+	      </child>
 	    </widget>
 	  </child>
 	</widget>
@@ -263,7 +279,7 @@
       <signal name="activate" handler="onNewChunk" last_modification_time="Sun, 30 Oct 2005 23:08:19 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image32">
+	<widget class="GtkImage" id="image40">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-cut</property>
 	  <property name="icon_size">1</property>
@@ -284,7 +300,7 @@
       <signal name="activate" handler="onNewFilter" last_modification_time="Mon, 31 Oct 2005 06:42:27 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image33">
+	<widget class="GtkImage" id="image41">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-cut</property>
 	  <property name="icon_size">1</property>
@@ -298,14 +314,14 @@
   </child>
 
   <child>
-    <widget class="GtkImageMenuItem" id="convert_to_filter">
+    <widget class="GtkImageMenuItem" id="convert">
       <property name="visible">True</property>
-      <property name="label" translatable="yes">_Convert string chunk to filter</property>
+      <property name="label" translatable="yes">_Convert chunk &lt;=&gt; filter</property>
       <property name="use_underline">True</property>
-      <signal name="activate" handler="onConvertToFilter" last_modification_time="Tue, 01 Nov 2005 01:30:56 GMT"/>
+      <signal name="activate" handler="onConvert" last_modification_time="Wed, 02 Nov 2005 02:32:16 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image34">
+	<widget class="GtkImage" id="image42">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-convert</property>
 	  <property name="icon_size">1</property>
@@ -326,7 +342,7 @@
       <signal name="activate" handler="onSetFormat" last_modification_time="Sun, 30 Oct 2005 23:27:49 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image35">
+	<widget class="GtkImage" id="image43">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-edit</property>
 	  <property name="icon_size">1</property>
@@ -347,7 +363,7 @@
       <signal name="activate" handler="onDeleteChunk" last_modification_time="Tue, 01 Nov 2005 01:54:40 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image36">
+	<widget class="GtkImage" id="image44">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-delete</property>
 	  <property name="icon_size">1</property>

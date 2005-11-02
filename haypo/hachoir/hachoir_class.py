@@ -6,12 +6,16 @@ from user_filter import UserFilterDescriptor, UserFilter
 from error import error
 
 class Hachoir:
+    instance = None
+    
     def __init__(self):
+        Hachoir.instance = self
         self.verbose = False
         self.display = True
         self.depth = 5
         self.ui = None 
         self.main_filter = None
+        self.script = None
 
     def onGoParent(self):
         if self.filter.getParent() == None: return
@@ -39,7 +43,6 @@ class Hachoir:
             chunk = old_filter.filter_chunk
             chunk.setFilter(self.filter)
             diff_size = self.filter.getSize() - old_size
-            print "Diff size = %s" % diff_size
             chunk.getParent().rescan(chunk, diff_size)
         self.filter.display()
         self.ui.window.updateToolbar()
@@ -47,6 +50,10 @@ class Hachoir:
     def saveUser(self, filename):
         my = UserFilterDescriptor(filter=self.filter)
         my.writeIntoXML(filename)
+    
+    def exportUser(self, filename):
+        my = UserFilterDescriptor(filter=self.filter)
+        my.exportPython(filename)
         
     def load(self, filename):
         try:
@@ -65,6 +72,16 @@ class Hachoir:
         # Split 
         try:
             filter = split_func(stream)
+            filter.postProcess()
+            size = filter.getSize()
+            diff_size = (size - stream.getSize())
+            if diff_size < 0:
+                chunks = filter.getChunks()
+                if len(chunks) != 0:
+                    last_chunk = chunks[-1]
+                else:
+                    last_chunk = None
+                filter.addRawChunk(last_chunk, "end", "{@end@}", "")
         except Exception, msg:
             error("Exception while processing file %s with filter %s:\n%s" \
                 % (filename, plugin_name, msg))
@@ -74,11 +91,23 @@ class Hachoir:
         self.filter.display()
 
         # Display
-        if self.display:
+        if self.display and display_func != None:
             display_func(self.filter)
         self.ui.window.updateToolbar()
 
+    def loadScript(self, filename):
+        try:
+            f = open(self.script, 'r')
+            script = f.read()
+            f.close()
+            compiled = compile(script, self.script, 'exec')
+            exec compiled
+        except Exception, msg:
+            error("Exception while loading script \"%s\":\n%s" % (filename, msg))
+
     def run(self, filename):
-        if filename != None:
+        if self.script:
+            self.loadScript(self.script)
+        elif filename != None:
             self.load(filename)
         self.ui.run()      

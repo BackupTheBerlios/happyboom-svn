@@ -7,7 +7,7 @@ import re, sys
 import string
 import types
 import ui
-from chunk import Chunk, FormatChunk, FilterChunk
+from chunk import Chunk, FormatChunk, FilterChunk, StringChunk
 from format import splitFormat    
 from error import error
 from tools import getBacktrace
@@ -117,7 +117,7 @@ class Filter:
         else:
             prev_chunk = None
         
-        if False: #prev_chunk != None and 1<len(self._chunks) and issubclass(prev_chunk.__class__, FormatChunk):
+        if prev_chunk != None and issubclass(prev_chunk.__class__, FormatChunk):
             # If last chunk is a FormatChunk, update it's size
             format = splitFormat(prev_chunk.getFormat())
             if self.getParent() == None:
@@ -215,11 +215,7 @@ class Filter:
         return chunk
 
     def displayChunk(self, chunk):
-        type = chunk.__class__
-        if issubclass(type, FormatChunk):
-            type = chunk.getFormat()
-        elif issubclass(type, FilterChunk):
-            type = chunk.getFilter().getId()
+        type = chunk.getFormat()
         ui.window.add_table(None, chunk.addr, chunk.size, type, chunk.id, chunk.description, chunk.getDisplayData())
 
     def redisplay(self):  
@@ -259,13 +255,13 @@ class Filter:
 
     def readLine(self, id, description, eol="\n", fails_if_not_found=False, can_truncate=False):
         lg = self.searchEol(eol)
-        self.read(id, "!%us" % lg, description, can_truncate)
+        self.read(id, "!%us" % lg, description, truncate=can_truncate)
         line = getattr(self, id)
         setattr(self, id, line[:-len(eol)])
 
     def updateFormatChunk(self, chunk):
         if chunk.id == None: return
-        data = chunk.getData()
+        data = chunk.getValue()
         setattr(self, chunk.id, data)       
 
     def _appendChunk(self, chunk, can_truncate=False, position=None):
@@ -292,14 +288,14 @@ class Filter:
             if hasattr(self, id):
                 raise Exception("Chunk identifier \"%s\" already exist!" % id)
             if can_truncate:
-                data = chunk.getData(40)
+                data = chunk.getValue(40)
             else:
-                data = chunk.getData()
+                data = chunk.getValue()
             setattr(self, id, data)
             self._chunks_dict[id] = chunk
 
-    def readChild(self, id, filter_class, description): 
-        filter = filter_class(self._stream, self)
+    def readChild(self, id, filter_class, description, *args): 
+        filter = filter_class(self._stream, self, *args)
         self.addFilter(id, filter)
     
     def addFilter(self, id, filter): 
@@ -312,13 +308,24 @@ class Filter:
         filter = ArrayFilter(id, description, self._stream, self, entry_class, end_func)
         self.addFilter(id, filter)
     
-    def read(self, id, format, description, can_truncate=True):
+    def readString(self, id, format, description):
         """ Returns chunk """
-        chunk = FormatChunk(id, description, self._stream, self._stream.tell(), format, self)
-        self._stream.seek(chunk.size, 1)
-        self._appendChunk(chunk, can_truncate)
+        chunk = StringChunk(id, description, self._stream, format, self)
+        self._appendChunk(chunk)
         self._stream.seek(chunk.addr + chunk.size)
         return chunk
+    
+    def read(self, id, format, description, post=None, truncate=False):
+        """ Returns chunk """
+        chunk = FormatChunk(id, description, self._stream, self._stream.tell(), format, self)
+        self._appendChunk(chunk, can_truncate=truncate)
+        self._stream.seek(chunk.addr + chunk.size)
+        chunk.post_process = post
+        return chunk
+
+    def postProcess(self):
+        for chunk in self._chunks:
+            chunk.postProcess()
 
     def __str__(self):
         return "Filter(%s) <id=%s, description=%s>" % \
@@ -327,6 +334,26 @@ class Filter:
     def addNewFilter(self, chunk, id, size, desc):
         chunk.setFormat("!%ss" % size, "split", id, desc)
         self.convertChunkToFilter(chunk)
+
+    def convertFilterToChunk(self, chunk):
+        # Create new format chunk
+        filter = chunk.getFilter()
+        id = self.getUniqChunkId(filter.getId())
+        new_chunk = FormatChunk(id, filter.getDescription(), filter.getStream(), filter.getAddr(), "!%us" % filter.getSize(), self)
+
+        # Delete old chunk
+        if chunk.id in self._chunks_dict:
+            del self._chunks_dict[chunk.id]
+        if hasattr(self, chunk.id):
+            delattr(self, chunk.id)
+
+        # Assign new chunk
+        pos = self._chunks.index(chunk)
+        self._chunks[pos] = new_chunk
+        self._chunks_dict[id] = new_chunk
+        setattr(self, id, chunk.getValue(40))
+        self.redisplay()
+        return new_chunk 
 
     def convertChunkToFilter(self, chunk):
         # Create new filter

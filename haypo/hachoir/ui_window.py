@@ -134,6 +134,16 @@ class MainWindow:
             self.ui.hachoir.loadUser(filename)
         chooser.destroy()
 
+    def on_toolbutton_export(self, widget):
+        chooser = gtk.FileChooserDialog( \
+            title="Export current filter to python script ...",
+            action=gtk.FILE_CHOOSER_ACTION_SAVE,
+            buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_SAVE,gtk.RESPONSE_OK))
+        if chooser.run() == gtk.RESPONSE_OK:
+            filename = chooser.get_filename() 
+            self.ui.hachoir.exportUser(filename)
+        chooser.destroy()
+
     def on_toolbutton_save(self, widget):
         chooser = gtk.FileChooserDialog( \
             title="Save filter into ...",

@@ -9,6 +9,7 @@ import re
 from datetime import datetime
 from filter import Filter
 from plugin import registerPlugin
+from tools import convertDataToPrintableString
 
 def displayModeItem(mode):
     if mode & 4 == 4: r="r"
@@ -42,38 +43,60 @@ def displayTar(tar):
         displayFile(file)
 
 class TarFileEntry(Filter):
+    def stripNul(self, chunk):
+        return chunk.value.strip("\0")
+
+    def getMode(self, chunk):
+        mode = self.octal2int(chunk.value)
+        owner = self._getModeItem(mode >> 6 & 7)
+        group = self._getModeItem(mode >> 3 & 7)
+        other = self._getModeItem(mode & 7)
+        return "%04o (%s%s%s)" % (mode, owner, group, other)
+
+    def _getModeItem(mode):
+        if mode & 4 == 4: r="r"
+        else: r="-"
+        if mode & 2 == 2: w="w"
+        else: w="-"
+        if mode & 1 == 1: x="x"
+        else: x="-"
+        return "%c%c%c" % (r, w, x) 
+
+    def convertOctal(self, chunk):
+        return self.octal2int(chunk.value)
+
+    def stripNul(self, chunk):
+        val = chunk.value.strip("\0")
+        return convertDataToPrintableString(val)
+
+    def getTime(self, chunk):
+        value = self.octal2int(chunk.value) 
+        return datetime.fromtimestamp(value)
+
     def __init__(self, stream, parent):
         Filter.__init__(self, "tar_file_entry","Tar file entry", stream, parent)
-        self.read("name", "!100s", "Name", False)
+        self.read("name", "!100s", "Name", truncate=False, post=self.stripNul)
         self.name = self.name.strip("\0")
-        self.read("mode", "!8s", "Mode")
-        self.mode = self.octal2int(self.mode)
-        self.read("uid", "!8s", "User ID")
-        self.uid = self.octal2int(self.uid)
-        self.read("gid", "!8s", "Group ID")
-        self.gid = self.octal2int(self.gid)
-        self.read("size", "!12s", "Size")
+        self.read("mode", "!8s", "Mode", post=self.convertOctal)
+        self.read("uid", "!8s", "User ID", post=self.convertOctal)
+        self.read("gid", "!8s", "Group ID", post=self.convertOctal)
+        self.read("size", "!12s", "Size", post=self.convertOctal)
         self.size = self.octal2int(self.size)
-        self.read("mtime", "!12s", "Modification time")
-        self.mtime = self.octal2int(self.mtime) 
-        self.mtime = datetime.fromtimestamp(self.mtime)
+        self.read("mtime", "!12s", "Modification time", self.getTime)
         self.read("check_sum", "!8s", "Check sum")
         self.read("type", "!c", "Type")
-        self.read("lname", "!100s", "Link name", False)
-        self.read("magic", "!8s", "Magic")
-        self.magic = self.magic.strip(" \0")
-        self.read("uname", "!32s", "User name")
-        self.uname = self.uname.strip("\0")
-        self.read("gname", "!32s", "Group name")
-        self.gname = self.gname.strip("\0")
+        self.read("lname", "!100s", "Link name", post=self.stripNul, truncate=False)
+        self.read("magic", "!8s", "Magic", post=self.stripNul)
+        self.read("uname", "!32s", "User name", post=self.stripNul)
+        self.read("gname", "!32s", "Group name", post=self.stripNul)
         self.read("devmajor", "!8s", "Dev major")
         self.read("devminor", "!8s", "Dev minor")
         self.read("header_padding", "!167s", "Padding (zero)")
         if self.type in ("\0", "0"):
-            self.read("filedata", "!{size}s", "File data", True)
+            self.read("filedata", "!{size}s", "File data", truncate=True)
         if stream.tell() % 512 != 0:
             padding = 512 - stream.tell() % 512
-            self.read("padding", "!%ss" % padding, "Padding (512 align)")
+            self.read("padding", "!%ss" % padding, "Padding (512 align)", truncate=True)
 
     def isEmpty(self):
         return self.name == ""
@@ -115,14 +138,13 @@ class TarFile(Filter):
 
         self.readArray("files", TarFileEntry, "Tar Files", self.checkEndOfChunks)
         
-        padding = 4096 - stream.tell() % 4096
-        self.read("padding", "!%ss" % padding, "Padding (4096 align)")
-
-        assert stream.eof()
+#        padding = 4096 - stream.tell() % 4096
+#        self.read("padding", "!%ss" % padding, "Padding (4096 align)")
+#        assert stream.eof()
 
     def checkEndOfChunks(self, stream, array, file):
         if file != None:
             if file.isEmpty(): return True
         return stream.eof()
         
-registerPlugin("^.*\.tar$", "Tar archive", TarFile, displayTar)
+registerPlugin("^.*\.tar$", "Tar archive", TarFile, None)

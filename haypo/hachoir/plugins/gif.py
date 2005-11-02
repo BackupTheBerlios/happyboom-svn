@@ -1,7 +1,7 @@
 """
 GIF splitter.
 
-Status: only loads header, and is buggy ...
+Status: loads header, don't load image data (stop filter), and is buggy ...
 Author: Victor Stinner
 """
 
@@ -60,13 +60,13 @@ class GifColorMap(Filter):
             assert issubclass(parent.__class__, GifFile)
             screen = parent.getChunk("screen").getFilter()
             self._nb_colors = (1 << screen.bits_per_pixel)
-        self.readArray("map", GifColor, "Color map", self.checkEndOfMap)
+        self.readArray("color", GifColor, "Color map", self.checkEndOfMap)
 
     def checkEndOfMap(self, stream, array, color):
         return len(array) == self._nb_colors 
 
     def __str__(self):
-        return "Gif colormap <colors=%u>" % (len(self.map))
+        return "Gif colormap <colors=%u>" % (len(self.color))
         
 class GifExtensionChunk(Filter):
     def __init__(self, stream, parent):
@@ -91,14 +91,22 @@ class GifScreenDescriptor(Filter):
         self.read("height", "<H", "Height")
 
         # TODO: Fix this
-        self.read("flags", "<B", "Flags")
-        self.global_map = ((self.flags & 0x80) == 0x80) # ok
-        self.color_res = 1 + ((self.flags >> 4) & 0x7) # ??
-        self.bits_per_pixel = 1 + (self.flags & 0x7) # ok
+        self.read("flags", "<B", "Flags", post=processFlags)
         # -- End of TODO
         
         self.read("background", "<B", "Background color")
         self.read("notused", "<B", "Not used (zero)")
+
+    def processFlags(self, chunk):
+        flags = chunk.value
+        self.global_map = ((flags & 0x80) == 0x80) # ok
+        self.color_res = 1 + ((flags >> 4) & 0x7) # ??
+        self.bits_per_pixel = 1 + (flags & 0x7) # ok
+        if self.global_map:
+            text = "global map, "
+        else:
+            text = ""
+        return text + "color res=%u, bits/pixel=%u" % (self.color_res, self.bits_per_pixel)
         
 class GifFile(Filter):
     def __init__(self, stream):
@@ -116,7 +124,7 @@ class GifFile(Filter):
         self.images = []
         while True:
             code = self.read("separator[]", "c", "Separator code")
-            code = code.getData()
+            code = code.getValue()
             if code == "!":
                 self.readChild("extensions[]", GifExtension, "Extension")
             elif code == ",":

@@ -99,7 +99,7 @@ class ZipFile(Filter):
         self.files = []
         while not stream.eof():
             header = self.read("header[]", "<L", "Header")
-            header = header.getData()
+            header = header.getValue()
             if header == 0x04034B50:
                 self.readChild("files[]", ZipFileEntry, "File entry")
             elif header == 0x02014b50:

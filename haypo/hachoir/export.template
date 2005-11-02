@@ -1,0 +1,13 @@
+"""
+Exported filter.
+
+Description:
+{description}
+"""
+
+from filter import Filter
+
+class MyFilter(Filter):
+    def __init__(self, stream):
+        Filter.__init__(self, "{id}", "{description}", stream, None)
+{chunks}

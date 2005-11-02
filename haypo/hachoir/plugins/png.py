@@ -51,9 +51,10 @@ class PngPhysical(Filter):
 class PngGamma(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "png_gamma", "PNG gamma", stream, parent)
-        self.read("gamma", "!L", "Gamma (x10,000)")
-        self.gamma = float(self.gamma)
-        self.gamma = self.gamma / 10000
+        self.read("gamma", "!L", "Gamma (x10,000)", post=self.getGamma)
+
+    def getGamma(self, chunk):
+        return float(chunk.value) / 10000
 
     def __str__(self):
         return "PNG gamma <gamma=%0.2f>" % (self.gamma)
@@ -61,16 +62,8 @@ class PngGamma(Filter):
 class PngText(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "png_text", "PNG text", stream, parent)
-        max_length = parent.size
-        print "max",max_length
-        old = self._stream.tell()
-        pos = self._stream.search("\0", max_length)
-        if pos == -1:
-            raise Exception("Fails to find end of text")
-        lg = (pos-old)
-        self.read("keyword", "!%us" % lg, "Keyword")
-        self.read("separator", "!B", "Null byte used to separe strings")
-        lg = (self._parent.size-lg-1)
+        chunk = self.readString("keyword", "C", "Keyword")
+        lg = self._parent.size - chunk.size
         self.read("text", "!%us" % lg, "Text")
 
     def __str__(self):

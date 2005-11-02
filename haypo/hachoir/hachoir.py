@@ -19,11 +19,10 @@ def usage(defval):
     print "Usage: %s [options] file" % (sys.argv[0])
     print ""
     print "Options:"
-    print "\t--help            : Show this help"
+    print "\t--script file.py  : Load python script"
     print "\t--version         : Show the program version"
     print "\t--verbose         : Activate verbose mode"
-    print "\t--depth NB        : Detail depth (default %u)" % (defval["depth"])
-    print "\t--no-display      : Hide result"
+    print "\t--help            : Show this help"
 
 def parseArgs(val):
     import getopt
@@ -31,7 +30,7 @@ def parseArgs(val):
     
     try:
         short = ""
-        long = ["no-display", "verbose", "help", "version", "depth="]
+        long = ["verbose", "help", "version", "script="]
         opts, args = getopt.getopt(sys.argv[1:], short, long)
     except getopt.GetoptError:
         usage(def_val)
@@ -52,10 +51,8 @@ def parseArgs(val):
         if o == "--version":
             print "%s version %s" % (PROGRAM, VERSION)
             sys.exit()
-        if o == "--no-display":
-            val["display"] = False
-        if o == "--depth":
-            val["depth"] = int(a)
+        if o == "--script":
+            val["script"] = a
         if o == "--verbose":
             val["verbose"] = True
     return (val, filename,)
@@ -76,9 +73,8 @@ def main():
         log.info("Loaded: %u plugings (%s)" % (len(modules), ", ".join(modules)))
 
         opt = {
-            "depth": 2,
             "verbose": False,
-            "display": True
+            "script": None
         }
         opt, filename = parseArgs(opt)
 
