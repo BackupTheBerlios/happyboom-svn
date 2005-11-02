@@ -19,6 +19,7 @@ class TablePopup:
         # Popup items
         self.new_chunk = xml.get_widget("new_chunk")
         self.new_filter = xml.get_widget("new_filter")
+        self.add_string = xml.get_widget("add_string")
         self.convert = xml.get_widget("convert")
         self.set_format = xml.get_widget("set_format")
         self.delete_chunk = xml.get_widget("delete_chunk")
@@ -34,6 +35,7 @@ class TablePopup:
         is_filter_chunk = issubclass(self.chunk.__class__, FilterChunk)
         self.new_chunk.set_sensitive(is_format_chunk)
         self.new_filter.set_sensitive(is_format_chunk)
+        self.add_string.set_sensitive(is_format_chunk)
         self.convert.set_sensitive(is_format_chunk or is_filter_chunk)
         self.set_format.set_sensitive(is_format_chunk)
 
@@ -78,6 +80,11 @@ class TablePopup:
         desc = self.new_chunk_dlg.getDescription()
         self.chunk.getParent().addNewFilter(self.chunk, id, size, desc)
 
+    def onAddString(self, event):
+        str_type = "C"
+        assert issubclass(self.chunk.__class__, FormatChunk)
+        self.chunk.getParent().addString(str_type, self.chunk)
+        
     def onSetFormat(self, event):
         assert issubclass(self.chunk.__class__, FormatChunk)
         if self.new_chunk_dlg.runSetFormat(self.chunk) == gtk.RESPONSE_CANCEL: return

@@ -114,7 +114,7 @@ class PngChunk(Filter):
         if self.type in self.chunk_splitter:
             oldpos = self._stream.tell()
             child_filter = self.chunk_splitter[self.type]
-            self.readChild("chunk_data", child_filter, "Chunk data")
+            self.readChild("chunk_data", child_filter)
             assert oldpos + self.size == self._stream.tell()
         else:
             self.read("data", "!{size}s", "Chunk data")

@@ -202,13 +202,13 @@ class ExeFile(Filter):
     def __init__(self, stream):
         Filter.__init__(self, "exe_file", "EXE file", stream, None)
 
-        self.readChild("ms_dos", MS_Dos, "MS-Dos header")
+        self.readChild("ms_dos", MS_Dos)
 
         if self.ms_dos.reloc_offset == 0x40:
             stream.seek(self.ms_dos.pe_offset, 0)
 
-            self.readChild("pe", PE_Filter, "PE header")
-            self.readChild("pe_opt", PE_OptionnalHeader, "PE optionnal header")
+            self.readChild("pe", PE_Filter)
+            self.readChild("pe_opt", PE_OptionnalHeader)
             self.readArray("pe_sections", PE_Section, "PE sections", self.checkEndOfSections)
 
             # Look for resource section

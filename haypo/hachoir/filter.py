@@ -204,6 +204,23 @@ class Filter:
             size = size + chunk.size
         return size
 
+    def addString(self, str_type, before_chunk):
+        if before_chunk != None:
+            pos = self._chunks.index(before_chunk)
+            addr = before_chunk.addr
+        else:
+            pos = len(self._chunks)
+            addr = self.getAddr()
+        stream = self.getStream()
+        stream.seek(addr)
+        str_chunk = StringChunk("str", "String", stream, str_type, self)
+        self._appendChunk(str_chunk, can_truncate=True, position=pos)
+        str_chunk.postProcess()
+        before_chunk.addr = before_chunk.addr + str_chunk.size
+        before_chunk.convertToStringSize(before_chunk.size - str_chunk.size)
+        self.redisplay()
+        return str_chunk
+
     def updateParent(self, chunk):
         pass
 
@@ -294,7 +311,7 @@ class Filter:
             setattr(self, id, data)
             self._chunks_dict[id] = chunk
 
-    def readChild(self, id, filter_class, description, *args): 
+    def readChild(self, id, filter_class, *args): 
         filter = filter_class(self._stream, self, *args)
         chunk = self.addFilter(id, filter)
         chunk.postProcess()

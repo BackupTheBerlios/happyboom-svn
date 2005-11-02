@@ -279,7 +279,7 @@
       <signal name="activate" handler="onNewChunk" last_modification_time="Sun, 30 Oct 2005 23:08:19 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image40">
+	<widget class="GtkImage" id="image44">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-cut</property>
 	  <property name="icon_size">1</property>
@@ -300,9 +300,30 @@
       <signal name="activate" handler="onNewFilter" last_modification_time="Mon, 31 Oct 2005 06:42:27 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image41">
+	<widget class="GtkImage" id="image45">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-cut</property>
+	  <property name="icon_size">1</property>
+	  <property name="xalign">0.5</property>
+	  <property name="yalign">0.5</property>
+	  <property name="xpad">0</property>
+	  <property name="ypad">0</property>
+	</widget>
+      </child>
+    </widget>
+  </child>
+
+  <child>
+    <widget class="GtkImageMenuItem" id="add_string">
+      <property name="visible">True</property>
+      <property name="label" translatable="yes">Add string</property>
+      <property name="use_underline">True</property>
+      <signal name="activate" handler="onAddString" last_modification_time="Wed, 02 Nov 2005 05:30:33 GMT"/>
+
+      <child internal-child="image">
+	<widget class="GtkImage" id="image46">
+	  <property name="visible">True</property>
+	  <property name="stock">gtk-add</property>
 	  <property name="icon_size">1</property>
 	  <property name="xalign">0.5</property>
 	  <property name="yalign">0.5</property>
@@ -321,7 +342,7 @@
       <signal name="activate" handler="onConvert" last_modification_time="Wed, 02 Nov 2005 02:32:16 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image42">
+	<widget class="GtkImage" id="image47">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-convert</property>
 	  <property name="icon_size">1</property>
@@ -342,7 +363,7 @@
       <signal name="activate" handler="onSetFormat" last_modification_time="Sun, 30 Oct 2005 23:27:49 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image43">
+	<widget class="GtkImage" id="image48">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-edit</property>
 	  <property name="icon_size">1</property>
@@ -363,7 +384,7 @@
       <signal name="activate" handler="onDeleteChunk" last_modification_time="Tue, 01 Nov 2005 01:54:40 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image44">
+	<widget class="GtkImage" id="image49">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-delete</property>
 	  <property name="icon_size">1</property>

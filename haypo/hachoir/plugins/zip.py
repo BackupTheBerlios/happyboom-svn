@@ -101,11 +101,11 @@ class ZipFile(Filter):
             header = self.read("header[]", "<L", "Header")
             header = header.getValue()
             if header == 0x04034B50:
-                self.readChild("files[]", ZipFileEntry, "File entry")
+                self.readChild("files[]", ZipFileEntry)
             elif header == 0x02014b50:
-                self.readChild("central_directory[]", ZipCentralDirectory, "Central directory")
+                self.readChild("central_directory[]", ZipCentralDirectory)
             elif header == 0x06054b50:
-                self.readChild("end_central_directory", ZipEndCentralDirectory, "End of central directory")
+                self.readChild("end_central_directory", ZipEndCentralDirectory)
             elif header == 0x05054b50:
                 self.read("signature_length", "!H", "Signature length")
                 self.read("signature", "!{signature_length}s", "Signature")

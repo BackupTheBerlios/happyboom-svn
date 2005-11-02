@@ -40,7 +40,7 @@ class GifImage(Filter):
         self.interlaced = ((self.flags & 0x40) == 0x40)
         self.bits_per_pixel = 1 + (self.flags & 0x07)
         if not self.global_map:
-            self.readChild("local_map", GifColorMap, "Local color map")
+            self.readChild("local_map", GifColorMap)
         else:
             self.local_map = None
         # -- End of TODO
@@ -115,9 +115,9 @@ class GifFile(Filter):
         self.read("header", "6s", "File header")
         assert (self.header == "GIF87a") or (self.header == "GIF89a")
         
-        self.readChild("screen", GifScreenDescriptor, "Screen descriptor")
+        self.readChild("screen", GifScreenDescriptor)
         if self.screen.global_map:
-            self.readChild("color_map", GifColorMap, "Color map")
+            self.readChild("color_map", GifColorMap)
         else:
             self.color_map = None
             
@@ -126,9 +126,9 @@ class GifFile(Filter):
             code = self.read("separator[]", "c", "Separator code")
             code = code.getValue()
             if code == "!":
-                self.readChild("extensions[]", GifExtension, "Extension")
+                self.readChild("extensions[]", GifExtension)
             elif code == ",":
-                self.readChild("images[]", GifImage, "Image")
+                self.readChild("images[]", GifImage)
                 # TODO: Write GifImage code :-)
                 warning("GIF FILTER CAN NOT READ IMAGE CONTENT YET, SO ABORT READING!")
                 return
