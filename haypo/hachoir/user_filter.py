@@ -20,19 +20,19 @@ class UserSubChunk(UserChunk):
         self.sub = sub
         self.sub_format = sub_format
 
-class UserFilter(Filter):
-    def __init__(self, desc, stream, parent):
-        Filter.__init__(self, desc.id, desc.description, stream, parent)
-        for chunk in desc.chunks:
-            if chunk.format == "sub":
-                modules = chunk.sub_format.split('.')
-                chunk_class = modules[-1]
-                module = ".".join(modules[:-1])
-                mod = __import__(module, globals(), locals(), [chunk_class])
-                chunk_class = getattr(mod, chunk_class)
-                self.readChild(chunk.id, chunk_class, chunk.description)
-            else:
-                self.read(chunk.id, chunk.format, chunk.description)
+def loadUserFilter(desc, stream, parent):
+    filter = Filter(desc.id, desc.description, stream, parent)
+    for chunk in desc.chunks:
+        if chunk.format == "sub":
+            modules = chunk.sub_format.split('.')
+            chunk_class = modules[-1]
+            module = ".".join(modules[:-1])
+            mod = __import__(module, globals(), locals(), [chunk_class])
+            chunk_class = getattr(mod, chunk_class)
+            filter.readChild(chunk.id, chunk_class, chunk.description)
+        else:
+            filter.read(chunk.id, chunk.format, chunk.description)
+    return filter            
 
 class UserFilterDescriptor:
     def __init__(self, filter=None, xml_file=None):

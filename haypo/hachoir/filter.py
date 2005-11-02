@@ -57,7 +57,7 @@ class Filter:
         self._deleteChunk(pos)
         # Delete last chunk of a sub filter? It true, truncate the sub filter
         truncate = (self.getParent() != None and pos == len(self._chunks))
-        self.rescanFromPos(pos, -chunk_size, truncate_filter=truncate)
+        self.rescanFromPos(pos, -chunk_size, truncate=truncate)
         self.redisplay()
 
     def getChunks(self):
@@ -100,12 +100,12 @@ class Filter:
         chunk = FormatChunk(id, description, self.getStream(), addr, "!%ss" % size, self)
         self._appendChunk(chunk, can_truncate=True, position=chunk_pos)
 
-    def rescan(self, from_chunk, diff_size, new_id=None, new_description=None):
+    def rescan(self, from_chunk, diff_size, new_id=None, new_description=None, truncate=False):
         if from_chunk != None:
             start = self._chunks.index(from_chunk)+1
         else:
             start = 0
-        self.rescanFromPos(start, diff_size, new_id, new_description)
+        self.rescanFromPos(start, diff_size, new_id, new_description, truncate)
             
     def _rescanUpdateSize(self, diff_size, new_id=None, new_description=None):
         # Only process diff_size < 0
@@ -167,7 +167,7 @@ class Filter:
                 self._deleteChunk(iter)
                 iter = iter - 1
 
-    def rescanFromPos(self, start, diff_size, new_id=None, new_description=None, truncate_filter=False):
+    def rescanFromPos(self, start, diff_size, new_id=None, new_description=None, truncate=False):
         assert 0<=start and start <= len(self._chunks)
         if 0<start:
             prev_chunk = self._chunks[start-1]
@@ -180,7 +180,7 @@ class Filter:
         diff_size = diff_size + (self.getSize() - old_size)
 
         # Update last chunk size if needed
-        if not truncate_filter:
+        if not truncate:
             self._rescanUpdateSize(diff_size, new_id, new_description)
             diff_size = 0
                
@@ -261,7 +261,7 @@ class Filter:
 
     def updateFormatChunk(self, chunk):
         if chunk.id == None: return
-        data = chunk.getValue()
+        data = chunk.getValue(40)
         setattr(self, chunk.id, data)       
 
     def _appendChunk(self, chunk, can_truncate=False, position=None):
@@ -296,23 +296,29 @@ class Filter:
 
     def readChild(self, id, filter_class, description, *args): 
         filter = filter_class(self._stream, self, *args)
-        self.addFilter(id, filter)
+        chunk = self.addFilter(id, filter)
+        chunk.postProcess()
+        return chunk
     
     def addFilter(self, id, filter): 
         chunk = FilterChunk(id, filter, self)
         self._appendChunk(chunk)
         filter.updateParent(chunk)
         self._stream.seek(chunk.addr + chunk.size)
+        return chunk
 
     def readArray(self, id, entry_class, description, end_func): 
         filter = ArrayFilter(id, description, self._stream, self, entry_class, end_func)
-        self.addFilter(id, filter)
+        chunk = self.addFilter(id, filter)
+        chunk.postProcess()
+        return chunk
     
     def readString(self, id, format, description):
         """ Returns chunk """
         chunk = StringChunk(id, description, self._stream, format, self)
         self._appendChunk(chunk)
         self._stream.seek(chunk.addr + chunk.size)
+        chunk.postProcess()
         return chunk
     
     def read(self, id, format, description, post=None, truncate=False):
@@ -321,11 +327,8 @@ class Filter:
         self._appendChunk(chunk, can_truncate=truncate)
         self._stream.seek(chunk.addr + chunk.size)
         chunk.post_process = post
+        chunk.postProcess()
         return chunk
-
-    def postProcess(self):
-        for chunk in self._chunks:
-            chunk.postProcess()
 
     def __str__(self):
         return "Filter(%s) <id=%s, description=%s>" % \
@@ -399,7 +402,10 @@ class ArrayFilter(Filter):
 
         for chunk in self._array:
             chunk.getFilter().updateParent(chunk)
-#        self._stream.seek(self.getAddr() + self.getSize())
+        if 1<nb:
+            self.setDescription( "%s (%s items)" % (self.getDescription(), nb))
+        else:
+            self.setDescription( "%s (%s item)" % (self.getDescription(), nb))
 
     def getArray(self):
         return self._array

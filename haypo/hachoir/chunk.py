@@ -65,9 +65,6 @@ class FilterChunk(Chunk):
         self._filter = filter
         self._filter.filter_chunk = self
     
-    def postProcess(self):        
-        self._filter.postProcess()
-
     def getFormat(self):
         return self._filter.getId()
 
@@ -219,7 +216,7 @@ class FormatChunk(Chunk):
         
         # Check new size
         size = struct.calcsize(self.getRealFormat(format))
-        if self._stream.getLastPos() < self.addr + size:
+        if self._stream.getLastPos() < (self.addr + size - 1):
             raise Exception("Can't set chunk %s to format \"%s\": size too big!" % (self.id, format))
 
         # Update format
@@ -242,7 +239,7 @@ class FormatChunk(Chunk):
             if method == "split" and diff_size < 0:
                 self._parent.addRawChunk(self, old_id, -diff_size, old_description)
             else:
-                self._parent.rescan(self, diff_size, new_id=old_id, new_description=old_description)
+                self._parent.rescan(self, diff_size, new_id=old_id, new_description=old_description, truncate=True)
         self._parent.updateFormatChunk(self)
    
     def getValue(self, max_size=None):

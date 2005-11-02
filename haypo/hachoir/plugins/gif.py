@@ -91,7 +91,7 @@ class GifScreenDescriptor(Filter):
         self.read("height", "<H", "Height")
 
         # TODO: Fix this
-        self.read("flags", "<B", "Flags", post=processFlags)
+        self.read("flags", "<B", "Flags", post=self.processFlags)
         # -- End of TODO
         
         self.read("background", "<B", "Background color")

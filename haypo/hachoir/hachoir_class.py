@@ -2,7 +2,7 @@ from stream import FileStream
 from plugin import getPlugin
 from chunk import FilterChunk
 from default import DefaultFilter, displayDefault
-from user_filter import UserFilterDescriptor, UserFilter
+from user_filter import UserFilterDescriptor, loadUserFilter
 from error import error
 
 class Hachoir:
@@ -30,15 +30,21 @@ class Hachoir:
             self.filter.display()
 
     def loadUser(self, filename):
-        old_filter = self.filter
-        old_size = old_filter.getSize()
-        user = UserFilterDescriptor(xml_file=filename)
-        stream = self.filter.getStream()
-        parent = self.filter.getParent()
-        stream.seek(self.filter.getAddr())
-        self.filter = UserFilter(user, stream, parent)
+        try:
+            old_filter = self.filter
+            old_size = old_filter.getSize()
+            user = UserFilterDescriptor(xml_file=filename)
+            stream = self.filter.getStream()
+            parent = self.filter.getParent()
+            stream.seek(self.filter.getAddr())
+            new_filter = loadUserFilter(user, stream, parent)
+        except Exception, err:
+            error("Error while loading user XML filter \"%s\":\n%s" % (filename, err))
+            return
+        self.filter = new_filter           
         if parent == None:
             self.main_filter = self.filter
+            self._addPadding()
         else:
             chunk = old_filter.filter_chunk
             chunk.setFilter(self.filter)
@@ -55,6 +61,17 @@ class Hachoir:
         my = UserFilterDescriptor(filter=self.filter)
         my.exportPython(filename)
         
+    def _addPadding(self):
+        size = self.filter.getSize()
+        diff_size = (size - self.filter.getStream().getSize())
+        if diff_size < 0:
+            chunks = self.filter.getChunks()
+            if len(chunks) != 0:
+                last_chunk = chunks[-1]
+            else:
+                last_chunk = None
+            self.filter.addRawChunk(last_chunk, "end", "{@end@}", "")
+
     def load(self, filename):
         try:
             stream = FileStream(filename)
@@ -72,22 +89,13 @@ class Hachoir:
         # Split 
         try:
             filter = split_func(stream)
-            filter.postProcess()
-            size = filter.getSize()
-            diff_size = (size - stream.getSize())
-            if diff_size < 0:
-                chunks = filter.getChunks()
-                if len(chunks) != 0:
-                    last_chunk = chunks[-1]
-                else:
-                    last_chunk = None
-                filter.addRawChunk(last_chunk, "end", "{@end@}", "")
         except Exception, msg:
             error("Exception while processing file %s with filter %s:\n%s" \
                 % (filename, plugin_name, msg))
             raise
             return
         self.main_filter = self.filter = filter
+        self._addPadding()
         self.filter.display()
 
         # Display

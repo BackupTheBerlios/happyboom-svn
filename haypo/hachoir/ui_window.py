@@ -79,7 +79,7 @@ class MainWindow:
         self.ui.on_row_click(row[3])
 
     def build_table(self):
-        self.table_store = gtk.TreeStore(str, str, int, str, str, str)
+        self.table_store = gtk.TreeStore(int, str, int, str, str, str)
         self.table.set_model(self.table_store)
         self.table.connect("row-activated", self.onTableClicked)
         self.treeview_add_column(self.table, "Address", 0)
@@ -146,7 +146,7 @@ class MainWindow:
 
     def on_toolbutton_save(self, widget):
         chooser = gtk.FileChooserDialog( \
-            title="Save filter into ...",
+            title="Save XML filter into ...",
             action=gtk.FILE_CHOOSER_ACTION_SAVE,
             buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_SAVE,gtk.RESPONSE_OK))
         if chooser.run() == gtk.RESPONSE_OK:
