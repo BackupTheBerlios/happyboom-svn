@@ -81,7 +81,9 @@ class TablePopup:
         self.chunk.getParent().addNewFilter(self.chunk, id, size, desc)
 
     def onAddString(self, event):
-        str_type = "C"
+        # TODO: Ask string type, id and description
+        str_type = "MacLine"
+#        str_type = "C"
         assert issubclass(self.chunk.__class__, FormatChunk)
         self.chunk.getParent().addString(str_type, self.chunk)
         

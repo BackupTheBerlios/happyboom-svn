@@ -2,7 +2,7 @@ import struct
 import re
 import types
 from format import checkFormat, splitFormat
-from error import error
+from error import warning, error
 from tools import convertDataToPrintableString
 
 class Chunk(object):
@@ -99,19 +99,48 @@ class FilterChunk(Chunk):
 
 class StringChunk(Chunk):
     def __init__(self, id, description, stream, str_type, parent):
+        assert str_type in ("C", "UnixLine", "WindowsLine", "MacLine", "AutoLine")
         Chunk.__init__(self, id, description, stream, stream.tell(), 0, parent)
         self._str_type = str_type
         self._read()
 
     def getFormat(self):
-        return "c-string"
+        names = {
+            "C": "c-string",
+            "MacLine": "mac line",
+            "UnixLine": "unix line",
+            "AutoLine": "line",
+            "WindowsLine": "windows line"
+        }
+        assert self._str_type in names
+        return names[self._str_type]
 
     def _read(self):
-#        if self._str_type == "C": ...
         self._stream.seek(self.addr)
-        self._size = self._stream.searchLength("\0", True)
+        if self._str_type == "UnixLine":
+            end = "\n"
+        elif self._str_type == "WindowsLine":
+            end = "\r\n"
+        elif self._str_type == "MacLine":
+            end = "\r"
+        elif self._str_type == "AutoLine":
+            end = "\r"
+        else: 
+            # Type: C string
+            end = "\0"
+        self._size = self._stream.searchLength(end, True)
         assert self._size != -1
-        self.str = self._stream.getN(self._size-1)
+        if self._str_type == "AutoLine":
+            self._stream.seek(self.addr+self._size)
+            try:
+                next = self._stream.getN(1)
+                if next == '\n':
+                    self._size = self._size + 1
+                    end = end+"\n"
+            except Exception, err:
+                warning("Warning while getting end of line of \"auto line\": %s" % err)
+        self._stream.seek(self.addr)
+        self.str = self._stream.getN(self._size - len(end))
 
     def update(self):
         Chunk.update(self)
@@ -122,7 +151,10 @@ class StringChunk(Chunk):
     value = property(getValue)
 
     def getDisplayData(self):
-        return convertDataToPrintableString(self.str)
+        if self.display != None:
+            return self.display
+        else:
+            return convertDataToPrintableString(self.str)
         
 class FormatChunkCache:
     def __init__(self, chunk):
@@ -199,8 +231,6 @@ class FormatChunk(Chunk):
         else:
             size = getattr(self._parent, id)
         return str(size)
-
-    def getFormat(self): return self.__format
     
     def convertToStringSize(self, size):
         self.__format = "!%ss" % size

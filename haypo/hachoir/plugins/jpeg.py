@@ -15,8 +15,12 @@ class JpegChunkApp0(Filter):
         self.read("ver_maj", "!B", "Major version")
         self.read("ver_min", "!B", "Minor version")
         self.read("units", "!1B", "Units (=0)")
-        self.read("x_density", "!H", "X density")
-        self.read("y_density", "!H", "Y density")
+        if self.units == 0:
+            self.read("aspect_x", "!H", "Aspect ratio (X)")
+            self.read("aspect_y", "!H", "Aspect ratio (Y)")
+        else:
+            self.read("x_density", "!H", "X density")
+            self.read("y_density", "!H", "Y density")
         self.read("thumb_w", "!B", "Thumbnail width")
         self.read("thumb_h", "!1B", "Thumbnail height")
         thumb = self.thumb_w * self.thumb_h

@@ -4,6 +4,7 @@ from chunk import FilterChunk
 from default import DefaultFilter, displayDefault
 from user_filter import UserFilterDescriptor, loadUserFilter
 from error import error
+from tools import getBacktrace
 
 class Hachoir:
     instance = None
@@ -111,7 +112,8 @@ class Hachoir:
             compiled = compile(script, self.script, 'exec')
             exec compiled
         except Exception, msg:
-            error("Exception while loading script \"%s\":\n%s" % (filename, msg))
+            error("Exception while loading script \"%s\":\n%s\n%s" \
+                % (filename, msg, getBacktrace()))
 
     def run(self, filename):
         if self.script:

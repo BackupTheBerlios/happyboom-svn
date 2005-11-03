@@ -15,7 +15,8 @@ def convertDataToPrintableString(data):
             if c in know:
                 display = display + know[c]
             else:
-                display = display + "\\x%02X" % ord(c)
+#                display = display + "\\x%02X" % ord(c)
+                display = display + "."
         elif c in string.printable:
             display = display + c
         else:

@@ -213,7 +213,8 @@ class Filter:
             addr = self.getAddr()
         stream = self.getStream()
         stream.seek(addr)
-        str_chunk = StringChunk("str", "String", stream, str_type, self)
+        id = self.getUniqChunkId("str")
+        str_chunk = StringChunk(id, "String", stream, str_type, self)
         self._appendChunk(str_chunk, can_truncate=True, position=pos)
         str_chunk.postProcess()
         before_chunk.addr = before_chunk.addr + str_chunk.size
@@ -325,16 +326,21 @@ class Filter:
         return chunk
 
     def readArray(self, id, entry_class, description, end_func): 
+        """
+        end_func: def isEnd(stream, array, last_filter)
+
+        """
         filter = ArrayFilter(id, description, self._stream, self, entry_class, end_func)
         chunk = self.addFilter(id, filter)
         chunk.postProcess()
         return chunk
     
-    def readString(self, id, format, description):
+    def readString(self, id, format, description, post=None):
         """ Returns chunk """
         chunk = StringChunk(id, description, self._stream, format, self)
         self._appendChunk(chunk)
         self._stream.seek(chunk.addr + chunk.size)
+        chunk.post_process = post
         chunk.postProcess()
         return chunk
     
