@@ -1,12 +1,19 @@
 import struct
 from StringIO import StringIO
 
+class StreamError(Exception):
+    def __init__(self, msg):
+        Exception.__init__(self, msg)
+
 class Stream:
     def __init__(self):
         pass
-
-    def get16(self):
-        return None
+    
+    def getSize(self):
+        return 0
+    
+    def getLastPos(self):
+        return 0
 
     def eof(self):
         return self.getLastPos() <= self.tell() 
@@ -47,7 +54,7 @@ class LimitedFileStream(Stream):
 
     def getN(self, size):
         if self.__start+self.__size<self.__stream.tell()+size:
-            raise Exception("Can't read outsize the stream.")
+            raise StreamError("Can't read outsize the stream.")
         return self.__stream.getN(size)
 
     def tell(self):
@@ -79,7 +86,7 @@ class FileStream(Stream):
         """ Read file seek document to understand where. """
         self.__file.seek(pos, where)
         if self.__size < self.tell():
-            raise Exception("Error when seek to (%s,%s) in a stream." % (pos, where))
+            raise StreamError("Error when seek to (%s,%s) in a stream." % (pos, where))
 
     def tell(self):
         return self.__file.tell()
@@ -89,7 +96,7 @@ class FileStream(Stream):
         pos_max: Position of last tested byte
         """
         if 2048<=len(binary_string):
-            raise Exception("Search string too big.")
+            raise StreamError("Search string too big.")
         size = 2048 
         doublesize = size * 2
         oldpos = self.tell()
@@ -127,7 +134,7 @@ class FileStream(Stream):
     def getN(self, size):
         data = self.__file.read(size)
         if len(data) != size:
-            raise Exception("Can't read %u bytes in a stream (get %u bytes)." % (size, len(data)))
+            raise StreamError("Can't read %u bytes in a stream (get %u bytes)." % (size, len(data)))
         return data
 
     def getEnd(self):

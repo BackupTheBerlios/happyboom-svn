@@ -31,7 +31,11 @@ class Filter:
         if self.__class__ == Filter:
             return None
         self.getStream().seek(self.getAddr())
-        new = self.__class__(self.getStream(), self.getParent())
+        try:
+            new = self.__class__(self.getStream(), self.getParent())
+        except:
+            error("Error while clone class of type %s!" % self.__class__)
+            raise
         new.filter_chunk = self.filter_chunk
         return new
 
@@ -262,7 +266,7 @@ class Filter:
         if lg == -1:
             raise Exception("Delimiter \"%s\" not found for %s (%s)!" % (delimiter, id, description))
         self.read(id, "!%us" % lg, description) 
-        self.read(None, "!%us" % len(delimiter), "Delimiter of %s" % id) 
+        self.read(id+"_delimiter", "!%us" % len(delimiter), "Delimiter of %s" % id) 
 
     def searchEol(self, eol):
         lg = self._stream.searchLength(eol, True)
