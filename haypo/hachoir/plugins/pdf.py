@@ -3,6 +3,7 @@ from plugin import registerPlugin
 import re
 from stream import StreamError
 from tools import convertDataToPrintableString, getBacktrace
+from deflate import DeflateFilter
 
 def isEnd(stream, array, last):
     return stream.eof()
@@ -53,11 +54,17 @@ class PdfObject(Filter):
                 self.processLine(chunk.value)
         chunk = self.readString("endobj", "AutoLine", "Object end", post=stripLine)
         if chunk.value == "stream":
+            start = self.getStream().tell()
             chunk.id = "xref"
-            lg = self._stream.searchLength("endstream", False)
-            if lg == -1:
+            size = self._stream.searchLength("endstream", False)
+            if size == -1:
                 raise Exception("Delimiter \"%s\" not found for %s (%s)!" % (delimiter, id, description))
-            self.read("data[]", "!%us" % lg, "Data")
+
+            old = self.getStream().tell()
+            self.readChild("deflate", DeflateFilter, start, size)
+            print "%s+%s/%s" % (start, size, self.getStream().tell())
+            assert self.getStream().tell() == (start+size)
+            
             self.readString("data_end[]", "AutoLine", "Data end")
             self.readString("endobj", "AutoLine", "Object end", post=stripLine)
         self.readString("emptyline", "AutoLine", "")

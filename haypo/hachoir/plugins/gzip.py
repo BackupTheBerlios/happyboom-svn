@@ -8,10 +8,35 @@ GZIP archive file
 import datetime
 from filter import Filter
 from plugin import registerPlugin
+from gunzip_stream import GunzipStream
+from plugins.tar import TarFile
+   
+class GunzipFilter(Filter):
+    def __init__(self, stream, parent, start, size, filter_class):
+        # Read data
+        self._parent_stream = stream
+        self._parent_stream.seek(0)
+        data = stream.getN(self._parent_stream.getSize())
+        
+        # Create a new stream
+        stream = GunzipStream(data)
+        self._compressed_size = size 
+        self._decompressed_size = stream.getSize()
+
+        # Create filter
+        self._parent_stream.seek(start)
+        Filter.__init__(self, "deflate", "Deflate", stream, parent)
+        self._addr = self._parent_stream.tell()
+
+#        self.read("raw", "!{@end@}s", "")
+        self.readChild("tar", filter_class)
+
+    def getSize(self):
+        return self._compressed_size
 
 class GzipFile(Filter):
-    def __init__(self, stream):
-        Filter.__init__(self, "gzip_file", "GZIP archive file", stream, None)
+    def __init__(self, stream, parent=None):
+        Filter.__init__(self, "gzip_file", "GZIP archive file", stream, parent)
         self.read("id", "!2B", "Identifier (31,139)")
         assert self.id == (31, 139)
         self.read("comp_method", "!B", "Compression method", post=self.getCompressionMethod)
@@ -30,8 +55,12 @@ class GzipFile(Filter):
         if self.flags & 2 == 2:
             self.readString("crc16", "!H", "CRC16")
 
+
+
         size = stream.getSize() - stream.tell() - 8
-        self.read("data", "!%us" % size, "Compressed data", truncate=True)
+#        self.read("data", "!%us" % size, "Compressed data", truncate=True)
+        self.readChild("data", GunzipFilter, stream.tell(), size, TarFile) 
+        
         self.read("crc32", "<L", "CRC32")
         self.read("size", "<L", "Uncompressed size")
 

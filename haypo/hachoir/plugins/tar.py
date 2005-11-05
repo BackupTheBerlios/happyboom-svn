@@ -10,6 +10,7 @@ from datetime import datetime
 from filter import Filter
 from plugin import registerPlugin
 from tools import convertDataToPrintableString
+from default import EmptyFilter
 
 def displayModeItem(mode):
     if mode & 4 == 4: r="r"
@@ -93,7 +94,9 @@ class TarFileEntry(Filter):
         self.read("devminor", "!8s", "Dev minor")
         self.read("header_padding", "!167s", "Padding (zero)")
         if self.type in ("\0", "0"):
-            self.read("filedata", "!{size}s", "File data", truncate=True)
+            chunk = self.readChild("filedata", EmptyFilter)
+            filter = chunk.getFilter()
+            filter.read("filedata", "!%us" % self.size, "File data", truncate=True)
         if stream.tell() % 512 != 0:
             padding = 512 - stream.tell() % 512
             self.read("padding", "!%ss" % padding, "Padding (512 align)", truncate=True)
@@ -133,8 +136,8 @@ class TarFileEntry(Filter):
         chunk.description = self.description = text
 
 class TarFile(Filter):
-    def __init__(self, stream):
-        Filter.__init__(self, "tar_file", "TAR archive file", stream, None)
+    def __init__(self, stream, parent=None):
+        Filter.__init__(self, "tar_file", "TAR archive file", stream, parent)
 
         self.readArray("files", TarFileEntry, "Tar Files", self.checkEndOfChunks)
         

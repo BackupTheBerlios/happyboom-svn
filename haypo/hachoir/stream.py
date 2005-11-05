@@ -70,13 +70,13 @@ class LimitedFileStream(Stream):
         return self.__end
     
 class FileStream(Stream):
-    def __init__(self, filename):
+    def __init__(self, file, filename=None):
         """
         Endian: See setEndian function. 
         """
 
         Stream.__init__(self)
-        self.__file = open(filename, 'r')
+        self.__file = file 
         self.filename = filename
         self.__file.seek(0,2) # Seek to end
         self.__size = self.__file.tell()

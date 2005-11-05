@@ -1,9 +1,10 @@
 from filter import Filter
 
-def displayDefault(data):
-    pass
+class EmptyFilter(Filter):
+    def __init__(self, stream, parent=None):
+        Filter.__init__(self, "empty", "Empty filter", stream, parent)
 
 class DefaultFilter(Filter):
-    def __init__(self, stream):
-        Filter.__init__(self, "default", "Default filter", stream, None)
+    def __init__(self, stream, parent=None):
+        Filter.__init__(self, "default", "Default filter", stream, parent)
         self.read("data", "!{@end@}s", "Data", truncate=True)

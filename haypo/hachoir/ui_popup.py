@@ -4,6 +4,7 @@ import gtk
 import gtk.glade
 from chunk import FormatChunk, FilterChunk, StringChunk
 from ui_new_chunk import NewChunkDialog
+from ui_new_string import NewStringDialog
 from format import splitFormat # TODO: remove this line
 from error import error
 
@@ -15,6 +16,7 @@ class TablePopup:
         xml.signal_autoconnect(self)
         self.chunk = None
         self.new_chunk_dlg = NewChunkDialog(self.ui.glade_xml)
+        self.new_string_dlg = NewStringDialog(self.ui.glade_xml)
 
         # Popup items
         self.new_chunk = xml.get_widget("new_chunk")
@@ -82,9 +84,10 @@ class TablePopup:
         self.chunk.getParent().addNewFilter(self.chunk, id, size, desc)
 
     def onAddString(self, event):
-        # TODO: Ask string type, id and description
-        str_type = "MacLine"
-#        str_type = "C"
+        dlg = self.new_string_dlg
+        if dlg.run() == gtk.RESPONSE_CANCEL: return
+        str_type = dlg.getFormat()
+
         assert issubclass(self.chunk.__class__, FormatChunk)
         self.chunk.getParent().addString(str_type, self.chunk)
         

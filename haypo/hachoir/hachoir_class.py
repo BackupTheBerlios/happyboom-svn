@@ -1,7 +1,7 @@
 from stream import FileStream
 from plugin import getPlugin
 from chunk import FilterChunk
-from default import DefaultFilter, displayDefault
+from default import DefaultFilter
 from user_filter import UserFilterDescriptor, loadUserFilter
 from error import error
 from tools import getBacktrace
@@ -75,7 +75,8 @@ class Hachoir:
 
     def load(self, filename):
         try:
-            stream = FileStream(filename)
+            file = open(filename, 'r')
+            stream = FileStream(file, filename)
         except IOError, err:
             error("Can't load file %s:\n%s" % (filename, err))
             return
@@ -83,7 +84,7 @@ class Hachoir:
         # Look for a plugin
         plugin = getPlugin(filename)
         if plugin == None:
-            regex, plugin_name, split_func, display_func = None, "default", DefaultFilter, displayDefault 
+            regex, plugin_name, split_func, display_func = None, "default", DefaultFilter, None
         else:
             regex, plugin_name, split_func, display_func = plugin
             
