@@ -93,8 +93,9 @@ class Hachoir:
         except Exception, msg:
             error("Exception while processing file %s with filter %s:\n%s" \
                 % (filename, plugin_name, msg))
-            raise
-            return
+            display_func = None
+            stream.seek(0)
+            filter = DefaultFilter(stream)
         self.main_filter = self.filter = filter
         self._addPadding()
         self.filter.display()

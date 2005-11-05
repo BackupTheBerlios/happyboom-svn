@@ -2,7 +2,7 @@ import pygtk
 pygtk.require ('2.0')
 import gtk
 import gtk.glade
-from chunk import FormatChunk, FilterChunk
+from chunk import FormatChunk, FilterChunk, StringChunk
 from ui_new_chunk import NewChunkDialog
 from format import splitFormat # TODO: remove this line
 from error import error
@@ -32,8 +32,9 @@ class TablePopup:
             return
 
         is_format_chunk = issubclass(self.chunk.__class__, FormatChunk)
+        is_string_chunk = issubclass(self.chunk.__class__, StringChunk)
         is_filter_chunk = issubclass(self.chunk.__class__, FilterChunk)
-        self.new_chunk.set_sensitive(is_format_chunk)
+        self.new_chunk.set_sensitive(is_format_chunk or is_string_chunk)
         self.new_filter.set_sensitive(is_format_chunk)
         self.add_string.set_sensitive(is_format_chunk)
         self.convert.set_sensitive(is_format_chunk or is_filter_chunk)
