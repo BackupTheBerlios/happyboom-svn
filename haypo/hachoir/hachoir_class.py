@@ -92,8 +92,8 @@ class Hachoir:
         try:
             filter = split_func(stream)
         except Exception, msg:
-            error("Exception while processing file %s with filter %s:\n%s" \
-                % (filename, plugin_name, msg))
+            error("Exception while processing file %s with filter %s:\n%s\n%s" \
+                % (filename, plugin_name, msg, getBacktrace()))
             display_func = None
             stream.seek(0)
             filter = DefaultFilter(stream)

@@ -4,6 +4,7 @@ import re
 from stream import StreamError
 from tools import convertDataToPrintableString, getBacktrace
 from deflate import DeflateFilter
+from error import warning
 
 def isEnd(stream, array, last):
     return stream.eof()
@@ -23,7 +24,7 @@ class PdfObject(Filter):
             self.readXref()
         else: 
             self.type = "obj"
-            m = re.match("([0-9]+) [0-9]+ obj", header)
+            m = re.match(r"([0-9]+) [0-9]+ obj", header)
             if m != None:
                 id = int(m.group(1))
                 self.metadata["id"] = id
@@ -45,33 +46,57 @@ class PdfObject(Filter):
             info = "XREF"
         self.setDescription("Object (%s)" % info)
 
-    def readObj(self):
+    def readContent(self):
         chunk = self.readString("line[]", "AutoLine", "", post=stripLine)
-        if re.match("^\<\<", chunk.value) != None:
+        deflate = False
+        while chunk.value not in ("endobj", "stream"):
             self.processLine(chunk.value)
-            while re.match("^.*\>\>$", chunk.value) == None:
-                chunk = self.readString("line[]", "AutoLine", "", post=stripLine)
-                self.processLine(chunk.value)
-        chunk = self.readString("endobj", "AutoLine", "Object end", post=stripLine)
-        if chunk.value == "stream":
+            if self.getStream().eof():
+                return "eof"
+            chunk = self.readString("line[]", "AutoLine", "", post=stripLine)
+            if re.match(r"^.*/Filter /FlateDecode", chunk.value) != None:
+                deflate = True
+        if chunk.value == "endobj":
+            chunk.id = "endobj"
+            chunk.description = "Object end"
+            return "end"
+        elif deflate:
+            return "deflate"
+        else:
+            return "stream"
+    
+    def readObj(self):
+        what = self.readContent()
+        if what == "eof":
+            return
+        if what in ("stream","deflate"):
             start = self.getStream().tell()
-            chunk.id = "xref"
             size = self._stream.searchLength("endstream", False)
             if size == -1:
                 raise Exception("Delimiter \"%s\" not found for %s (%s)!" % (delimiter, id, description))
 
-            old = self.getStream().tell()
-            self.readChild("deflate", DeflateFilter, start, size)
-            print "%s+%s/%s" % (start, size, self.getStream().tell())
+            if what=="deflate":
+                try:
+                    old = self.getStream().tell()
+                    self.readChild("deflate", DeflateFilter, start, size)
+                except:
+                    warning("Error while decompressing data of an objet.")
+                    self.getStream().seek(start)
+                    self.read("data", "!%us" % size, "Data (compressed with deflate)")
+            else:
+                self.read("data", "!%us" % size, "Data")
             assert self.getStream().tell() == (start+size)
             
             self.readString("data_end[]", "AutoLine", "Data end")
             self.readString("endobj", "AutoLine", "Object end", post=stripLine)
-        self.readString("emptyline", "AutoLine", "")
+        ver = self.getParent().version
+        if ver[0] > 1 or (ver[0] == 1 and ver[1] > 0):
+            # PDF > 1.0 
+            self.readString("emptyline", "AutoLine", "")
 
     def readXref(self):
         chunk = self.readString("xref_header", "AutoLine", "XRef header", post=stripLine)
-        m = re.match("^[0-9]+ ([0-9]+)$", chunk.value)
+        m = re.match(r"^[0-9]+ ([0-9]+)$", chunk.value)
         assert m != None
         nb_ref = int(m.group(1)) - 1
         n = 0
@@ -82,8 +107,8 @@ class PdfObject(Filter):
 
     def processLine(self, line):
         tests = {
-            "type":  "^.*/Type /([A-Za-z]+)$",
-            "fontname":  "^.*/FontName /[BD]A+\+([A-Za-z-]+)$"
+            "type":  r"^.*Type /([A-Za-z]+)$",
+            "fontname":  r"^.*(?:BaseFont|FontName) /(?:[A-Z]A+\+)?([A-Za-z-]+)$"
         }
         for field in tests:
             m = re.match(tests[field], line)
@@ -94,8 +119,13 @@ class PdfObject(Filter):
 class PdfFile(Filter):
     def __init__(self, stream, parent=None):
         Filter.__init__(self, "id", "", stream, parent)
-        self.readString("version", "AutoLine", "PDF version")
-        self.readString("header", "AutoLine", "PDF header")
+        self.readString("pdf_version", "AutoLine", "PDF version")
+        m = re.match("^%PDF-([0-9]+)\.([0-9]+)$", self.pdf_version)
+        assert m != None
+        self.version = ( int(m.group(1)), int(m.group(2)) )
+        if self.version[0] == 1 and self.version[1] > 0:
+            # PDF > 1.0
+            self.readString("header", "AutoLine", "PDF header")
         self.nb_ref = None
         while not stream.eof():
             try:
