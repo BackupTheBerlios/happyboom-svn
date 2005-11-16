@@ -40,9 +40,9 @@ def displayExe(exe):
         for section in exe.pe_sections:
             section = section.getFilter()
             displayPE_Section(section)
-        for res in exe.pe_resources:
-            res = res.getFilter()
-            displayPE_ResourceDirectory(res)
+#        for res in exe.pe_resources:
+#            res = res.getFilter()
+#            displayPE_ResourceDirectory(res)
             
 class PE_ResourceData(Filter):
     def __init__(self, stream, parent):
@@ -52,7 +52,7 @@ class PE_ResourceData(Filter):
         self.read("page_code", "<L", "Page code (language)")
         self.read("language", "<l", "Page code (language)")
         self.language = -self.language
-        self.read(None, "!L", "Reserverd")
+        self.read("reserved", "!L", "Reserverd")
 
         oldpos = stream.tell()
         
@@ -67,23 +67,20 @@ class PE_ResourceEntry(Filter):
         self.read("offset", "<L", "Offset")
         
 class PE_ResourceDirectory(Filter):
-    def __init__(self, stream, parent, offset_res_section):
+    def __init__(self, stream, parent):
         Filter.__init__(self, "pe_rsrc_dir", "PE resource directory", stream, parent)
-        self.offset_res_section = offset_res_section
+        self.offset_res_section = stream.tell()
         self.read("option", "<L", "Options")
         self.read("creation_date", "<L", "Creation date")
         self.read("maj_ver", "<H", "Major version")
         self.read("named_entries", "<H", "Named entries")
         self.read("indexed_entries", "<H", "Indexed entries")
-        nb_entries = self.named_entries + self.indexed_entries
-        self.openChild()
 
         stream.seek( stream.tell() + 0x10)
-        self.items = []
-        for i in range(nb_entries):
-            self.newChild("Resource")
-            self.items.append( PE_ResourceEntry(stream,self) )
-        self.closeChild("Resources")
+        self.readArray("item", PE_ResourceEntry, "PE resource entry", self.checkEndOfRes)
+    
+    def checkEndOfRes(self, stream, array, dir):
+        return len(array) == (self.named_entries + self.indexed_entries)
 
 class PE_Section(Filter):
     def __init__(self, stream, parent):
@@ -144,7 +141,7 @@ class PE_OptionnalHeader(Filter):
         self.readArray("directories", PE_Directory, "PE directories", self.checkEndOfDir)
 
     def checkEndOfDir(self, stream, array, dir):
-        return len(self.directories) == self.nb_directories
+        return len(array) == self.nb_directories
 
 class PE_Filter(Filter):
     def __init__(self, stream, parent):
@@ -192,10 +189,10 @@ class MS_Dos(Filter):
         self.read("init_cs_ip", ">L", "Initial value of CS:IP registers.")
         self.read("reloc_offset", "<H", "Offset in file to relocation table.")
         self.read("overlay_number", ">H", "Overlay number")
-        self.read(None, ">4H", "Reserverd")
+        self.read("reserved", ">4H", "Reserverd")
         self.read("oem_id", ">H", "OEM id")
         self.read("oem_info", ">H", "OEM info")
-        self.read(None, "!10H", "Reserved")
+        self.read("reserved2", "!10H", "Reserved")
         self.read("pe_offset", "<L", "Offset to PE header")
 
 class ExeFile(Filter):
@@ -211,24 +208,18 @@ class ExeFile(Filter):
             self.readChild("pe_opt", PE_OptionnalHeader)
             self.readArray("pe_sections", PE_Section, "PE sections", self.checkEndOfSections)
 
-            # Look for resource section
-            self.pe_resources = []
-            return
-
             # TODO: Fix this ...
             
             offset_res_section = None
             for section in self.pe_sections:
+                section = section.getFilter()
                 if section.name == ".rsrc":
                     offset_res_section = section.file_offset
-                    self.stream.seek( offset_res_section )
+                    self.getStream().seek( offset_res_section )
                     break
             if offset_res_section != None:
-                self.openChild()
-                for i in range(1): #range(self.pe.nb_sections):
-                    self.newChild("PE resource header")            
-                    self.pe_resources.append( PE_ResourceDirectory(stream, self, offset_res_section) )
-                self.closeChild("PE resources header")            
+                #for i in range(1): #range(self.pe.nb_sections):
+                self.readChild("pe_resources", PE_ResourceDirectory)
         else:
             self.pe = None
 
