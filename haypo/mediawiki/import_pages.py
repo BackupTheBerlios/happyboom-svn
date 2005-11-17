@@ -23,6 +23,9 @@ def escapeshellarg(arg):
     arg = arg.replace("\\", "\\\\").replace("'", "\\'")
     return "'"+arg+"'"
 
+def error(msg):
+    print msg
+
 def warning(msg):
     print msg
 
@@ -49,53 +52,62 @@ def getAllpages(url, namespace):
     for link in links:
         page = link.getAttribute('href').encode("ASCII")
         page = page.split("/")
-        pages.append( page[-1] )
+        page = urllib.unquote(page[-1])
+        if type(page) == types.UnicodeType:
+            page = page.encode("UTF-8")            
+        pages.append( page )
     return pages
 
-def cleanupUrl(url):
-    name = urllib.unquote(url)
-    if type(name) != types.UnicodeType:
-        name = unicode(name,"UTF-8")
-    return name.replace("_", " ")
-
 def importNamespace(url, dir, namespace, only_last):
-    print "Download list of pages ..."
+    print "Download document list."
     pages = getAllpages(url, namespace)
     if pages == None:
-        print "Error: Can't get list of pages."
+        print "Error: Can't get document list."
         sys.exit(1)
-    i = 1
-    for page in pages:
-        print "Download \"%s\" (%u/%u) ..." \
-                % (cleanupUrl(page), i, len(pages))
-        args = {"action": "submit", "pages": page}
-        if only_last:
-            args["curonly"] = "on"
-        data = download(url+"Special:Export", args)
-        if data == None:
-            error("Fail to download page \"%s\"." % page)
-            sys.exit(1)
-        filename = os.path.join(dir, page)
-        f = open(filename, 'w')
-        f.write(data)
-        f.close()
-#        print "  \--> saved into \"%s\"." % (filename) 
-        i = i + 1
+    if len(pages) == 0:
+        print "(empty)"
+        return
+    print "Download XML data (%u documents) ..." % len(pages)
+    args = { \
+        "action": "submit",
+        "pages": "\n".join(pages)
+    }
+    if only_last:
+        args["curonly"] = "on"
+    data = download(url+"Special:Export", args)
+    if data == None:
+        error("Fail to download namespace %s." % namespace)
+        sys.exit(1)
+    filename = os.path.join(dir, "namespace_%s.xml" % namespace)
+    f = open(filename, 'w')
+    f.write(data)
+    f.close()
 
 def importPages(url, only_last=False):
+    # Add "/" prefix to url if needed
     if url[-1] != "/":
         url = url + "/"
+
+    # Create pages/ if needed
     dir = "pages"
     try:
       os.mkdir(dir)
     except OSError, err:
         if err[0] != 17:
             raise
-    nb_namespace = 16            
-    for i in range(0,nb_namespace):    
-        print "================== Import namespace %u/%u ============== " \
-                % (i, nb_namespace-1)
-        importNamespace(url, dir, i, only_last)
+
+    # Which namespaces have to be downloaded?
+    namespaces = range(0,16)
+    namespaces.remove(8) # MediaWiki
+    namespaces.remove(9) # Talk:MediaWiki
+    
+    # Download each namespace
+    i = 1
+    for namespace in namespaces: 
+        print "================== Import namespace %u (%u/%u) ============== " \
+                % (namespace, i, len(namespaces))
+        importNamespace(url, dir, namespace, only_last)
+        i = i + 1
 
 def exportPages(url):
     print "TODO"
