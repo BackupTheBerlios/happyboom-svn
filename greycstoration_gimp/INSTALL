@@ -11,7 +11,10 @@ For this, you will need:
 Instruction to compile
 ======================
 
-make && make install
+./autogen.sh
+./configure
+make
+make install
 
 That's all :-)
 
