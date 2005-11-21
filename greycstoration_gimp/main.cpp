@@ -17,8 +17,12 @@
  * Boston, MA 02111-1307, USA.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+#include "plugin-intl.h"
+
 #include <libgimp/gimp.h>
-#include "plug_in.h"
 #include "dialog.h"
 #include "greycstoration.h"
 #include <unistd.h>
@@ -72,7 +76,7 @@ static void query(void)
 	};
 	gimp_install_procedure (
 			"plug_in_hello",
-			PLUG_IN_NAME,
+			PLUGIN_NAME,
 			"Filtre Greystoration",
 			"Victor STINNER",
 			"Copyright Victor STINNER",
@@ -99,6 +103,13 @@ static void run (const gchar* name,
 	   non-interactive */
 	nice(19);
 
+	/*  Initialize i18n support  */
+	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
+#ifdef HAVE_BIND_TEXTDOMAIN_CODESET
+	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+#endif
+	textdomain (GETTEXT_PACKAGE);
+
 	/* Mise en place d'une valeur obligatoire de retour */
 	*nreturn_vals = 1;
 	*return_vals = values;
@@ -112,9 +123,9 @@ static void run (const gchar* name,
 	switch (image.run_mode)
 	{
 		case GIMP_RUN_INTERACTIVE:
-			gimp_get_data("plug_in_" PLUG_IN_NAME, &greyc_params);
+			gimp_get_data("plug_in_" PLUGIN_NAME, &greyc_params);
 			if (!dialog(greyc_params, drawable)) return;
-			gimp_set_data("plug_in_" PLUG_IN_NAME, &greyc_params, sizeof(greyc_params));
+			gimp_set_data("plug_in_" PLUGIN_NAME, &greyc_params, sizeof(greyc_params));
 			break;
 			
 		case GIMP_RUN_NONINTERACTIVE:
@@ -122,7 +133,7 @@ return;
 			break;
 
 		case GIMP_RUN_WITH_LAST_VALS:
-			gimp_get_data("plug_in_" PLUG_IN_NAME, &greyc_params);
+			gimp_get_data("plug_in_" PLUGIN_NAME, &greyc_params);
 			break;
 		default: return;
 	}

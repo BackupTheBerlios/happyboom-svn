@@ -17,17 +17,18 @@
  * Boston, MA 02111-1307, USA.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include "plugin-intl.h"
+
 #include <stdio.h>
 
 #include "dialog.h"
 //----------------------------------------------------------------------------
-
-// Future gettext use
-#define _(X) X
-
 #include "image.h"
 #include "greycstoration.h"
-#include "plug_in.h"
 #include <libgimp/gimp.h>
 #include <libgimp/gimpui.h>
 #include <gtk/gtk.h>
@@ -127,7 +128,7 @@ void dialog_page1 (GREYCstoration_params &params, GtkWidget *notebook, GtkWidget
 	TABLE_SCALE(1, _("_Gradient factor (p2):"), float, params.power2, 0, 100, 0.1, 1, SCALE_DIGITS);
 	TABLE_SCALE(2, _("_Time step (dt):"), float, params.dt, 1, 300, 10, 25, SCALE_DIGITS);
 	TABLE_SCALE(3, _("_Blur (sigma):"), float, params.sigma, 0, 10, 0.2, 1, SCALE_DIGITS);
-	TABLE_SCALE(4, _("_Blur iterations (iter) :"), int, params.nb_iter, 1, 5, 1, 2, 0);
+	TABLE_SCALE(4, _("Blur _iterations (iter) :"), int, params.nb_iter, 1, 5, 1, 2, 0);
 }
 
 void dialog_page2 (GREYCstoration_params &params, GtkWidget *notebook, GtkWidget *preview)
@@ -182,12 +183,12 @@ bool dialog(GREYCstoration_params &params, GimpDrawable *preview_src)
 	GtkWidget *main_vbox;
 
 	// New dialog
-	gimp_ui_init (PLUG_IN_NAME, false);
+	gimp_ui_init (PLUGIN_NAME, false);
 	dialog = gimp_dialog_new(
 			_("GREYCstoration"), 
-			PLUG_IN_NAME,
+			PLUGIN_NAME,
 			NULL, (GtkDialogFlags)0,
-			gimp_standard_help_func, "plug-in-" PLUG_IN_NAME,
+			gimp_standard_help_func, "plug-in-" PLUGIN_NAME,
 			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 			GTK_STOCK_OK,     GTK_RESPONSE_OK,
 			NULL);
