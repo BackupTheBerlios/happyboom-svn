@@ -1,0 +1,77 @@
+# translation of GIMP GREYCstroration Plug-In.
+# Copyright (C) 2005 THE GIMP GREYCstroration Plug-In'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the GIMP GREYCstroration Plug-In package.
+# <>, 2005.
+# , fuzzy
+#  <>, 2005.
+# 
+# 
+msgid ""
+msgstr ""
+"Project-Id-Version: GIMP GREYCstroration Plug-In 0.1.2\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2005-11-21 17:50+0100\n"
+"PO-Revision-Date: 2005-11-21 16:18+0100\n"
+"Last-Translator: Thomas de Grenier de Latour (TGL) <degrenier@easyconnect>\n"
+"Language-Team: French <gnomefr@traduc.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Insert table in a new notebook page
+#: ../src/dialog.cpp:122
+msgid "Restore"
+msgstr "Restauration"
+
+#. Power1
+#: ../src/dialog.cpp:127
+msgid "_Detail factor (p1):"
+msgstr "Facteur de _détails (p1) :"
+
+#: ../src/dialog.cpp:128
+msgid "_Gradient factor (p2):"
+msgstr "Facteur de _gradiant (p2) :"
+
+#: ../src/dialog.cpp:129
+msgid "_Time step (dt):"
+msgstr "Intervale de _temps (dt) :"
+
+#: ../src/dialog.cpp:130
+msgid "_Blur (sigma):"
+msgstr "_Flou (sigma) :"
+
+#: ../src/dialog.cpp:131
+msgid "Blur _iterations (iter) :"
+msgstr "_Itérations de flou (iter) :"
+
+#. New vbox
+#: ../src/dialog.cpp:141
+msgid "Quality"
+msgstr "Qualité"
+
+#. linear checkbox
+#: ../src/dialog.cpp:147
+msgid "Use linear interpolation:"
+msgstr "Utiliser une interpolation linéaire :"
+
+#. normalize checkbox
+#: ../src/dialog.cpp:153
+msgid "Normalize picture to [0-255]:"
+msgstr "Normaliser l'image dans [0-255] :"
+
+#. Insert parameters into the table
+#: ../src/dialog.cpp:170
+msgid "_Angular step (da):"
+msgstr "Pas _angulaire (da) :"
+
+#: ../src/dialog.cpp:171
+msgid "_Integral step (dt):"
+msgstr "Pas d'_intégration (dt) :"
+
+#: ../src/dialog.cpp:172
+msgid "_Gaussian precision (gauss):"
+msgstr "Précision _gaussienne (gauss) :"
+
+#: ../src/dialog.cpp:188
+msgid "GREYCstoration"
+msgstr "GREYCstoration"
