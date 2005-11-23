@@ -279,7 +279,7 @@
       <signal name="activate" handler="onNewChunk" last_modification_time="Sun, 30 Oct 2005 23:08:19 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image44">
+	<widget class="GtkImage" id="image49">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-cut</property>
 	  <property name="icon_size">1</property>
@@ -300,7 +300,7 @@
       <signal name="activate" handler="onNewFilter" last_modification_time="Mon, 31 Oct 2005 06:42:27 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image45">
+	<widget class="GtkImage" id="image50">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-cut</property>
 	  <property name="icon_size">1</property>
@@ -321,7 +321,7 @@
       <signal name="activate" handler="onAddString" last_modification_time="Wed, 02 Nov 2005 05:30:33 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image46">
+	<widget class="GtkImage" id="image51">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-add</property>
 	  <property name="icon_size">1</property>
@@ -342,7 +342,7 @@
       <signal name="activate" handler="onConvert" last_modification_time="Wed, 02 Nov 2005 02:32:16 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image47">
+	<widget class="GtkImage" id="image52">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-convert</property>
 	  <property name="icon_size">1</property>
@@ -363,7 +363,7 @@
       <signal name="activate" handler="onSetFormat" last_modification_time="Sun, 30 Oct 2005 23:27:49 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image48">
+	<widget class="GtkImage" id="image53">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-edit</property>
 	  <property name="icon_size">1</property>
@@ -384,9 +384,30 @@
       <signal name="activate" handler="onDeleteChunk" last_modification_time="Tue, 01 Nov 2005 01:54:40 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image49">
+	<widget class="GtkImage" id="image54">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-delete</property>
+	  <property name="icon_size">1</property>
+	  <property name="xalign">0.5</property>
+	  <property name="yalign">0.5</property>
+	  <property name="xpad">0</property>
+	  <property name="ypad">0</property>
+	</widget>
+      </child>
+    </widget>
+  </child>
+
+  <child>
+    <widget class="GtkImageMenuItem" id="copy_clipboard">
+      <property name="visible">True</property>
+      <property name="label" translatable="yes">Copy to clipboard</property>
+      <property name="use_underline">True</property>
+      <signal name="activate" handler="onCopyClipboard" last_modification_time="Wed, 23 Nov 2005 22:09:19 GMT"/>
+
+      <child internal-child="image">
+	<widget class="GtkImage" id="image55">
+	  <property name="visible">True</property>
+	  <property name="stock">gtk-copy</property>
 	  <property name="icon_size">1</property>
 	  <property name="xalign">0.5</property>
 	  <property name="yalign">0.5</property>

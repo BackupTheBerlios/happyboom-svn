@@ -34,6 +34,13 @@ class Chunk(object):
     def getStream(self):
         return self._stream
 
+    def getStringValue(self):
+        value = self.getDisplayData()
+        if type(value) == types.TupleType:
+            return "(%s)" % ", ".join( map(str,value) )
+        else:
+            return "%s" % value
+
     def getValue(self, max_size=None):
         return None
 

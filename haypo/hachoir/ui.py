@@ -1,6 +1,6 @@
 import os
 import pygtk
-pygtk.require ('2.0')
+pygtk.require ('2.0') # 2.2 for Clipboard
 import gtk
 import gtk.glade
 
@@ -21,7 +21,13 @@ class GladeInterface:
         self.on_row_click = None # event(chunk_id)
         self.on_go_parent = None # event(chunk_id)
         self.build_ui()
+        self._clipboard = None
         
+    def getClipboard(self):
+        if self._clipboard == None:
+            self._clipboard = gtk.Clipboard()
+        return self._clipboard
+
     def run(self):
         self.window.updateToolbar()
         try:

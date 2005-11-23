@@ -1,5 +1,4 @@
 import pygtk
-pygtk.require ('2.0')
 import gtk
 import gtk.glade
 from chunk import FormatChunk, FilterChunk, StringChunk
@@ -7,6 +6,8 @@ from ui_new_chunk import NewChunkDialog
 from ui_new_string import NewStringDialog
 from format import splitFormat # TODO: remove this line
 from error import error
+
+MAX_CHUNK_SIZE=1024 # When copy to clipboard
 
 class TablePopup:
     def __init__(self, ui, filename):
@@ -25,6 +26,7 @@ class TablePopup:
         self.convert = xml.get_widget("convert")
         self.set_format = xml.get_widget("set_format")
         self.delete_chunk = xml.get_widget("delete_chunk")
+        self.copy_clipboard = xml.get_widget("copy_clipboard")
 
     def show(self, path_info, event):
         col = path_info[0][0]
@@ -42,8 +44,6 @@ class TablePopup:
         self.convert.set_sensitive(is_format_chunk or is_filter_chunk)
         self.set_format.set_sensitive(is_format_chunk)
 
-#        can_delete = ()
-#        if not can_delete:
         chunks = self.chunk.getParent().getChunks()
         if self.chunk.getParent().getParent() != None:
             can_delete = (1 < len(chunks)) or not is_format_chunk
@@ -51,6 +51,8 @@ class TablePopup:
             can_delete = chunks.index(self.chunk) < (len(chunks)-1) or not is_format_chunk
 
         self.delete_chunk.set_sensitive(can_delete)
+        can_copy = (self.chunk.size < MAX_CHUNK_SIZE) and not is_filter_chunk
+        self.copy_clipboard.set_sensitive(can_copy)
         self.popup.popup( None, None, None, event.button, event.time)
 
     def onDeleteChunk(self, event):
@@ -82,6 +84,10 @@ class TablePopup:
         id = self.new_chunk_dlg.getId()
         desc = self.new_chunk_dlg.getDescription()
         self.chunk.getParent().addNewFilter(self.chunk, id, size, desc)
+
+    def onCopyClipboard(self, event):
+        text = self.chunk.getStringValue()
+        self.ui.getClipboard().set_text(text)
 
     def onAddString(self, event):
         dlg = self.new_string_dlg

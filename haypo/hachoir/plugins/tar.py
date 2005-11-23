@@ -96,7 +96,7 @@ class TarFileEntry(Filter):
         self.read("devminor", "!8s", "Dev minor")
         self.read("header_padding", "!167s", "Padding (zero)")
         if self.type in ("\0", "0"):
-            plugin = guessPlugin(stream)
+            plugin = guessPlugin(stream, self.name)
             ok = False
             if plugin != None:
                 oldpos = stream.tell()

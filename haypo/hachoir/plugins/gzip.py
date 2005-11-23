@@ -65,7 +65,7 @@ class GzipFile(Filter):
             data = stream.getN(stream.getSize())
             stream = GunzipStream(data)
             stream.seek(oldpos)
-            plugin = getPluginByStream(stream)
+            plugin = getPluginByStream(stream, self.filename)
             # END OF TODO
 
             self.readChild("data", GunzipFilter, oldpos, size, plugin) 
@@ -116,4 +116,4 @@ class GzipFile(Filter):
         val = chunk.value
         return os.get(val, "Unknow (%s)" % val)
         
-registerPlugin(GzipFile, "application/octet-stream")
+registerPlugin(GzipFile, "application/x-gzip")

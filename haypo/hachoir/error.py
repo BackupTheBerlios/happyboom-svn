@@ -1,6 +1,6 @@
 import os
 import pygtk
-pygtk.require ('2.0')
+pygtk.require ('2.0') # 2.2 for Clipboard
 import gtk
 from log import log
 import ui

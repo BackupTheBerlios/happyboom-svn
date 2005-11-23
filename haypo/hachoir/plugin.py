@@ -18,18 +18,18 @@ def getPluginByMime(mime):
         warning("More than one plugin have same MIME...")
     return plugins[0]       
     
-def getPluginByBuffer(buffer):
-    mime = getBufferMime(buffer)
+def getPluginByBuffer(buffer, filename):
+    mime = getBufferMime(buffer, filename)
     return getPluginByMime(mime)
 
-def getPluginByStream(stream):
+def getPluginByStream(stream, filename):
     stream.seek(0)
     data = stream.getN(4096)
-    mime = getBufferMime(data)
+    mime = getBufferMime(data, filename)
     return getPluginByMime(mime)
 
-def getPluginByFile(filename):
-    mime = getFileMime(filename)
+def getPluginByFile(filename, realname=None):
+    mime = getFileMime(filename, realname)
     return getPluginByMime(mime)
     
 def registerPlugin(filter_class, mime):
