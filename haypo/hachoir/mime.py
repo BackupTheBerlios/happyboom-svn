@@ -26,4 +26,4 @@ def getFileMime(filename):
 def getBufferMime(buffer):
     magic = getInstance()
     type = magic.buffer(buffer)
-    return type
+    return type.split(",")

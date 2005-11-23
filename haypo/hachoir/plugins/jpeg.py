@@ -65,11 +65,11 @@ class JpegFile(Filter):
         if chunk != None and chunk.header[1] == 0xDA: return True
         return stream.eof()
 
-    def __init__(self, stream):
-        Filter.__init__(self, "jpeg_file", "JPEG file", stream, None)
+    def __init__(self, stream, parent=None):
+        Filter.__init__(self, "jpeg_file", "JPEG file", stream, parent)
         self.read("header", "!2B", "Header \"start of image\" (0xFF, 0xD8)")
         assert self.header == (0xFF, 0xD8)
         self.readArray("chunk", JpegChunk, "Chunks", self.checkEndOfChunks)
         self.read("data", "!{@end@}s", "JPEG data")
         
-registerPlugin("^.*\.(jpg|jpeg|JPG|JPEG)$", "JPEG picture", JpegFile, None)
+registerPlugin(JpegFile, "image/jpeg")

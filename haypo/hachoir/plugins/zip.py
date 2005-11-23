@@ -112,4 +112,4 @@ class ZipFile(Filter):
             else:
                 raise Exception("Error, unknow ZIP header (0x%08X)." % header)
         
-registerPlugin("^.*\.(zip|ZIP)$", "ZIP (compressed archive)", ZipFile, displayZip)
+registerPlugin(ZipFile, "application/x-zip")

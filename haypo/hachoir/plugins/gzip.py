@@ -9,7 +9,9 @@ import datetime
 from filter import Filter
 from plugin import registerPlugin
 from gunzip_stream import GunzipStream
-from plugins.tar import TarFile
+from plugin import getPluginByStream
+from error import error
+from default import DefaultFilter
    
 class GunzipFilter(Filter):
     def __init__(self, stream, parent, start, size, filter_class):
@@ -55,11 +57,22 @@ class GzipFile(Filter):
         if self.flags & 2 == 2:
             self.readString("crc16", "!H", "CRC16")
 
+        oldpos = stream.tell()
+        size = stream.getSize() - oldpos - 8
+        try:
+            # TODO: Fix this fucking GunzipStream (use something better)
+            stream.seek(0)
+            data = stream.getN(stream.getSize())
+            stream = GunzipStream(data)
+            stream.seek(oldpos)
+            plugin = getPluginByStream(stream)
+            # END OF TODO
 
-
-        size = stream.getSize() - stream.tell() - 8
-#        self.read("data", "!%us" % size, "Compressed data", truncate=True)
-        self.readChild("data", GunzipFilter, stream.tell(), size, TarFile) 
+            self.readChild("data", GunzipFilter, oldpos, size, plugin) 
+        except Exception, msg:
+            error("Error while processing file in gzip: %s" % msg)
+            stream.seek(oldpos)
+            self.read("data", "!%us" % size, "Compressed data", truncate=True)
         
         self.read("crc32", "<L", "CRC32")
         self.read("size", "<L", "Uncompressed size")
@@ -103,4 +116,4 @@ class GzipFile(Filter):
         val = chunk.value
         return os.get(val, "Unknow (%s)" % val)
         
-registerPlugin("^.*\.gz$", "GZIP archive file", GzipFile, None)
+registerPlugin(GzipFile, "application/octet-stream")

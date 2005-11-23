@@ -137,4 +137,4 @@ class PdfFile(Filter):
                 print getBacktrace()
                 return
 
-registerPlugin("^.*\.(PDF|pdf)$", "PDF document file", PdfFile, None)
+registerPlugin(PdfFile, "application/pdf")

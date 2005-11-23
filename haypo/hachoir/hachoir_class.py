@@ -1,5 +1,5 @@
 from stream import FileStream
-from plugin import getPlugin
+from plugin import getPluginByFile
 from chunk import FilterChunk
 from default import DefaultFilter
 from user_filter import UserFilterDescriptor, loadUserFilter
@@ -82,28 +82,24 @@ class Hachoir:
             return
 
         # Look for a plugin
-        plugin = getPlugin(filename)
-        if plugin == None:
-            regex, plugin_name, split_func, display_func = None, "default", DefaultFilter, None
+        plugin = getPluginByFile(filename)
+        if plugin != None:
+            split_class = plugin
         else:
-            regex, plugin_name, split_func, display_func = plugin
+            split_class = DefaultFilter
             
         # Split 
         try:
-            filter = split_func(stream)
+            filter = split_class(stream)
         except Exception, msg:
-            error("Exception while processing file %s with filter %s:\n%s\n%s" \
-                % (filename, plugin_name, msg, getBacktrace()))
-            display_func = None
+            error("Exception while processing file %s:\n%s\n%s" \
+                % (filename, msg, getBacktrace()))
             stream.seek(0)
             filter = DefaultFilter(stream)
         self.main_filter = self.filter = filter
         self._addPadding()
         self.filter.display()
 
-        # Display
-        if self.display and display_func != None:
-            display_func(self.filter)
         self.ui.window.updateToolbar()
 
     def loadScript(self, filename):

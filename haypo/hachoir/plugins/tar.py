@@ -11,6 +11,8 @@ from filter import Filter
 from plugin import registerPlugin
 from tools import convertDataToPrintableString
 from default import EmptyFilter
+from plugin import guessPlugin 
+from error import error
 
 def displayModeItem(mode):
     if mode & 4 == 4: r="r"
@@ -94,9 +96,22 @@ class TarFileEntry(Filter):
         self.read("devminor", "!8s", "Dev minor")
         self.read("header_padding", "!167s", "Padding (zero)")
         if self.type in ("\0", "0"):
-            chunk = self.readChild("filedata", EmptyFilter)
-            filter = chunk.getFilter()
-            filter.read("filedata", "!%us" % self.size, "File data", truncate=True)
+            plugin = guessPlugin(stream)
+            ok = False
+            if plugin != None:
+                oldpos = stream.tell()
+                try:
+                    # TODO: Fix child stream start & end (size)
+                    chunk = self.readChild("filedata", plugin)
+                    ok = True
+                except Exception, msg:
+                    error("Error while processing tar file: %s" % msg)
+                    stream.seek(oldpos)
+
+            if not ok:
+                chunk = self.readChild("filedata", EmptyFilter)
+                filter = chunk.getFilter()
+                filter.read("filedata", "!%us" % self.size, "File data", truncate=True)
         if stream.tell() % 512 != 0:
             padding = 512 - stream.tell() % 512
             self.read("padding", "!%ss" % padding, "Padding (512 align)", truncate=True)
@@ -150,4 +165,4 @@ class TarFile(Filter):
             if file.isEmpty(): return True
         return stream.eof()
         
-registerPlugin("^.*\.tar$", "Tar archive", TarFile, None)
+registerPlugin(TarFile, "application/x-tar")

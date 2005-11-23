@@ -9,16 +9,6 @@ from filter import Filter
 from plugin import registerPlugin
 from error import warning
 
-def displayGif(gif):
-    print "Format: %s" % (gif.header)
-    print "Size: %ux%u" % (gif.screen.width, gif.screen.height)
-    print "Colormap: %s" % (gif.color_map)
-    i = 0
-    for image in gif.images:
-        image = image.getFilter()
-        print "Image %u: %s" % (i, image)
-        i = i + 1
-
 class GifColor(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "gif_color", "GIF color (RGB)", stream, parent)
@@ -109,8 +99,8 @@ class GifScreenDescriptor(Filter):
         return text + "color res=%u, bits/pixel=%u" % (self.color_res, self.bits_per_pixel)
         
 class GifFile(Filter):
-    def __init__(self, stream):
-        Filter.__init__(self, "gif_file", "GIF picture file", stream, None)
+    def __init__(self, stream, parent=None):
+        Filter.__init__(self, "gif_file", "GIF picture file", stream, parent)
         # Header
         self.read("header", "6s", "File header")
         assert (self.header == "GIF87a") or (self.header == "GIF89a")
@@ -138,4 +128,4 @@ class GifFile(Filter):
             else:
                 raise Exception("Wrong GIF image separator: ASCII %02X." % ord(code))
 
-registerPlugin("^.*\.(gif|GIF)$", "GIF picture", GifFile, displayGif)
+registerPlugin(GifFile, "image/gif")
