@@ -25,7 +25,7 @@ class MainWindow:
         self.build_table()
         
     def updateToolbar(self):
-        file_present = (self.ui.hachoir.main_filter != None)
+        file_present = (self.ui.hachoir.getFilter() != None)
         self.toolbutton_open.set_sensitive(file_present)
         self.toolbutton_save.set_sensitive(file_present)
         if not file_present:
@@ -35,7 +35,7 @@ class MainWindow:
     def getTableChunk(self, col):
         chunk_id = self.table_store[col][3]
         if chunk_id == None: return None
-        return self.ui.hachoir.filter.getChunk(chunk_id)
+        return self.ui.hachoir.getFilter().getChunk(chunk_id)
 
     def on_treeview_button_press_event(self, treeview, event):
         if event.button == 3:
@@ -106,7 +106,7 @@ class MainWindow:
         self.on_open_activate(widget)
 
     def on_toolbutton_property(self, widget):
-        filter = self.ui.hachoir.filter
+        filter = self.ui.hachoir.getFilter()
         dlg = self.ui.property_dialog
         if dlg.run(filter) == gtk.RESPONSE_CANCEL: return
         filter.setId( dlg.getId() )
@@ -120,7 +120,7 @@ class MainWindow:
             buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
         if chooser.run() == gtk.RESPONSE_OK:
             filename = chooser.get_filename() 
-            self.ui.hachoir.load(filename)
+            self.ui.hachoir.loadFile(filename)
         chooser.destroy()
 
     def on_toolbutton_open(self, widget):

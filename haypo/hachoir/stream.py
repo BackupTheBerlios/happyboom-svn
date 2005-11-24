@@ -6,11 +6,14 @@ class StreamError(Exception):
         Exception.__init__(self, msg)
 
 class Stream:
-    def __init__(self):
-        pass
+    def __init__(self, filename):
+        self.filename = filename
     
     def getSize(self):
         return 0
+
+    def clone(self):
+        return None
     
     def getLastPos(self):
         return 0
@@ -20,6 +23,17 @@ class Stream:
 
     def tell(self):
         return 0
+
+    def createLimited(self, start, size):
+        return LimitedStream(self, start, size, self.filename)
+    
+    def getN(self, size, seek=True):
+        return None
+
+    def getFormat(self, format, seek=True):
+        size = struct.calcsize(format)
+        data = self.getN(size, seek)
+        return struct.unpack(format, data)
 
     def searchLength(self, str, include_str, size_max=None):        
         pos = self.search(str, size_max)
@@ -35,11 +49,14 @@ def StringStream(data):
     file = StringIO(data)
     return FileStream(file)
 
-class LimitedFileStream(Stream):
-    def __init__(self, filename, start=0, size=0):
-        self.__stream = FileStream(filename)
-        if start<0: start = 0
-        if self.__stream.getSize() < start+size: size = self.__stream.getSize()-start
+class LimitedStream(Stream):
+    def __init__(self, stream, start=0, size=0, filename=None):
+        Stream.__init__(self, filename)
+        self.__stream = stream.clone()
+        if start<0:
+            start = 0
+        if self.__stream.getLastPos() < start+size:
+            size = self.__stream.getLastPos()-start
         self.__start = start
         self.__size = size
         self.__end = self.__start + self.__size
@@ -52,10 +69,10 @@ class LimitedFileStream(Stream):
         assert 0<=size_max  and size_max<=self.__size
         return self.__stream.search(str, size_max)
 
-    def getN(self, size):
+    def getN(self, size, seek=True):
         if self.__start+self.__size<self.__stream.tell()+size:
             raise StreamError("Can't read outsize the stream.")
-        return self.__stream.getN(size)
+        return self.__stream.getN(size, seek)
 
     def tell(self):
         return self.__stream.tell()
@@ -68,19 +85,24 @@ class LimitedFileStream(Stream):
     
     def getLastPos(self):
         return self.__end
-    
+
+    def clone(self):
+        return LimitedStream(self.__stream, self.__start, self.__size, self.filename)
+
 class FileStream(Stream):
     def __init__(self, file, filename=None):
         """
         Endian: See setEndian function. 
         """
 
-        Stream.__init__(self)
+        Stream.__init__(self, filename)
         self.__file = file 
-        self.filename = filename
         self.__file.seek(0,2) # Seek to end
         self.__size = self.__file.tell()
         self.__file.seek(0,0) # Seel to beginning
+
+    def clone(self):
+        return FileStream(self.__file, self.filename)
 
     def seek(self, pos, where=0):
         """ Read file seek document to understand where. """
@@ -131,10 +153,12 @@ class FileStream(Stream):
         self.seek(oldpos)
         return pos
 
-    def getN(self, size):
+    def getN(self, size, seek=True):
         data = self.__file.read(size)
         if len(data) != size:
             raise StreamError("Can't read %u bytes in a stream (get %u bytes)." % (size, len(data)))
+        if not seek:
+            self.__file.seek(-size, 1)
         return data
 
     def getEnd(self):

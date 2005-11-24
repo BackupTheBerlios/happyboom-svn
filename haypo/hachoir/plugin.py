@@ -1,10 +1,13 @@
 import re
 from mime import getFileMime, getBufferMime
 
-def guessPlugin(stream):
+def guessPlugin(stream, filename):
     oldpos = stream.tell()
-    buffer = stream.getN(4096)
-    plugin = getPluginByBuffer(buffer)
+    size = stream.getSize()
+    if 4096<size:
+        size = 4096
+    buffer = stream.getN(size)
+    plugin = getPluginByBuffer(buffer, filename)
     stream.seek(oldpos)
     return plugin
 
@@ -24,7 +27,10 @@ def getPluginByBuffer(buffer, filename):
 
 def getPluginByStream(stream, filename):
     stream.seek(0)
-    data = stream.getN(4096)
+    size = stream.getSize()
+    if 4096<size:
+        size = 4096
+    data = stream.getN(size)
     mime = getBufferMime(data, filename)
     return getPluginByMime(mime)
 

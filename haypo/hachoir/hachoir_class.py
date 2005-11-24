@@ -1,5 +1,5 @@
 from stream import FileStream
-from plugin import getPluginByFile
+from plugin import getPluginByStream
 from chunk import FilterChunk
 from default import DefaultFilter
 from user_filter import UserFilterDescriptor, loadUserFilter
@@ -15,74 +15,87 @@ class Hachoir:
         self.display = True
         self.depth = 5
         self.ui = None 
-        self.main_filter = None
+        self._main_filter = None
+        self._filter = None
         self.script = None
 
+    def getFilter(self):
+        return self._filter
+
+    def setFilter(self, filter):
+        self._main_filter = filter
+        self._filter = filter
+        self._addPadding()
+        self._filter.display()
+        self.ui.window.updateToolbar()
+
     def onGoParent(self):
-        if self.filter.getParent() == None: return
-        self.filter = self.filter.getParent()
-        self.filter.display()
+        if self._filter.getParent() == None: return
+        self._filter = self._filter.getParent()
+        self._filter.display()
         
     def onRowClick(self, chunk_id):
         if chunk_id == None: return
-        chunk = self.filter.getChunk(chunk_id)
+        chunk = self._filter.getChunk(chunk_id)
         if issubclass(chunk.__class__, FilterChunk):
-            self.filter = chunk.getFilter()
-            self.filter.display()
+            self._filter = chunk.getFilter()
+            self._filter.display()
 
     def loadUser(self, filename):
         try:
-            old_filter = self.filter
+            old_filter = self._filter
             old_size = old_filter.getSize()
             user = UserFilterDescriptor(xml_file=filename)
-            stream = self.filter.getStream()
-            parent = self.filter.getParent()
-            stream.seek(self.filter.getAddr())
+            stream = self._filter.getStream()
+            parent = self._filter.getParent()
+            stream.seek(self._filter.getAddr())
             new_filter = loadUserFilter(user, stream, parent)
         except Exception, err:
             error("Error while loading user XML filter \"%s\":\n%s" % (filename, err))
             return
-        self.filter = new_filter           
+        self._filter = new_filter           
         if parent == None:
-            self.main_filter = self.filter
+            self._main_filter = self._filter
             self._addPadding()
         else:
             chunk = old_filter.filter_chunk
-            chunk.setFilter(self.filter)
-            diff_size = self.filter.getSize() - old_size
+            chunk.setFilter(self._filter)
+            diff_size = self._filter.getSize() - old_size
             chunk.getParent().rescan(chunk, diff_size)
-        self.filter.display()
+        self._filter.display()
         self.ui.window.updateToolbar()
     
     def saveUser(self, filename):
-        my = UserFilterDescriptor(filter=self.filter)
+        my = UserFilterDescriptor(filter=self._filter)
         my.writeIntoXML(filename)
     
     def exportUser(self, filename):
-        my = UserFilterDescriptor(filter=self.filter)
+        my = UserFilterDescriptor(filter=self._filter)
         my.exportPython(filename)
         
     def _addPadding(self):
-        size = self.filter.getSize()
-        diff_size = (size - self.filter.getStream().getSize())
+        size = self._filter.getSize()
+        diff_size = (size - self._filter.getStream().getSize())
         if diff_size < 0:
-            chunks = self.filter.getChunks()
+            chunks = self._filter.getChunks()
             if len(chunks) != 0:
                 last_chunk = chunks[-1]
             else:
                 last_chunk = None
-            self.filter.addRawChunk(last_chunk, "end", "{@end@}", "")
+            self._filter.addRawChunk(last_chunk, "end", "{@end@}", "")
 
-    def load(self, filename):
+    def loadFile(self, filename):
         try:
             file = open(filename, 'r')
             stream = FileStream(file, filename)
         except IOError, err:
             error("Can't load file %s:\n%s" % (filename, err))
             return
+        self.loadStream(stream, filename)
 
+    def loadStream(self, stream, filename=None):
         # Look for a plugin
-        plugin = getPluginByFile(filename)
+        plugin = getPluginByStream(stream, filename)
         if plugin != None:
             split_class = plugin
         else:
@@ -90,17 +103,14 @@ class Hachoir:
             
         # Split 
         try:
+            stream.seek(0)
             filter = split_class(stream)
         except Exception, msg:
             error("Exception while processing file %s:\n%s\n%s" \
                 % (filename, msg, getBacktrace()))
             stream.seek(0)
             filter = DefaultFilter(stream)
-        self.main_filter = self.filter = filter
-        self._addPadding()
-        self.filter.display()
-
-        self.ui.window.updateToolbar()
+        self.setFilter(filter)
 
     def loadScript(self, filename):
         try:
@@ -117,5 +127,5 @@ class Hachoir:
         if self.script:
             self.loadScript(self.script)
         elif filename != None:
-            self.load(filename)
+            self.loadFile(filename)
         self.ui.run()      

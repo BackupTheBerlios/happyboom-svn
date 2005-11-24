@@ -316,6 +316,15 @@ class Filter:
             setattr(self, id, data)
             self._chunks_dict[id] = chunk
 
+    def readLimitedChild(self, id, size, filter_class, *args):
+        start = self._stream.tell()
+        limited = self._stream.createLimited(start, size)
+        filter = filter_class(limited, self, *args)
+        chunk = self.addFilter(id, filter)
+        chunk.postProcess()
+        self._stream.seek(start+size)
+        return chunk
+        
     def readChild(self, id, filter_class, *args): 
         filter = filter_class(self._stream, self, *args)
         chunk = self.addFilter(id, filter)

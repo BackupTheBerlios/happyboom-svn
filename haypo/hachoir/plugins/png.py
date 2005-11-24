@@ -5,7 +5,7 @@ Status: split into chunks, can only resplit tIME chunk.
 Author: Victor Stinner
 """
 
-from stream import StringStream, LimitedFileStream
+from stream import StringStream
 from filter import Filter
 from plugin import registerPlugin
 
@@ -114,7 +114,7 @@ class PngChunk(Filter):
         if self.type in self.chunk_splitter:
             oldpos = self._stream.tell()
             child_filter = self.chunk_splitter[self.type]
-            self.readChild("chunk_data", child_filter)
+            self.readLimitedChild("chunk_data", self.size, child_filter)
             assert oldpos + self.size == self._stream.tell()
         else:
             self.read("data", "!{size}s", "Chunk data")
