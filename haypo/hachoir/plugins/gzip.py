@@ -6,22 +6,21 @@ GZIP archive file
 """
 
 import datetime
-from filter import Filter
+from filter import Filter, DeflateFilter
 from plugin import registerPlugin
 from stream.gunzip import GunzipStream
 from plugin import getPluginByStream
 from error import error
 from default import DefaultFilter
+from tools import getBacktrace
    
 class GunzipFilter(Filter):
     def __init__(self, stream, parent, start, size, filter_class):
         # Read data
         self._parent_stream = stream
-        self._parent_stream.seek(0)
-        data = stream.getN(self._parent_stream.getSize())
         
         # Create a new stream
-        stream = GunzipStream(data)
+        stream = GunzipStream(self._parent_stream)
         self._compressed_size = size 
         self._decompressed_size = stream.getSize()
 
@@ -59,17 +58,15 @@ class GzipFile(Filter):
         oldpos = stream.tell()
         size = stream.getSize() - oldpos - 8
         try:
-            # TODO: Fix this fucking GunzipStream (use something better)
-            stream.seek(0)
-            data = stream.getN(stream.getSize())
-            stream = GunzipStream(data)
-            stream.seek(oldpos)
-            plugin = getPluginByStream(stream, self.filename)
-            # END OF TODO
+            gz_stream = GunzipStream(stream)
+            if hasattr(self, "filename"):
+                plugin = getPluginByStream(gz_stream, self.filename)
+            else:
+                plugin = getPluginByStream(gz_stream, None)
 
-            self.readChild("data", GunzipFilter, oldpos, size, plugin) 
+            self.readChild("data", DeflateFilter, gz_stream, size, plugin) 
         except Exception, msg:
-            error("Error while processing file in gzip: %s" % msg)
+            error("Error while processing file in gzip: %s\ns%s" % (msg, getBacktrace()))
             stream.seek(oldpos)
             self.read("data", "!%us" % size, "Compressed data", truncate=True)
         

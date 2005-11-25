@@ -27,13 +27,22 @@ def getMimeByExt(ext):
         return 'application/x-gzip'
     return None        
 
+def _getBufferMime(buffer):    
+    if ord(buffer[0])==31 and ord(buffer[1])==139:
+        return "application/x-gzip"
+    return None        
+
 def getBufferMime(buffer, filename):
     magic = getInstance()
-    mime = magic.buffer(buffer)
-    mime = mime.split(",")
-    if mime[0] == 'application/octet-stream' and filename != None:
+    mimes = magic.buffer(buffer)
+    mimes = mimes.split(" ")
+    import string
+    mimes = map(string.split, mimes, ',')
+    if mimes[0][0] == 'application/octet-stream' and filename != None:
         ext = os.path.splitext(filename)[1]
-        new_mime = getMimeByExt(ext)
+        new_mime = _getBufferMime(buffer)
+        if new_mime == None:
+            new_mime = getMimeByExt(ext)
         if new_mime != None:
-            mime = (new_mime,)
-    return mime            
+            mimes = ((new_mime,),)
+    return mimes

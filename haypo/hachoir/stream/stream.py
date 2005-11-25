@@ -20,6 +20,9 @@ class Stream:
     def tell(self):
         return 0
 
+    def createSub(self, start, size):
+        return SubStream(self, start, size, self.filename)
+
     def createLimited(self, start, size):
         return LimitedStream(self, start, size, self.filename)
     
@@ -44,39 +47,70 @@ class Stream:
 class LimitedStream(Stream):
     def __init__(self, stream, start=0, size=0, filename=None):
         Stream.__init__(self, filename)
-        self.__stream = stream.clone()
+        self._stream = stream.clone()
         if start<0:
             start = 0
-        if self.__stream.getLastPos() < start+size:
-            size = self.__stream.getLastPos()-start
-        self.__start = start
-        self.__size = size
-        self.__end = self.__start + self.__size
-        self.__stream.seek(self.__start)
+        if self._stream.getLastPos() < start+size:
+            size = self._stream.getLastPos()-start
+        self._start = start
+        self._size = size
+        self._end = self._start + self._size
+        self._stream.seek(self._start)
 
     def search(self, str, size_max=None):
-        if self.__end == 0: return -1
-        if size_max == None or self.__end-self.tell() < size_max:
-            size_max = self.__end-self.tell()
-        assert 0<=size_max  and size_max<=self.__size
-        return self.__stream.search(str, size_max)
+        if self._end == 0: return -1
+        if size_max == None or self._end-self.tell() < size_max:
+            size_max = self._end-self.tell()
+        assert 0<=size_max  and size_max<=self._size
+        return self._stream.search(str, size_max)
 
     def getN(self, size, seek=True):
-        if self.__start+self.__size<self.__stream.tell()+size:
-            raise StreamError("Can't read outsize the stream.")
-        return self.__stream.getN(size, seek)
+        if self._start+self._size<self._stream.tell()+size:
+            raise StreamError( \
+                "Can't read outsize the stream\n"
+                +"(try to read %u byte(s) from position %s, where stream in limited in [%u;%u])" \
+                % (size, self._stream.tell(), self._start, self._end))
+        return self._stream.getN(size, seek)
 
     def tell(self):
-        return self.__stream.tell()
+        return self._stream.tell()
 
     def seek(self, pos, where=0):
-        self.__stream.seek(pos, where)
+        self._stream.seek(pos, where)
         
     def getSize(self):
-        return self.__size
+        return self._size
     
     def getLastPos(self):
-        return self.__end
+        return self._end
 
     def clone(self):
-        return LimitedStream(self.__stream, self.__start, self.__size, self.filename)
+        return LimitedStream(self._stream, self._start, self._size, self.filename)
+
+class SubStream(LimitedStream):
+    def search(self, str, size_max=None):
+        if self._end == 0: return -1
+        max = self._end-self.tell()-self._start-1
+        if size_max == None or max < size_max:
+            size_max = max
+        assert 0<=size_max  and size_max<=self._size
+        pos = self._stream.search(str, size_max)
+        if pos != -1:
+            pos = pos - self._start
+        return pos
+
+    def seek(self, pos, where=0):
+        if where==2:
+            pos = pos - self._start
+        else:
+            pos = pos + self._start
+        self._stream.seek(pos, where)
+
+    def tell(self):
+        return self._stream.tell() - self._start
+    
+    def getLastPos(self):
+        return self._end - self._start
+
+    def clone(self):
+        return SubStream(self._stream, self._start, self._size, self.filename)

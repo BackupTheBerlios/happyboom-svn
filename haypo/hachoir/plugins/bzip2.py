@@ -3,19 +3,9 @@ BZIP2 archive file
 """
 
 from plugin import guessPlugin
-from filter import Filter
+from filter import Filter, DeflateFilter
 from plugin import registerPlugin
 from stream.bunzip import BunzipStream
-
-class BzipDataFilter(Filter):
-    def __init__(self, stream, parent, bz_stream, filter):
-        Filter.__init__(self, "deflate", "Deflate", bz_stream, parent)
-        self._addr = stream.tell()
-        self.readChild("data", filter)
-        self._compressed_size = stream.getSize() - stream.tell()
-
-    def getSize(self):
-        return self._compressed_size
 
 class Bzip2_File(Filter):
     def __init__(self, stream, parent):
@@ -37,7 +27,8 @@ class Bzip2_File(Filter):
         plugin = guessPlugin(dataio, None)
         print "Plugin = ", plugin
         #self.readStreamChild("data", dataio, plugin)
-        self.readChild("data", BzipDataFilter, dataio, plugin)
+        size = stream.getSize()-stream.tell()
+        self.readChild("data", DeflateFilter, dataio, size, plugin)
 
     def readB(self):
         self.read("id2", "5s", "Identifier 2 (AY&SY)")

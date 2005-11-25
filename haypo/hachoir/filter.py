@@ -243,13 +243,21 @@ class Filter:
     def redisplay(self):  
         self.display()
     
-    def updateStatusBar(self):
+    def getPath(self):
+        """
+        Get path to the filter.
+        Example: "grandparent > parent > item"
+        """
         text = ""
         current = self
         while current != None:
             if text != "": text = " > " + text
             text = current.getId() + text
             current = current.getParent()
+        return text
+
+    def updateStatusBar(self):
+        text = self.getPath()
         ui.window.updateStatusBar("%s: %s (size=%s)" % (text, self.getDescription(), self.getSize()))
 
     def display(self):  
@@ -328,16 +336,18 @@ class Filter:
         filter = filter_class(stream, self, *args)
         chunk = self.addFilter(id, filter)
         chunk.postProcess()
+        self._stream.seek(chunk.addr + chunk.size)
         return chunk
         
     def readChild(self, id, filter_class, *args): 
-        return self.readStreamChild(id, self._stream, filter_class, *args)
+        chunk = self.readStreamChild(id, self._stream, filter_class, *args)
+        return chunk
     
     def addFilter(self, id, filter): 
         chunk = FilterChunk(id, filter, self)
         self._appendChunk(chunk)
         filter.updateParent(chunk)
-        self._stream.seek(chunk.addr + chunk.size)
+#        self._stream.seek(chunk.addr + chunk.size)
         return chunk
 
     def readArray(self, id, entry_class, description, end_func): 
@@ -487,3 +497,13 @@ class ArrayFilter(Filter):
             self.getStream(), self.getParent(), self._entry_class, self._end_func)
         new.filter_chunk = self.filter_chunk
         return new
+
+class DeflateFilter(Filter):
+    def __init__(self, stream, parent, bz_stream, size, filter):
+        Filter.__init__(self, "deflate", "Deflate", bz_stream, parent)
+        self._addr = stream.tell()
+        self.readChild("data", filter)
+        self._compressed_size = size
+
+    def getSize(self):
+        return self._compressed_size

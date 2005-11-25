@@ -234,7 +234,7 @@ class FormatChunk(Chunk):
     def __replaceFieldFormat(self, match):
         id = match.group(1)
         if id == "@end@":
-            size = self._stream.getLastPos() - self.addr + 1
+            size = self._stream.getLastPos() - self.addr
         else:
             size = getattr(self._parent, id)
         return str(size)

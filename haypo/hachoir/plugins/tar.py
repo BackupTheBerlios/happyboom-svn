@@ -7,12 +7,13 @@ Author: Victor Stinner
 
 import re
 from datetime import datetime
-from filter import Filter
+from filter import Filter, DeflateFilter
 from plugin import registerPlugin
 from tools import convertDataToPrintableString
 from default import EmptyFilter
 from plugin import guessPlugin 
 from error import error
+from tools import getBacktrace, humanFilesize
 
 def displayModeItem(mode):
     if mode & 4 == 4: r="r"
@@ -96,14 +97,15 @@ class TarFileEntry(Filter):
         self.read("devminor", "!8s", "Dev minor")
         self.read("header_padding", "!167s", "Padding (zero)")
         if self.type in ("\0", "0"):
-            substream = stream.createLimited(stream.tell(), self.size)
+            substream = stream.createSub(stream.tell(), self.size)
             plugin = guessPlugin(substream, self.name)
 
             oldpos = stream.tell()
             try:
-                chunk = self.readLimitedChild("filedata", self.size, plugin)
+                chunk = self.readChild("filedata", DeflateFilter, substream, self.size, plugin)
+#                chunk = self.readLimitedChild("filedata", stream, self.size, plugin)
             except Exception, msg:
-                error("Error while processing tar file \"%s\": %s" % (self.name, msg))
+                error("Error while processing tar file \"%s\": %s\n%s" % (self.name, msg, getBacktrace()))
                 stream.seek(oldpos)
                 chunk = self.readChild("filedata", EmptyFilter)
                 filter = chunk.getFilter()
@@ -142,7 +144,8 @@ class TarFileEntry(Filter):
 
     def updateParent(self, chunk):
         if not self.isEmpty():
-            text = "Tar File (%s: %s)" % (self.name, self.getType())
+            text = "Tar File (%s: %s, %s)" \
+                % (self.name, self.getType(), humanFilesize(self.size))
         else:
             text = "Tar File (terminator, empty header)"
         chunk.description = self.description = text

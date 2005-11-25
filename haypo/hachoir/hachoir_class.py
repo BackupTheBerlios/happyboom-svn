@@ -74,8 +74,9 @@ class Hachoir:
         my.exportPython(filename)
         
     def _addPadding(self):
-        size = self._filter.getSize()
-        diff_size = (size - self._filter.getStream().getSize())
+        filter_size = self._filter.getSize()
+        stream_size = self._filter.getStream().getSize()
+        diff_size = filter_size - stream_size
         if diff_size < 0:
             chunks = self._filter.getChunks()
             if len(chunks) != 0:

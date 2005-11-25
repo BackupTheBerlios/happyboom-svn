@@ -1,6 +1,20 @@
 import traceback, sys
 import string
 
+def humanFilesize(size):
+    if size < 1000:
+        return "%u bytes" % size
+    units = ["KB", "MB", "GB"]
+    size = float(size)
+    for unit in units:
+        size = size / 1024
+        if size < 100:
+            return "%.1f %s" % (size, unit)
+        if size < 1000:
+            return "%u %s" % (size, unit)
+        last_unit = unit
+    return "%u %s" % (size, unit)
+
 def convertDataToPrintableString(data):
     if len(data) == 0:
         return "(empty)"
