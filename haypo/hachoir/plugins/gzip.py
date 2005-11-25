@@ -8,7 +8,7 @@ GZIP archive file
 import datetime
 from filter import Filter
 from plugin import registerPlugin
-from gunzip_stream import GunzipStream
+from stream.gunzip import GunzipStream
 from plugin import getPluginByStream
 from error import error
 from default import DefaultFilter
@@ -30,8 +30,7 @@ class GunzipFilter(Filter):
         Filter.__init__(self, "deflate", "Deflate", stream, parent)
         self._addr = self._parent_stream.tell()
 
-#        self.read("raw", "!{@end@}s", "")
-        self.readChild("tar", filter_class)
+        self.readChild("data", filter_class)
 
     def getSize(self):
         return self._compressed_size

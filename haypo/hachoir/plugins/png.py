@@ -5,7 +5,6 @@ Status: split into chunks, can only resplit tIME chunk.
 Author: Victor Stinner
 """
 
-from stream import StringStream
 from filter import Filter
 from plugin import registerPlugin
 

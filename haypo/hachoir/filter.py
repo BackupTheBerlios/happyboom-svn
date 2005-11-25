@@ -6,7 +6,7 @@ import struct
 import re, sys
 import string
 import types
-import ui
+import ui.ui as ui
 from chunk import Chunk, FormatChunk, FilterChunk, StringChunk
 from format import splitFormat    
 from error import error

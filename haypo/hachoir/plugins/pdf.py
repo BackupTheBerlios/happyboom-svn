@@ -1,9 +1,9 @@
 from filter import Filter
 from plugin import registerPlugin
 import re
-from stream import StreamError
+from stream.error import StreamError
 from tools import convertDataToPrintableString, getBacktrace
-from deflate import DeflateFilter
+from stream.deflate import DeflateFilter
 from error import warning
 
 def isEnd(stream, array, last):

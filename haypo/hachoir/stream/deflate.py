@@ -1,7 +1,7 @@
 import zlib
 from StringIO import StringIO
-from stream import FileStream
 from filter import Filter
+from file import FileStream
 
 class DeflateFilter(Filter):
     def __init__(self, stream, parent, start, size):

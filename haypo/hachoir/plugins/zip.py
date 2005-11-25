@@ -91,8 +91,8 @@ class ZipFileEntry(Filter):
             self.read("file_uncompressed_size", "<L", "Uncompressed size (bytes)")
         
 class ZipFile(Filter):
-    def __init__(self, stream):
-        Filter.__init__(self, "zip_file", "ZIP archive file", stream, None)
+    def __init__(self, stream, parent):
+        Filter.__init__(self, "zip_file", "ZIP archive file", stream, parent)
         # File data
         self.signature = None
         self.central_directory = []

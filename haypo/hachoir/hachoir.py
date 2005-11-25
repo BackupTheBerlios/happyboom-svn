@@ -82,7 +82,7 @@ def main():
         for key in opt:
             setattr(hachoir, key, opt[key])
         try:
-            import ui 
+            import ui.ui as ui
         except ImportError, err:
             error("""Error: a Python module is missing:\n%s\n
 You can find PyGTK at: http://www.pygtk.org/

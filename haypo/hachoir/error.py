@@ -3,7 +3,7 @@ import pygtk
 pygtk.require ('2.0') # 2.2 for Clipboard
 import gtk
 from log import log
-import ui
+import ui.ui as ui
 
 def warning(message):
     log.warning(message)

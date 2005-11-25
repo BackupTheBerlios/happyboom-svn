@@ -1,4 +1,4 @@
-from stream import FileStream
+from stream.file import FileStream
 from plugin import getPluginByStream
 from chunk import FilterChunk
 from default import DefaultFilter
@@ -104,7 +104,7 @@ class Hachoir:
         # Split 
         try:
             stream.seek(0)
-            filter = split_class(stream)
+            filter = split_class(stream, None)
         except Exception, msg:
             error("Exception while processing file %s:\n%s\n%s" \
                 % (filename, msg, getBacktrace()))
