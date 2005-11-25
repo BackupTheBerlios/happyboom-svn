@@ -95,11 +95,7 @@ class Hachoir:
 
     def loadStream(self, stream, filename=None):
         # Look for a plugin
-        plugin = getPluginByStream(stream, filename)
-        if plugin != None:
-            split_class = plugin
-        else:
-            split_class = DefaultFilter
+        split_class = getPluginByStream(stream, filename)
             
         # Split 
         try:

@@ -319,17 +319,19 @@ class Filter:
     def readLimitedChild(self, id, size, filter_class, *args):
         start = self._stream.tell()
         limited = self._stream.createLimited(start, size)
-        filter = filter_class(limited, self, *args)
+        chunk = self.readStreamChild(id, limited, filter_class, *args)
+        assert self._stream.tell() == (start+size)
+        return chunk
+        
+    def readStreamChild(self, id, stream, filter_class, *args): 
+        oldpos = self._stream.tell()
+        filter = filter_class(stream, self, *args)
         chunk = self.addFilter(id, filter)
         chunk.postProcess()
-        self._stream.seek(start+size)
         return chunk
         
     def readChild(self, id, filter_class, *args): 
-        filter = filter_class(self._stream, self, *args)
-        chunk = self.addFilter(id, filter)
-        chunk.postProcess()
-        return chunk
+        return self.readStreamChild(id, self._stream, filter_class, *args)
     
     def addFilter(self, id, filter): 
         chunk = FilterChunk(id, filter, self)

@@ -2,8 +2,20 @@
 BZIP2 archive file
 """
 
+from plugin import guessPlugin
 from filter import Filter
 from plugin import registerPlugin
+from stream.bunzip import BunzipStream
+
+class BzipDataFilter(Filter):
+    def __init__(self, stream, parent, bz_stream, filter):
+        Filter.__init__(self, "deflate", "Deflate", bz_stream, parent)
+        self._addr = stream.tell()
+        self.readChild("data", filter)
+        self._compressed_size = stream.getSize() - stream.tell()
+
+    def getSize(self):
+        return self._compressed_size
 
 class Bzip2_File(Filter):
     def __init__(self, stream, parent):
@@ -13,7 +25,7 @@ class Bzip2_File(Filter):
         self.read("blocksize", "c", "Block size")
         assert "1" <= self.blocksize and self.blocksize <= "9"
         # Size of memory needed to decompress (on classic mode, not "small" mode)
-        size = (ord(self.blocksize) - ord("0")) * 400
+        size = (ord(self.blocksize) - ord("0")) * 100
         self.getChunk("blocksize").description = "Block size (will need %u KB of memory)" % size
         self.read("blockheader", "B", "Block header")
         assert self.blockheader in (0x17, 0x31)
@@ -21,6 +33,11 @@ class Bzip2_File(Filter):
             self.readA()
         else: # blockheader = 0x31 ("1")
             self.readB()
+        dataio = BunzipStream(stream)
+        plugin = guessPlugin(dataio, None)
+        print "Plugin = ", plugin
+        #self.readStreamChild("data", dataio, plugin)
+        self.readChild("data", BzipDataFilter, dataio, plugin)
 
     def readB(self):
         self.read("id2", "5s", "Identifier 2 (AY&SY)")

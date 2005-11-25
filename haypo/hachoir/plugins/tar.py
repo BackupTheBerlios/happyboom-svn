@@ -98,20 +98,17 @@ class TarFileEntry(Filter):
         if self.type in ("\0", "0"):
             substream = stream.createLimited(stream.tell(), self.size)
             plugin = guessPlugin(substream, self.name)
-            ok = False
-            if plugin != None:
-                oldpos = stream.tell()
-                try:
-                    chunk = self.readLimitedChild("filedata", self.size, plugin)
-                    ok = True
-                except Exception, msg:
-                    error("Error while processing tar file \"%s\": %s" % (self.name, msg))
-                    stream.seek(oldpos)
 
-            if not ok:
+            oldpos = stream.tell()
+            try:
+                chunk = self.readLimitedChild("filedata", self.size, plugin)
+            except Exception, msg:
+                error("Error while processing tar file \"%s\": %s" % (self.name, msg))
+                stream.seek(oldpos)
                 chunk = self.readChild("filedata", EmptyFilter)
                 filter = chunk.getFilter()
                 filter.read("filedata", "!%us" % self.size, "File data", truncate=True)
+
         if stream.tell() % 512 != 0:
             padding = 512 - stream.tell() % 512
             self.read("padding", "!%ss" % padding, "Padding (512 align)", truncate=True)

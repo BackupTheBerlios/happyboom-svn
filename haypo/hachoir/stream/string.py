@@ -1,5 +1,5 @@
 from stream.file import FileStream
-from StringIO import StringIO
+from cStringIO import StringIO
 
 def StringStream(data):
     file = StringIO(data)

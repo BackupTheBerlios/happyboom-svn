@@ -1,5 +1,6 @@
 import re
 from mime import getFileMime, getBufferMime
+from default import DefaultFilter
 
 def guessPlugin(stream, filename):
     oldpos = stream.tell()
@@ -15,7 +16,7 @@ def getPluginByMime(mime):
     global hachoir_plugins
     mime = mime[0]
     if mime not in hachoir_plugins:
-        return None
+        return DefaultFilter
     plugins = hachoir_plugins[mime]
     if 1<len(plugins):
         warning("More than one plugin have same MIME...")

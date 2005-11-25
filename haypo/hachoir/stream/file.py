@@ -9,9 +9,11 @@ class FileStream(Stream):
 
         Stream.__init__(self, filename)
         self.__file = file 
+        print "Get size ..."
         self.__file.seek(0,2) # Seek to end
         self.__size = self.__file.tell()
         self.__file.seek(0,0) # Seel to beginning
+        print "Done : %s" % self.__size
 
     def clone(self):
         return FileStream(self.__file, self.filename)
