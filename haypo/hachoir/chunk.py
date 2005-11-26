@@ -125,29 +125,26 @@ class StringChunk(Chunk):
     def _read(self):
         self._stream.seek(self.addr)
         if self._str_type == "UnixLine":
-            end = "\n"
+            self._size = self._stream.searchLength("\n", True)
+            len_eol = 1
         elif self._str_type == "WindowsLine":
-            end = "\r\n"
+            self._size = self._stream.searchLength("\r\n", True)
+            len_eol = 2
         elif self._str_type == "MacLine":
-            end = "\r"
+            self._size = self._stream.searchLength("\r", True)
         elif self._str_type == "AutoLine":
-            end = "\r"
+            self._size = self._stream.searchLength(re.compile("[\n\r]"), True)
+            len_eol = 1
+            if self._size != -1:
+                self._stream.seek(self.addr + self._size-1)
+                if self._stream.getN(1) == "\r" and self._stream.read(1) == "\n":
+                    len_eol = 2
         else: 
-            # Type: C string
-            end = "\0"
-        self._size = self._stream.searchLength(end, True)
+            self._size = self._stream.searchLength("\0", True)
+            len_eol = 1
         assert self._size != -1
-        if self._str_type == "AutoLine":
-            self._stream.seek(self.addr+self._size)
-            try:
-                next = self._stream.getN(1)
-                if next == '\n':
-                    self._size = self._size + 1
-                    end = end+"\n"
-            except Exception, err:
-                warning("Warning while getting end of line of \"auto line\": %s" % err)
         self._stream.seek(self.addr)
-        self.str = self._stream.getN(self._size - len(end))
+        self.str = self._stream.getN(self._size - len_eol)
 
     def update(self):
         Chunk.update(self)

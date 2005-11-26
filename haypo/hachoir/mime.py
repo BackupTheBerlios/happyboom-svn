@@ -35,9 +35,9 @@ def _getBufferMime(buffer):
 def getBufferMime(buffer, filename):
     magic = getInstance()
     mimes = magic.buffer(buffer)
-    mimes = mimes.split(" ")
+    mimes = mimes.split(", ")
     import string
-    mimes = map(string.split, mimes, ',')
+    mimes = map(string.split, mimes, ';')
     if mimes[0][0] == 'application/octet-stream' and filename != None:
         ext = os.path.splitext(filename)[1]
         new_mime = _getBufferMime(buffer)

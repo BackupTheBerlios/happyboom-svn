@@ -1,9 +1,12 @@
 import struct
 from error import StreamError
+from tools import regexMaxLength
 
 class Stream:
     def __init__(self, filename):
         self.filename = filename
+    
+    #--- Virtual functions --------------------------------------------------
     
     def getSize(self):
         return 0
@@ -14,35 +17,105 @@ class Stream:
     def getLastPos(self):
         return 0
 
-    def eof(self):
-        return self.getLastPos() <= self.tell() 
-
     def tell(self):
         return 0
+    
+    def read(self, size):
+        """ Works like Posix read (can returns less than size bytes. """
+        return None
+    
+    def getN(self, size, seek=True):
+        """
+        Read size bytes. If seek=False, stay at the same position in the
+        stream. This function always returns size bytes, else it raise an
+        exception (StreamError).
+        """
+        return None
+    
+    #--- End of virtual functions -------------------------------------------    
+
+    def eof(self):
+        return self.getLastPos() <= self.tell() 
 
     def createSub(self, start, size):
         return SubStream(self, start, size, self.filename)
 
     def createLimited(self, start, size):
         return LimitedStream(self, start, size, self.filename)
-    
-    def getN(self, size, seek=True):
-        return None
 
     def getFormat(self, format, seek=True):
+        """
+        Read data using struct format. Eg. getFormat("BB") returns (10, 14).
+        """
         size = struct.calcsize(format)
         data = self.getN(size, seek)
         return struct.unpack(format, data)
 
-    def searchLength(self, str, include_str, size_max=None):        
-        pos = self.search(str, size_max)
+    def searchLength(self, needle, include_str, size_max=None):        
+        pos = self.search(needle, size_max)
         if pos == -1: return -1
         lg = pos - self.tell()
-        if include_str: lg = lg + len(str)
+        if include_str:
+            if isinstance(needle, str):
+                lg = lg + len(needle)
+            else:
+                lg = lg + regexMaxLength(needle.pattern)
         return lg
-    
-    def search(self, str, size_max=None):
-        return -1
+  
+    def search(self, needle, size_max=None):
+        size = self.getSize()
+        if size == 0: return -1
+        if size_max != None:
+            pos_max = self.tell()+size_max
+            if size <= pos_max:
+                pos_max = size-1
+        else:
+            pos_max = size-1
+        assert 0<=pos_max  and pos_max<size
+        oldpos = self.tell()
+        pos = self._doSearch(needle, pos_max)
+        self.seek(oldpos)
+        return pos
+
+    def _doSearch(self, needle, pos_max):
+        """
+        Search a string between current position and pos_max (which will be
+        also tested). Returns -1 if fails.
+        """
+        is_regex =  not isinstance(needle, str)
+        if is_regex:
+            len_needle = regexMaxLength(needle.pattern)
+        else:
+            len_needle = len(needle)
+        if 2048<=len_needle:
+            raise StreamError("Search string too big.")
+        size = 2048 
+        doublesize = size * 2
+        oldpos = self.tell()
+        max = pos_max-oldpos+1
+        if max<doublesize:
+            doublesize = max 
+            size = 0 
+        buffer = self.read(doublesize)
+        newpos = oldpos + size
+        while len(buffer) != 0:
+            if is_regex:
+                match = needle.search(buffer)
+                if match != None:
+                    pos = match.start(0)
+                else:
+                    pos = -1
+            else:
+                pos = buffer.find(needle)
+            if pos != -1: return oldpos + pos
+            oldpos = newpos
+            if pos_max < oldpos + size:
+                size = pos_max - oldpos
+            if size == 0:
+                break
+            buffer = buffer[size:] + self.read(size)
+            newpos = oldpos + size 
+        return -1 
 
 class LimitedStream(Stream):
     def __init__(self, stream, start=0, size=0, filename=None):

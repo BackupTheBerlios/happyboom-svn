@@ -12,6 +12,9 @@ class FileStream(Stream):
         self.__file.seek(0,2) # Seek to end
         self.__size = self.__file.tell()
         self.__file.seek(0,0) # Seel to beginning
+        
+    def read(self, size):        
+        return self.__file.read(size)
 
     def clone(self):
         return FileStream(self.__file, self.filename)
@@ -25,46 +28,6 @@ class FileStream(Stream):
     def tell(self):
         return self.__file.tell()
 
-    def __doSearch(self, binary_string, pos_max):
-        """
-        pos_max: Position of last tested byte
-        """
-        if 2048<=len(binary_string):
-            raise StreamError("Search string too big.")
-        size = 2048 
-        doublesize = size * 2
-        oldpos = self.tell()
-        if pos_max-oldpos+1<doublesize:
-            doublesize = pos_max-oldpos
-            size = 0 
-        buffer = self.__file.read(doublesize)
-        newpos = oldpos + size
-        while len(buffer) != 0:
-            pos = buffer.find(binary_string)
-            if pos != -1: return oldpos + pos
-            oldpos = newpos
-            if pos_max < oldpos + size:
-                size = pos_max - oldpos
-            if size == 0:
-                break
-            buffer = buffer[size:] + self.__file.read(size)
-            newpos = oldpos + size 
-        return -1 
-  
-    def search(self, binary_string, size_max=None):
-        if self.__size == 0: return -1
-        if size_max != None:
-            pos_max = self.tell()+size_max
-            if self.__size <= pos_max:
-                pos_max = sel.__size-1
-        else:
-            pos_max = self.__size-1
-        assert 0<=pos_max  and pos_max<self.__size
-        oldpos = self.tell()
-        pos = self.__doSearch(binary_string, pos_max)
-        self.seek(oldpos)
-        return pos
-
     def getN(self, size, seek=True):
         data = self.__file.read(size)
         if len(data) != size:
@@ -72,17 +35,6 @@ class FileStream(Stream):
         if not seek:
             self.__file.seek(-size, 1)
         return data
-
-    def getEnd(self):
-        """
-        Read everything until the end.
-        """
-        
-        data = self.__file.read()
-        return data
-
-    def destroy(self):
-        self.__file.close()
 
     def getSize(self):
         return self.__size

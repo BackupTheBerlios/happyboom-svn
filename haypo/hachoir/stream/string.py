@@ -1,4 +1,4 @@
-from stream.file import FileStream
+from file import FileStream
 from cStringIO import StringIO
 
 def StringStream(data):

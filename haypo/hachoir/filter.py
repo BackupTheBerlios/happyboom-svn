@@ -69,7 +69,7 @@ class Filter:
 
     def getUniqChunkId(self, id):
         if id not in self._chunks_dict: return id
-        m = re.compile("^(.*)([0-9]+)$").match(id)
+        m = re.compile("^(.*?)([0-9]+)$").match(id)
         if m != None:
             root = m.group(1)
             uniq = int(m.group(2))+1
