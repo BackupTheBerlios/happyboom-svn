@@ -4,10 +4,12 @@ Email parser
 Author: Victor Stinner
 """
 
-from filter import Filter
-from plugin import registerPlugin
+from filter import Filter, DeflateFilter
+from plugin import registerPlugin, getPluginByMime
 from error import warning
 from mime import splitMimes
+from error import warning
+from stream.base_64 import Base64Stream
 import re
 
 class EmailHeader(Filter):
@@ -22,8 +24,8 @@ class EmailHeader(Filter):
         while True:
             id = "header[%u]" % linenb
             chunk = self.readString(id, "AutoLine", "Header line")
+            if chunk.length == 0: return
             line = chunk.value
-            if len(line) == 0: return
 
             m = regex_new.match(line)
             if m != None:
@@ -35,7 +37,7 @@ class EmailHeader(Filter):
                     assert last_key != None
                     self._appendHeader(last_key, last_index, m.group(1))
                 else:
-                    warning("Can't parse line %u: %s" % (linenb, line))
+                    warning("Can't parse email header: %s" % line)
 
             linenb = linenb + 1
 
@@ -61,58 +63,96 @@ class EmailPart(Filter):
     def __init__(self, stream, parent=None):
         Filter.__init__(self, "email_part", "Email part", stream, parent)
         self.readChild("header", EmailHeader)
+        readEmailContent(self, stream.createSub(), True)
+
+class EmailBody(Filter):
+    def __init__(self, stream, parent=None, in_multipart=True):
+        Filter.__init__(self, "email_body", "Email body", stream, parent)
         linenb = 1 
-        nb_empty_line = 0
+        empty_line = 0
         while not stream.eof():
-            id = "header[%u]" % linenb
-            chunk = self.readString(id, "AutoLine", "Header line")
+            id = "body[%u]" % linenb
+            chunk = self.readString(id, "AutoLine", "Body text")
+            if not in_multipart:
+                if chunk.length == 0:
+                    empty_line = empty_line + 1
+                    if empty_line == 2:
+                        break
+                else:
+                    empty_line = 0
             linenb = linenb + 1
+
+def readEmailContent(self, stream, in_multipart):
+    mime = getEmailMime(self)
+    if re.match("^multipart/", mime[0]) != None:
+        readMultipartEmail(self, stream, mime[1]["boundary"])
+    else:
+        plugin = getPluginByMime((mime,), EmailBody)
+#        plugin = EmailBody
+        encoding = self["header"]["Content-Transfer-Encoding"]
+        assert len(encoding) == 1
+        if encoding[0] == "base64":
+            assert in_multipart
+            size = stream.getSize() - stream.tell()
+            data = stream.getN(size, False)
+            substream = Base64Stream(data)
+            self.readChild("body", DeflateFilter, substream, size, plugin) 
+        else:
+            substream = stream
+#            self.readStreamChild("body", io, plugin)
+#            self.read("body", "%us" % (stream.getSize() - stream.tell()), "Body")
+            chunk = self.readStreamChild("body", substream, plugin)
+
+def readMultipartEmail(self, stream, boundary):
+    assert boundary[0] == '"' and boundary[-1] == '"'
+    boundary = "--" + boundary[1:-1]
+    end_boundary = boundary + "--"
+    count = 1
+    while True:
+        id = "multipart_space[%u]" % count
+        chunk = self.readString(id, "AutoLine", "Space before first email parts")
+        value = chunk.value
+        if value == boundary:
+            break
+        count = count + 1
+
+    part = 1
+    boundary_index = 1
+    while True:
+        start = stream.tell()
+        size = stream.searchLength(boundary, False)
+        sub = stream.createSub(start, size)
+        self.readStreamChild("part[%u]" % part, sub, EmailPart)
+        stream.seek(start+size)
+        chunk = self.readString("boundary[%u]" % boundary_index, "AutoLine", "Boundary")
+        part = part + 1
+        boundary_index = boundary_index + 1
+        if chunk.value == boundary+"--":
+            break
+
+def getEmailMime(self):
+    content_type = self["header"]["Content-Type"]
+    assert len(content_type) == 1
+    mimes = splitMimes(content_type[0])
+    assert len(mimes) == 1
+    return mimes[0]
+
+class Email(Filter):
+    def __init__(self, stream, parent, in_multipart=True):
+        Filter.__init__(self, "email", "Email", stream, parent)
+        self.readString("id", "AutoLine", "Email identifier")
+        self.readChild("header", EmailHeader)
+        readEmailContent(self, stream.createSub(), in_multipart)
 
 class EmailFilter(Filter):
     def __init__(self, stream, parent=None):
-        Filter.__init__(self, "email", "Email parser", stream, parent)
-        self.readString("id", "AutoLine", "Email identifier")
-        self.readChild("header", EmailHeader)
-        mime = self.getMime()
-        if mime[0] == "multipart/mixed":
-            self.readMultipart(mime[1]["boundary"])
-        else:
-            # TODO :-)
-            pass
-
-    def readMultipart(self, boundary):
-        assert boundary[0] == '"' and boundary[-1] == '"'
-        boundary = "--" + boundary[1:-1]
-        end_boundary = boundary + "--"
-        count = 1
-        while True:
-            id = "multipart_space[%u]" % count
-            chunk = self.readString(id, "AutoLine", "Space before first email parts")
-            value = chunk.value
-            if value == boundary:
+        Filter.__init__(self, "email", "Email maildir parser", stream, parent)
+        cpt = 1
+        while not stream.eof():
+            chunk = self.readChild("email[%u]" % cpt, Email, False)
+            end = stream.read(4, seek=False)
+            if len(end.strip()) == 0:
                 break
-            count = count + 1
+            cpt = cpt + 1
 
-        part = 1
-        boundary_index = 1
-        stream = self.getStream()
-        while True:
-            start = stream.tell()
-            size = stream.searchLength(boundary, False)
-            sub = stream.createSub(start, size)
-            self.readStreamChild("part[%u]" % part, sub, EmailPart)
-            stream.seek(start+size)
-            chunk = self.readString("boundary[%u]" % boundary_index, "AutoLine", "Boundary")
-            part = part + 1
-            boundary_index = boundary_index + 1
-            if chunk.value == boundary+"--":
-                break
-    
-    def getMime(self):
-        content_type = self.header["Content-Type"]
-        assert len(content_type) == 1
-        mimes = splitMimes(content_type[0])
-        assert len(mimes) == 1
-        return mimes[0]
-
-registerPlugin(EmailFilter, "text/x-mail")
+registerPlugin(EmailFilter, ["message/rfc822", "text/x-mail"])

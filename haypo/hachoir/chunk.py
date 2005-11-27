@@ -1,6 +1,5 @@
-import struct
-import re
-import types
+import struct, re, types
+from config import config
 from format import checkFormat, splitFormat
 from error import warning, error
 from tools import convertDataToPrintableString
@@ -67,8 +66,11 @@ class Chunk(object):
     value = property(getValue)
     
 class FilterChunk(Chunk):
-    def __init__(self, id, filter, parent):
-        Chunk.__init__(self, id, filter.getDescription(), filter.getStream(), filter.getAddr(), filter.getSize(), parent)
+    def __init__(self, id, filter, parent, parent_addr):
+        Chunk.__init__(self, id, \
+            filter.getDescription(), filter.getStream(), filter.getAddr(), \
+            filter.getSize(), parent)
+        self.parent_addr = parent_addr
         self._filter = filter
         self._filter.filter_chunk = self
     
@@ -105,11 +107,17 @@ class FilterChunk(Chunk):
         return self._filter
 
 class StringChunk(Chunk):
+    cache_hit = 0
+
     def __init__(self, id, description, stream, str_type, parent):
         assert str_type in ("C", "UnixLine", "WindowsLine", "MacLine", "AutoLine")
         Chunk.__init__(self, id, description, stream, stream.tell(), 0, parent)
         self._str_type = str_type
-        self._read()
+        self.eol = None
+        self._findSize()
+        self._cache_addr = None
+        self._cache_max_size = None
+        self._cache_value = None
 
     def getFormat(self):
         names = {
@@ -122,43 +130,62 @@ class StringChunk(Chunk):
         assert self._str_type in names
         return names[self._str_type]
 
-    def _read(self):
+    def _findSize(self):
         self._stream.seek(self.addr)
-        if self._str_type == "UnixLine":
-            self._size = self._stream.searchLength("\n", True)
-            len_eol = 1
-        elif self._str_type == "WindowsLine":
-            self._size = self._stream.searchLength("\r\n", True)
-            len_eol = 2
-        elif self._str_type == "MacLine":
-            self._size = self._stream.searchLength("\r", True)
-        elif self._str_type == "AutoLine":
+        if self._str_type == "AutoLine":
             self._size = self._stream.searchLength(re.compile("[\n\r]"), True)
-            len_eol = 1
-            if self._size != -1:
-                self._stream.seek(self.addr + self._size-1)
-                if self._stream.getN(1) == "\r" and self._stream.read(1) == "\n":
-                    len_eol = 2
+            assert self._size != -1
+            self._stream.seek(self.addr + self._size-1)
+            self.eol = self._stream.getN(1)
+            if self.eol == "\r" and self._stream.read(1) == "\n":
+                self.eol = "\r\n"
+            self.length = self._size - len(self.eol)
+            return
+
+        if self._str_type == "UnixLine":
+            self.eol = "\n"
+        elif self._str_type == "WindowsLine":
+            self.eol = "\r\n"
+        elif self._str_type == "MacLine":
+            self.eol = "\r"
         else: 
-            self._size = self._stream.searchLength("\0", True)
-            len_eol = 1
+            self.eol = "\0"
+        self._size = self._stream.searchLength(self.eol, True)
         assert self._size != -1
+        self.length = self._size - len(self.eol)
+        self._stream.seek(self.addr + self._size)
+        
+    def _read(self, max_size):
+        if self._cache_addr==self.addr and self._cache_max_size==max_size:
+            StringChunk.cache_hit = StringChunk.cache_hit + 1
+            return self._cache_value
+        self._cache_addr = self.addr
+        self._cache_max_size = max_size
+
         self._stream.seek(self.addr)
-        self.str = self._stream.getN(self._size - len_eol)
+        size = self._size - len(self.eol)
+        if max_size != None and max_size<size:
+            text = self._stream.getN(max_size)+"(...)"
+        else:
+            text = self._stream.getN(size)
+        self._stream.seek(self.addr + self._size)
+        self._cache_value = text
+        return text
 
     def update(self):
         Chunk.update(self)
-        self._read()
+        self._findSize()
 
     def getValue(self, max_size=None):
-        return self.str
+        return self._read(None)
     value = property(getValue)
 
     def getDisplayData(self):
         if self.display != None:
             return self.display
         else:
-            return convertDataToPrintableString(self.str)
+            text = self._read(config["max_string_length"])
+            return convertDataToPrintableString(text)
         
 class FormatChunkCache:
     def __init__(self, chunk):
@@ -233,7 +260,7 @@ class FormatChunk(Chunk):
         if id == "@end@":
             size = self._stream.getLastPos() - self.addr
         else:
-            size = getattr(self._parent, id)
+            size = self._parent[id]
         return str(size)
     
     def convertToStringSize(self, size):

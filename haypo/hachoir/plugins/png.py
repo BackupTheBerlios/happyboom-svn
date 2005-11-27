@@ -8,14 +8,6 @@ Author: Victor Stinner
 from filter import Filter
 from plugin import registerPlugin
 
-def displayPng(png):
-    for chunk in png.chunks:
-        chunk = chunk.getFilter()
-        if hasattr(chunk, "chunk_data"):
-            print chunk.chunk_data
-        else:
-            print "(unknow chunk type \"%s\")" % chunk.type
-
 class PngHeader(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "png_header", "PNG header", stream, parent)
@@ -29,8 +21,8 @@ class PngHeader(Filter):
 
     def __str__(self):
         return "PNG header <size=%ux%u, depth=%u bits/pixel>" % \
-            (self.width, self.height,
-             self.bit_depth)
+            (self["width"], self["height"],
+             self["bit_depth"])
 
 class PngPhysical(Filter):
     def __init__(self, stream, parent):
@@ -40,12 +32,12 @@ class PngPhysical(Filter):
         self.read("unit_type", "!B", "Unit type")
 
     def __str__(self):
-        if self.unit_type=="0":
+        if self["unit_type"] == 0:
             unit = "unknow"
         else:
             unit = "meter"
         return "PNG physical chunk <pixel per unit=(%u,%u), unit=%s>" % \
-            (self.pixel_per_unit_x, self.pixel_per_unit_y, unit)
+            (self["pixel_per_unit_x"], self["pixel_per_unit_y"], unit)
 
 class PngGamma(Filter):
     def __init__(self, stream, parent):
@@ -56,7 +48,7 @@ class PngGamma(Filter):
         return float(chunk.value) / 10000
 
     def __str__(self):
-        return "PNG gamma <gamma=%0.2f>" % (self.gamma)
+        return "PNG gamma <gamma=%0.2f>" % (self["gamma"])
 
 class PngText(Filter):
     def __init__(self, stream, parent):
@@ -67,7 +59,7 @@ class PngText(Filter):
 
     def __str__(self):
         return "PNG text <keyword=\"%s\", text=\"%s\">" % \
-            (self.keyword, self.text)
+            (self["keyword"], self["text"])
 
 class PngTime(Filter):
     def __init__(self, stream, parent):
@@ -81,8 +73,8 @@ class PngTime(Filter):
 
     def __str__(self):
         return "PNG time chunk <%04u-%02u-%02u %02u:%02u:%02u>" % \
-            (self.year, self.month, self.day,
-             self.hour, self.minute, self.second)
+            (self["year"], self["month"], self["day"],
+             self["hour"], self["minute"], self["second"])
 
 class PngFile(Filter):
     """
@@ -92,7 +84,7 @@ class PngFile(Filter):
     def __init__(self, stream, parent=None):
         Filter.__init__(self, "png_file", "PNG file", stream, parent)
         self.read("header", "!8s", "File header")
-        assert self.header == "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A"
+        assert self["header"] == "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A"
         self.readArray("chunks", PngChunk, "Png chunks", self.checkEndOfChunks)
 
     def checkEndOfChunks(self, stream, array, png_chunk):
@@ -110,20 +102,21 @@ class PngChunk(Filter):
             "gAMA": PngGamma,
             "tEXt": PngText
         }
-        if self.type in self.chunk_splitter:
+        if self["type"] in self.chunk_splitter:
             oldpos = self._stream.tell()
-            child_filter = self.chunk_splitter[self.type]
-            self.readLimitedChild("chunk_data", self.size, child_filter)
-            assert oldpos + self.size == self._stream.tell()
+            child_filter = self.chunk_splitter[self["type"]]
+            sub = stream.createSub(stream.tell(), self["size"])
+            self.readStreamChild("chunk_data", sub, child_filter)
+            stream.seek(oldpos + self["size"])
         else:
             self.read("data", "!{size}s", "Chunk data")
         self.read("crc32", "!L", "Chunk CRC32")
 
     def updateParent(self, chunk):
-        self.description = "PNG chunk (type %s)" % self.type
-        chunk.description = "PNG chunk (type %s)" % self.type
+        self.description = "PNG chunk (type %s)" % self["type"]
+        chunk.description = "PNG chunk (type %s)" % self["type"]
 
     def __str__(self):
-        return "PngChunk <size=%u, type=%s>" % (self.size, self.type)
+        return "PngChunk <size=%u, type=%s>" % (self["size"], self["type"])
 
 registerPlugin(PngFile, "image/png")

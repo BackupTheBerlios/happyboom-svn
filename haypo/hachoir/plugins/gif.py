@@ -26,21 +26,16 @@ class GifImage(Filter):
 
         # TODO: Fix this ...
         self.read("flags", "<H", "Flags")
-        self.global_map = ((self.flags & 0x80) == 0x80)
-        self.interlaced = ((self.flags & 0x40) == 0x40)
-        self.bits_per_pixel = 1 + (self.flags & 0x07)
+        self.global_map = ((self["flags"] & 0x80) == 0x80)
+        self.interlaced = ((self["flags"] & 0x40) == 0x40)
+        self.bits_per_pixel = 1 + (self["flags"] & 0x07)
         if not self.global_map:
             self.readChild("local_map", GifColorMap)
+            self.local_map = self["local_map"]
         else:
             self.local_map = None
         # -- End of TODO
 
-    def __str__(self):
-        return "Gif image <position=(%u,%u), size=%ux%u, bits/pixel=%u>" % \
-            (self.left, self.top,
-             self.width, self.height,
-             self.bits_per_pixel)
-     
 class GifColorMap(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "gif_colormap", "GIF color map", stream, parent)
@@ -55,9 +50,6 @@ class GifColorMap(Filter):
     def checkEndOfMap(self, stream, array, color):
         return len(array) == self._nb_colors 
 
-    def __str__(self):
-        return "Gif colormap <colors=%u>" % (len(self.color))
-        
 class GifExtensionChunk(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "gif_ext_data", "GIF extension data", stream, parent)
@@ -72,7 +64,7 @@ class GifExtension(Filter):
 
     def checkEnd(self, stream, array, chunk):
         if chunk == None: return False
-        return chunk.size == 0 
+        return chunk["size"] == 0 
         
 class GifScreenDescriptor(Filter):
     def __init__(self, stream, parent):
@@ -103,11 +95,12 @@ class GifFile(Filter):
         Filter.__init__(self, "gif_file", "GIF picture file", stream, parent)
         # Header
         self.read("header", "6s", "File header")
-        assert (self.header == "GIF87a") or (self.header == "GIF89a")
+        assert (self["header"] == "GIF87a") or (self["header"] == "GIF89a")
         
         self.readChild("screen", GifScreenDescriptor)
-        if self.screen.global_map:
+        if self["screen"].global_map:
             self.readChild("color_map", GifColorMap)
+            self.color_map = self["color_map"]
         else:
             self.color_map = None
             
@@ -120,6 +113,7 @@ class GifFile(Filter):
             elif code == ",":
                 self.readChild("images[]", GifImage)
                 # TODO: Write GifImage code :-)
+                self.readImage(stream)
                 warning("GIF FILTER CAN NOT READ IMAGE CONTENT YET, SO ABORT READING!")
                 return
             elif code == ";":
@@ -127,5 +121,9 @@ class GifFile(Filter):
                 return
             else:
                 raise Exception("Wrong GIF image separator: ASCII %02X." % ord(code))
+
+    def readImage(self, stream):              
+        size = stream.getSize() - stream.tell()
+        self.read("data", "%us" % size, "Image data")
 
 registerPlugin(GifFile, "image/gif")

@@ -58,6 +58,7 @@ class MainWindow:
 
     def clear_table(self):
         self.table_store.clear()
+        self.table.columns_autosize()
 
     def set_table_value(self, iter, column, value):
         row = self.table_store[iter]
@@ -89,6 +90,7 @@ class MainWindow:
         self.treeview_add_column(self.table, "Description", 5)
         self.table.set_reorderable(True)
         self.treeselection = self.table.get_selection()
+        self.table.columns_autosize()
 
     def treeview_add_column(self, treeview, name, num):
         col = gtk.TreeViewColumn(name)

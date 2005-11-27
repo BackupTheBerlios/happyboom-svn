@@ -20,7 +20,7 @@ class Stream:
     def tell(self):
         return 0
     
-    def read(self, size):
+    def read(self, size, seek=True):
         """ Works like Posix read (can returns less than size bytes. """
         return None
     
@@ -37,7 +37,11 @@ class Stream:
     def eof(self):
         return self.getLastPos() <= self.tell() 
 
-    def createSub(self, start, size):
+    def createSub(self, start=None, size=None):
+        if start==None:
+            start = self.tell()
+        if size == None:
+            size = self.getSize()-start
         return SubStream(self, start, size, self.filename)
 
     def createLimited(self, start, size):
@@ -136,6 +140,10 @@ class LimitedStream(Stream):
             size_max = self._end-self.tell()
         assert 0<=size_max  and size_max<=self._size
         return self._stream.search(str, size_max)
+        
+    def read(self, size, seek=True):
+        """ Works like Posix read (can returns less than size bytes. """
+        return self._stream.read(size, seek)
 
     def getN(self, size, seek=True):
         if self._start+self._size<self._stream.tell()+size:
@@ -171,7 +179,11 @@ class SubStream(LimitedStream):
         if pos != -1:
             pos = pos - self._start
         return pos
-
+        
+    def read(self, size, seek=True):
+        """ Works like Posix read (can returns less than size bytes. """
+        return self._stream.read(size, seek)
+ 
     def seek(self, pos, where=0):
         if where==2:
             pos = pos - self._start

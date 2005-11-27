@@ -38,29 +38,29 @@ class GzipFile(Filter):
     def __init__(self, stream, parent=None):
         Filter.__init__(self, "gzip_file", "GZIP archive file", stream, parent)
         self.read("id", "!2B", "Identifier (31,139)")
-        assert self.id == (31, 139)
+        assert self["id"] == (31, 139)
         self.read("comp_method", "!B", "Compression method", post=self.getCompressionMethod)
         self.read("flags", "!B", "Flags", post=self.getFlags)
         self.read("mtime", "<1L", "Modification time", post=self.getMTime)
         self.read("extra", "!B", "Extra flags")
         self.read("os", "!B", "OS", post=self.getOS)
 
-        if self.extra & 4 == 4:
+        if self["extra"] & 4 == 4:
             self.read("extra_length", "<2H", "Extra length")
             self.read("extra", "!{extra_length}s", "Extra")
-        if self.flags & 8 == 8:
+        if self["flags"] & 8 == 8:
             self.readString("filename", "C", "Filename")
-        if self.flags & 16 == 16:
+        if self["flags"] & 16 == 16:
             self.readString("comment", "C", "Comment")
-        if self.flags & 2 == 2:
-            self.readString("crc16", "!H", "CRC16")
+        if self["flags"] & 2 == 2:
+            self.read("crc16", "!H", "CRC16")
 
         oldpos = stream.tell()
         size = stream.getSize() - oldpos - 8
         try:
             gz_stream = GunzipStream(stream)
             if hasattr(self, "filename"):
-                plugin = getPluginByStream(gz_stream, self.filename)
+                plugin = getPluginByStream(gz_stream, self["filename"])
             else:
                 plugin = getPluginByStream(gz_stream, None)
 

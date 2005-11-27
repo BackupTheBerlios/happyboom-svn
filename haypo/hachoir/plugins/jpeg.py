@@ -11,33 +11,34 @@ from plugin import registerPlugin
 class JpegChunkApp0(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "jpeg_chunk", "JPEG chunk App0", stream, parent)
-        self.read("jfif", "!5s", "JFIF string")
-        self.read("ver_maj", "!B", "Major version")
-        self.read("ver_min", "!B", "Minor version")
-        self.read("units", "!1B", "Units (=0)")
-        if self.units == 0:
+        self.read("size", "!H", "Size")
+        self.read("jfif", "5s", "JFIF string")
+        self.read("ver_maj", "B", "Major version")
+        self.read("ver_min", "B", "Minor version")
+        self.read("units", "B", "Units (=0)")
+        if self["units"] == 0:
             self.read("aspect_x", "!H", "Aspect ratio (X)")
             self.read("aspect_y", "!H", "Aspect ratio (Y)")
         else:
             self.read("x_density", "!H", "X density")
             self.read("y_density", "!H", "Y density")
-        self.read("thumb_w", "!B", "Thumbnail width")
-        self.read("thumb_h", "!1B", "Thumbnail height")
-        thumb = self.thumb_w * self.thumb_h
+        self.read("thumb_w", "B", "Thumbnail width")
+        self.read("thumb_h", "B", "Thumbnail height")
+        thumb = self["thumb_w"] * self["thumb_h"]
         if thumb != 0:
-            self.read("thumb_data", "!%us" % size, "Thumbnail data", truncate=True)
+            self.read("thumb_data", "%us" % size, "Thumbnail data", truncate=True)
+        assert self["size"] == self.getSize()
 
 class JpegChunk(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "jpeg_chunk", "JPEG chunk", stream, parent)
-        self.read("header", "!2B", "Header", post=self.getChunkType)
-        assert self.header[0] == (0xFF)
-        self.read("size", "!H", "Size")
-        if self.header[1] == 0xE0:
-            chunk = self.readChild("app0", JpegChunkApp0)
-            assert chunk.size == (self.size - 2)
+        chunk = self.read("header", "!2B", "Header", post=self.getChunkType)
+        assert self["header"][0] == 0xFF
+        if self["header"][1] == 0xE0:
+            self.readChild("app0", JpegChunkApp0)
         else:
-            self.read("data", "!%us" % (self.size - 2), "Data")
+            self.read("size", "!H", "Size")
+            self.read("data", "!%us" % (self["size"] - 2), "Data")
 
     def getChunkType(self, chunk):
         types = {
@@ -62,13 +63,13 @@ class JpegChunk(Filter):
 
 class JpegFile(Filter):
     def checkEndOfChunks(self, stream, array, chunk):
-        if chunk != None and chunk.header[1] == 0xDA: return True
+        if chunk != None and chunk["header"][1] == 0xDA: return True
         return stream.eof()
 
     def __init__(self, stream, parent=None):
         Filter.__init__(self, "jpeg_file", "JPEG file", stream, parent)
         self.read("header", "!2B", "Header \"start of image\" (0xFF, 0xD8)")
-        assert self.header == (0xFF, 0xD8)
+        assert self["header"] == (0xFF, 0xD8)
         self.readArray("chunk", JpegChunk, "Chunks", self.checkEndOfChunks)
         self.read("data", "!{@end@}s", "JPEG data")
         

@@ -9,18 +9,6 @@ from filter import Filter
 from plugin import registerPlugin
 import sys
 
-def displayZip(zip):    
-    print "[ Zip archive ]"
-    for file in zip.files:
-        file = file.getFilter()
-        sys.stdout.write ("* File %s (size=%0.1f KB" %
-            (file.filename, file.uncompressed_size / 1024))
-        if file.uncompressed_size != 0:
-            sys.stdout.write (" - %0.1f%%" % \
-                (100 - file.compressed_size * 100 / file.uncompressed_size))
-        sys.stdout.write (")\n")
-    print "[ End of the zip archive ]"
-
 class ZipCentralDirectory(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "zip_central_dir", "ZIP central directory", stream, parent)
@@ -85,7 +73,7 @@ class ZipFileEntry(Filter):
         self.read("filename", "<{filename_length}s", "Filename")
         self.read("extra", "<{extra_length}s", "Extra")
         self.read("compressed_data", "<{compressed_size}s", "Compressed data", truncate=True)
-        if (self.flags & 4) == 4:
+        if (self["flags"] & 4) == 4:
             self.read("file_crc32", "<L", "Checksum (CRC32)")
             self.read("file_compressed_size", "<L", "Compressed size (bytes)")
             self.read("file_uncompressed_size", "<L", "Uncompressed size (bytes)")

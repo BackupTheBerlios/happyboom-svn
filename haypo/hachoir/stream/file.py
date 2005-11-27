@@ -13,8 +13,11 @@ class FileStream(Stream):
         self.__size = self.__file.tell()
         self.__file.seek(0,0) # Seel to beginning
         
-    def read(self, size):        
-        return self.__file.read(size)
+    def read(self, size, seek=True):
+        data = self.__file.read(size)
+        if seek==False:
+            self.seek(-len(data), 1)
+        return data            
 
     def clone(self):
         return FileStream(self.__file, self.filename)

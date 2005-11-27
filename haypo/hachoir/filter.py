@@ -2,10 +2,8 @@
 Base class for all splitter filters.
 """
 
-import struct
-import re, sys
-import string
-import types
+import struct, re, sys, string, types
+from config import config
 import ui.ui as ui
 from chunk import Chunk, FormatChunk, FilterChunk, StringChunk
 from format import splitFormat    
@@ -26,6 +24,9 @@ class Filter:
         self._chunks = []
         self._chunks_dict = {}
         self._addr = self._stream.tell()
+
+    def __getitem__(self, chunk_id):
+        return self.getChunk(chunk_id).getValue()
 
     def clone(self):
         if self.__class__ == Filter:
@@ -238,7 +239,11 @@ class Filter:
 
     def displayChunk(self, chunk):
         type = chunk.getFormat()
-        ui.window.add_table(None, chunk.addr, chunk.size, type, chunk.id, chunk.description, chunk.getDisplayData())
+        if isinstance(chunk, FilterChunk):
+            addr = chunk.parent_addr
+        else:
+            addr = chunk.addr
+        ui.window.add_table(None, addr, chunk.size, type, chunk.id, chunk.description, chunk.getDisplayData())
 
     def redisplay(self):  
         self.display()
@@ -291,7 +296,7 @@ class Filter:
 
     def updateFormatChunk(self, chunk):
         if chunk.id == None: return
-        data = chunk.getValue(40)
+        data = chunk.getValue(config["max_string_length"])
         setattr(self, chunk.id, data)       
 
     def _appendChunk(self, chunk, can_truncate=False, position=None):
@@ -315,13 +320,6 @@ class Filter:
             if id not in self._chunks_dict:
                 self._chunks_dict[id] = array 
         else:
-            if hasattr(self, id):
-                raise Exception("Chunk identifier \"%s\" already exist!" % id)
-            if can_truncate:
-                data = chunk.getValue(40)
-            else:
-                data = chunk.getValue()
-            setattr(self, id, data)
             self._chunks_dict[id] = chunk
 
     def readLimitedChild(self, id, size, filter_class, *args):
@@ -334,17 +332,17 @@ class Filter:
     def readStreamChild(self, id, stream, filter_class, *args): 
         oldpos = self._stream.tell()
         filter = filter_class(stream, self, *args)
-        chunk = self.addFilter(id, filter)
+        filter.setId(id)
+        chunk = self.addFilter(id, filter, oldpos)
         chunk.postProcess()
         self._stream.seek(chunk.addr + chunk.size)
         return chunk
         
     def readChild(self, id, filter_class, *args): 
-        chunk = self.readStreamChild(id, self._stream, filter_class, *args)
-        return chunk
+        return self.readStreamChild(id, self._stream, filter_class, *args)
     
-    def addFilter(self, id, filter): 
-        chunk = FilterChunk(id, filter, self)
+    def addFilter(self, id, filter, addr): 
+        chunk = FilterChunk(id, filter, self, addr)
         self._appendChunk(chunk)
         filter.updateParent(chunk)
 #        self._stream.seek(chunk.addr + chunk.size)
@@ -353,10 +351,10 @@ class Filter:
     def readArray(self, id, entry_class, description, end_func): 
         """
         end_func: def isEnd(stream, array, last_filter)
-
         """
+        addr = self._stream.tell()
         filter = ArrayFilter(id, description, self._stream, self, entry_class, end_func)
-        chunk = self.addFilter(id, filter)
+        chunk = self.addFilter(id, filter, addr)
         chunk.postProcess()
         return chunk
     
@@ -415,7 +413,7 @@ class Filter:
         filter._appendChunk(chunk, can_truncate=True)
         
         # Create new chunk and add it into self 
-        new_chunk = FilterChunk(chunk.id, filter, self)
+        new_chunk = FilterChunk(chunk.id, filter, self, chunk.addr)
         pos = self._chunks.index(chunk)
         self._chunks[pos] = new_chunk
         self._chunks_dict[chunk.id] = new_chunk
@@ -440,10 +438,11 @@ class ArrayFilter(Filter):
         nb = 0
         last_filter = None
         while not self._end_func(self._stream, self._array, last_filter):
-            filter = self._entry_class(self._stream, self)
             chunk_id = "%s[%u]" % (self.getId(), nb)
+            addr = self._stream.tell()
+            filter = self._entry_class(self._stream, self)
             nb = nb + 1
-            chunk = FilterChunk(chunk_id, filter, self)
+            chunk = FilterChunk(chunk_id, filter, self, addr)
             self._array.append( chunk )
             self._appendChunk(chunk)
             last_filter = filter

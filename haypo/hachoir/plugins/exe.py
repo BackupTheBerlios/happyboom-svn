@@ -9,41 +9,6 @@ Author: Victor Stinner
 from filter import Filter
 from plugin import registerPlugin
 
-def displayPE(pe):
-    print "[ PE HEADER ]"
-    print "Architecture: %s" % pe.getCpuType()
-            
-def displayPE_Section(section):
-    print "-> Section %- 8s: size=%u, rva=%08X" % \
-        (section.name, section.size, section.rva)
-
-def displayPE_Resource(res):
-    print "Resource: id=%u" % \
-        (res.id)
-        
-def displayPE_ResourceDirectory(res):
-    print "Resources: nb_entries = %u + %s" % \
-        (res.named_entries, res.indexed_entries)
-    for item in res.items:
-        displayPE_Resource(item)
-
-def displayMS_Dos(exe):        
-    print "[ MS-DOS HEADER ]"
-    print "Init. SS:SP: %04X:%04X" % \
-        (exe.init_ss_sp & 0xFFFF,
-         exe.init_ss_sp >> 16 & 0xFFFF)
-
-def displayExe(exe):
-    displayMS_Dos(exe.ms_dos)
-    if exe.pe:
-#        displayPE(exe.pe)
-        for section in exe.pe_sections:
-            section = section.getFilter()
-            displayPE_Section(section)
-#        for res in exe.pe_resources:
-#            res = res.getFilter()
-#            displayPE_ResourceDirectory(res)
-            
 class PE_ResourceData(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "pe_rsrc_data", "PE resource data", stream, parent)
@@ -51,13 +16,13 @@ class PE_ResourceData(Filter):
         self.read("size", "<L", "Size")
         self.read("page_code", "<L", "Page code (language)")
         self.read("language", "<l", "Page code (language)")
-        self.language = -self.language
+#        self.language = -self["language"]
         self.read("reserved", "!L", "Reserverd")
 
         oldpos = stream.tell()
         
         #stream.seek(XXX + self.offset - self.offset_res_section)
-        stream.seek(self.offset)
+        stream.seek(self["offset"])
         stream.seek(oldpos)
 
 class PE_ResourceEntry(Filter):
@@ -80,13 +45,14 @@ class PE_ResourceDirectory(Filter):
         self.readArray("item", PE_ResourceEntry, "PE resource entry", self.checkEndOfRes)
     
     def checkEndOfRes(self, stream, array, dir):
-        return len(array) == (self.named_entries + self.indexed_entries)
+        return len(array) == (self["named_entries"] + self["indexed_entries"])
 
 class PE_Section(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "pe_section", "PE section", stream, parent)
         self.read("name", "8s", "Name")
-        self.name = self.name.strip(" \0")
+        # TODO: use chunk post proces
+        self.name = self["name"].strip(" \0")
         self.read("rva", "<L", "RVA")
         self.read("size", "<L", "Size")
         self.read("file_size", "<L", "File size")
@@ -107,7 +73,7 @@ class PE_OptionnalHeader(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "pe_opt_hdr", "PE optionnal header", stream, parent)
         self.read("header", "<H", "Header")
-        assert self.header == 0x010B
+        assert self["header"] == 0x010B
         self.read("linker_maj_ver", "B", "Linker major version")
         self.read("linker_min_ver", "B", "Linker minor version")
         self.read("code_size", "<L", "Code size (bytes)")
@@ -137,7 +103,7 @@ class PE_OptionnalHeader(Filter):
         self.read("common_heap_size", "<L", "Common heap size")
         self.read("loader_options", "<L", "Loader options")
         self.read("nb_directories", "<L", "Number of directories (16)")
-        assert self.nb_directories == 16
+        assert self["nb_directories"] == 16
         self.readArray("directories", PE_Directory, "PE directories", self.checkEndOfDir)
 
     def checkEndOfDir(self, stream, array, dir):
@@ -147,7 +113,7 @@ class PE_Filter(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "pe_header", "PE header", stream, parent)
         self.read("header", "4s", "File header")
-        assert self.header == "PE\0\0"
+        assert self["header"] == "PE\0\0"
         self.read("cpu_type", "<H", "CPU type")
         self.read("nb_sections", "<H", "Number of sections")
         self.read("creation_date", "<L", "Creation date")
@@ -167,23 +133,23 @@ class PE_Filter(Filter):
             0x0168: "R10000 (MIPS), little endian",
             0x0184: "DEC Alpha AXP",
             0x01F0: "IBM Power PC, little endian"}
-        return cpu_name.get(self.cpu_type, "unknow")
+        return cpu_name.get(self["cpu_type"], "unknow")
 
 class MS_Dos(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "msdos_header", "MS-Dos executable header", stream, parent)
         self.read("header", "2s", "File header")
-        assert self.header == "MZ"
+        assert self["header"] == "MZ"
         self.read("filesize_mod_512", ">H", "Filesize mod 512")
         self.read("filesize_div_512", ">H", "Filesize div 512")
-        self.filesize = self.filesize_div_512 * 512 + self.filesize_mod_512
+        self.filesize = self["filesize_div_512"] * 512 + self["filesize_mod_512"]
         self.read("reloc_entries", ">H", "Number of relocation entries")
         self.read("code_offset", "<H", "Offset to the code in the file (div 16)")
-        self.code_offset = self.code_offset * 16
+        self.code_offset = self["code_offset"] * 16
         self.read("needed_memory", ">H", "Memory needed to run (div 16)")
-        self.needed_memory = self.needed_memory * 16
+        self.needed_memory = self["needed_memory"] * 16
         self.read("max_memory", ">H", "Maximum memory needed to run (div 16)")
-        self.max_memory = self.max_memory * 16
+        self.max_memory = self["max_memory"] * 16
         self.read("init_ss_sp", ">L", "Initial value of SP:SS registers.")
         self.read("checksum", ">H", "Checksum")
         self.read("init_cs_ip", ">L", "Initial value of CS:IP registers.")
@@ -201,17 +167,18 @@ class ExeFile(Filter):
 
         self.readChild("ms_dos", MS_Dos)
 
-        if self.ms_dos.reloc_offset == 0x40:
-            stream.seek(self.ms_dos.pe_offset, 0)
+        if self["ms_dos"]["reloc_offset"] == 0x40:
+            stream.seek(self["ms_dos"]["pe_offset"], 0)
 
             self.readChild("pe", PE_Filter)
+            self.pe = self["pe"]
             self.readChild("pe_opt", PE_OptionnalHeader)
             self.readArray("pe_sections", PE_Section, "PE sections", self.checkEndOfSections)
 
             # TODO: Fix this ...
             
             offset_res_section = None
-            for section in self.pe_sections:
+            for section in self["pe_sections"]:
                 section = section.getFilter()
                 if section.name == ".rsrc":
                     offset_res_section = section.file_offset
@@ -224,6 +191,6 @@ class ExeFile(Filter):
             self.pe = None
 
     def checkEndOfSections(self, stream, array, section):
-        return len(array) == self.pe.nb_sections
+        return len(array) == self["pe"]["nb_sections"]
 
 registerPlugin(ExeFile, "application/x-dosexec")
