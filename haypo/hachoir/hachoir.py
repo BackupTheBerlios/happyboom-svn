@@ -1,6 +1,6 @@
 #!/usr/bin/python
 """
-Splitter: tool to split a binary file into human readable data.
+Hachoir: tool to split a binary file into human readable data.
 Because it's written in Python, it would be easy to write new plugins
 (supports new file format).
 
