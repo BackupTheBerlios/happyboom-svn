@@ -139,6 +139,7 @@ class StringChunk(Chunk):
             self.eol = self._stream.getN(1)
             if self.eol == "\r" and self._stream.read(1) == "\n":
                 self.eol = "\r\n"
+                self._size = self._size + 1
             self.length = self._size - len(self.eol)
             return
 

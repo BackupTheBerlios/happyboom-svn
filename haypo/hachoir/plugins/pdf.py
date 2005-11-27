@@ -120,7 +120,7 @@ class PdfFile(Filter):
     def __init__(self, stream, parent=None):
         Filter.__init__(self, "id", "", stream, parent)
         self.readString("pdf_version", "AutoLine", "PDF version")
-        m = re.match("^%PDF-([0-9]+)\.([0-9]+)$", self.pdf_version)
+        m = re.match("^%PDF-([0-9]+)\.([0-9]+)$", self["pdf_version"])
         assert m != None
         self.version = ( int(m.group(1)), int(m.group(2)) )
         if self.version[0] == 1 and self.version[1] > 0:
