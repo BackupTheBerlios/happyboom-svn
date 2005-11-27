@@ -30,6 +30,8 @@ def getMimeByExt(ext):
 def _getBufferMime(buffer):    
     if ord(buffer[0])==31 and ord(buffer[1])==139:
         return "application/x-gzip"
+    if buffer[:4] == "%PDF":
+        return "application/pdf"
     return None        
 
 def splitMimes(mimes):

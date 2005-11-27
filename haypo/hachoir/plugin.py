@@ -2,13 +2,13 @@ import re
 from mime import getFileMime, getBufferMime
 from default import DefaultFilter
 
-def guessPlugin(stream, filename):
+def guessPlugin(stream, filename, default=DefaultFilter):
     oldpos = stream.tell()
     size = stream.getSize()
     if 4096<size:
         size = 4096
     buffer = stream.getN(size)
-    plugin = getPluginByBuffer(buffer, filename)
+    plugin = getPluginByBuffer(buffer, filename, default)
     stream.seek(oldpos)
     return plugin
 

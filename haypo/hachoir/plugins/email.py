@@ -5,7 +5,7 @@ Author: Victor Stinner
 """
 
 from filter import Filter, DeflateFilter
-from plugin import registerPlugin, getPluginByMime
+from plugin import registerPlugin, guessPlugin, getPluginByMime
 from error import warning
 from mime import splitMimes
 from error import warning
@@ -40,6 +40,9 @@ class EmailHeader(Filter):
                     warning("Can't parse email header: %s" % line)
 
             linenb = linenb + 1
+
+    def __contains__(self, key):
+        return key.lower() in self._dict
 
     def _appendHeader(self, key, index, value):
         key = key.lower()
@@ -87,21 +90,58 @@ def readEmailContent(self, stream, in_multipart):
     if re.match("^multipart/", mime[0]) != None:
         readMultipartEmail(self, stream, mime[1]["boundary"])
     else:
-        plugin = getPluginByMime((mime,), EmailBody)
-#        plugin = EmailBody
-        encoding = self["header"]["Content-Transfer-Encoding"]
-        assert len(encoding) == 1
-        if encoding[0] == "base64":
-            assert in_multipart
-            size = stream.getSize() - stream.tell()
-            data = stream.getN(size, False)
-            substream = Base64Stream(data)
+        readBody(self, stream, mime, in_multipart)
+
+def readBody(self, stream, mime, in_multipart):
+    # Read encoding
+    header = self["header"]
+    if "Content-Transfer-Encoding" in header:
+        encoding = header["Content-Transfer-Encoding"][0]
+    else:
+        encoding = None
+
+    # Get filename
+    filename = mime[1].get("name", None)
+    if filename == None:
+        if "Content-Disposition" in header:
+            disp = header["Content-Disposition"][0].split(";")
+            regex = re.compile("filename=\"([^\"]+)\"")
+            for item in disp:
+                m = regex.match(item.strip())
+                if m != None:
+                    filename = m.group(1)
+                    break
+    elif filename[0] == '"':
+        filename = filename[1:-1]
+
+    # Handler base64 encodocing
+    if encoding == "base64":
+        size = stream.getSize() - stream.tell()
+        data = stream.getN(size, False)
+        substream = Base64Stream(data)
+        deflate = True
+    else:
+        substream = stream
+        deflate = False
+
+    # Guess plugin
+    plugin = getPluginByMime((mime,), None)
+    if plugin == None:
+        plugin = guessPlugin(substream, filename, None)
+    if plugin == None:
+        plugin = EmailBody
+
+    # Finally read data
+    if plugin != EmailBody:
+        if deflate:
             self.readChild("body", DeflateFilter, substream, size, plugin) 
         else:
-            substream = stream
-#            self.readStreamChild("body", io, plugin)
-#            self.read("body", "%us" % (stream.getSize() - stream.tell()), "Body")
             chunk = self.readStreamChild("body", substream, plugin)
+    else:
+        if deflate:
+            self.readChild("body", DeflateFilter, substream, size, plugin, in_multipart) 
+        else:
+            chunk = self.readStreamChild("body", substream, plugin, in_multipart)
 
 def readMultipartEmail(self, stream, boundary):
     assert boundary[0] == '"' and boundary[-1] == '"'
