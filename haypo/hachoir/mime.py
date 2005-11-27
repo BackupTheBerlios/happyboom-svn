@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import os, stat
+import os, stat, string
 
 instance = None
 
@@ -32,12 +32,38 @@ def _getBufferMime(buffer):
         return "application/x-gzip"
     return None        
 
+def splitMimes(mimes):
+    """
+    Split MIME types into a list.
+    Examples:
+    - "text/plain; encoding=latin-1" => [["text/plain", {"encoding": latin-1"}]
+    - "text/plain, text/xml" => [["text/plain"],["text/xml"]]
+    - "text/plain; charset=ISO-8859-1; format=flowed"
+      => [['text/plain', {'charset': 'ISO-8859-1', 'format': 'flowed'}]]
+    """
+
+    list = []
+    for mime in map(string.strip, mimes.split(",")):
+        parts = mime.split(";")
+        mime = parts[0]
+        parts = map(string.strip, parts[1:])
+        values = {}
+        for part in parts:
+            split_part = part.split("=", 1)             
+            values[ split_part[0] ] = split_part[1]
+        list.append([mime,values])
+    return list
+        
+    mimes = map(string.split, mimes, ';')
+    print mimes
+#    for key in mimes:
+#        mimes[key] = map(string.strip, mimes[key])    
+    return mimes
+
 def getBufferMime(buffer, filename):
     magic = getInstance()
     mimes = magic.buffer(buffer)
-    mimes = mimes.split(", ")
-    import string
-    mimes = map(string.split, mimes, ';')
+    mimes = splitMimes(mimes)
     if mimes[0][0] == 'application/octet-stream' and filename != None:
         ext = os.path.splitext(filename)[1]
         new_mime = _getBufferMime(buffer)
