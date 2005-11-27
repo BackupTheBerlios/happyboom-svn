@@ -6,9 +6,9 @@ Author: Victor Stinner
 
 from filter import Filter, DeflateFilter
 from plugin import registerPlugin, guessPlugin, getPluginByMime
-from error import warning
+from default import DefaultFilter
 from mime import splitMimes
-from error import warning
+from error import warning, error
 from stream.base_64 import Base64Stream
 import re
 
@@ -16,8 +16,8 @@ class EmailHeader(Filter):
     def __init__(self, stream, parent=None):
         Filter.__init__(self, "email_hdr", "Email header", stream, parent)
         self._dict = {}
-        regex_new = re.compile("^([A-Za-z-]+): (.*)$")
-        regex_continue = re.compile("^\t(.*)$")
+        regex_new = re.compile("^([A-Za-z][A-Za-z0-9-]*): (.*)$")
+        regex_continue = re.compile("^[\t ]+(.*)$")
         linenb = 1
         last_key = None
         last_index = None
@@ -42,7 +42,8 @@ class EmailHeader(Filter):
             linenb = linenb + 1
 
     def __contains__(self, key):
-        return key.lower() in self._dict
+        key = key.lower()
+        return key in self._dict
 
     def _appendHeader(self, key, index, value):
         key = key.lower()
@@ -66,33 +67,30 @@ class EmailPart(Filter):
     def __init__(self, stream, parent=None):
         Filter.__init__(self, "email_part", "Email part", stream, parent)
         self.readChild("header", EmailHeader)
-        readEmailContent(self, stream.createSub(), True)
+        readEmailContent(self, stream.createSub())
 
 class EmailBody(Filter):
-    def __init__(self, stream, parent=None, in_multipart=True):
+    def __init__(self, stream, parent=None):
         Filter.__init__(self, "email_body", "Email body", stream, parent)
         linenb = 1 
-        empty_line = 0
         while not stream.eof():
+            guess = stream.read(5, False)
+            if guess=="From ":
+                break
             id = "body[%u]" % linenb
             chunk = self.readString(id, "AutoLine", "Body text")
-            if not in_multipart:
-                if chunk.length == 0:
-                    empty_line = empty_line + 1
-                    if empty_line == 2:
-                        break
-                else:
-                    empty_line = 0
             linenb = linenb + 1
 
-def readEmailContent(self, stream, in_multipart):
+def readEmailContent(self, stream):
     mime = getEmailMime(self)
-    if re.match("^multipart/", mime[0]) != None:
+    if mime != None and re.match("^multipart/", mime[0]) != None:
         readMultipartEmail(self, stream, mime[1]["boundary"])
     else:
-        readBody(self, stream, mime, in_multipart)
+        if mime == None:
+            warning("Can't get MIME type for email %s" % self)
+        readBody(self, stream, mime)
 
-def readBody(self, stream, mime, in_multipart):
+def readBody(self, stream, mime):
     # Read encoding
     header = self["header"]
     if "Content-Transfer-Encoding" in header:
@@ -101,7 +99,11 @@ def readBody(self, stream, mime, in_multipart):
         encoding = None
 
     # Get filename
-    filename = mime[1].get("name", None)
+    if mime != None:
+        filename = mime[1].get("name", None)
+    else:
+        raise Exception("No MIME in readBody()")
+        filename = None
     if filename == None:
         if "Content-Disposition" in header:
             disp = header["Content-Disposition"][0].split(";")
@@ -121,27 +123,35 @@ def readBody(self, stream, mime, in_multipart):
         substream = Base64Stream(data)
         deflate = True
     else:
-        substream = stream
+#        regex_new_mail = re.compile("[\r\n]From ")
+#        pos = stream.search(regex_new_mail)
+#        if pos != -1:
+#            substream = stream.createSub(size=pos)
+#        else:
+#            substream = stream
+        substream = stream.createSub()
         deflate = False
 
     # Guess plugin
-    plugin = getPluginByMime((mime,), None)
+    if mime != None:
+        plugin = getPluginByMime((mime,), None)
+    else:
+        plugin = None
     if plugin == None:
         plugin = guessPlugin(substream, filename, None)
-    if plugin == None:
+    if plugin == None or plugin == EmailFilter:
         plugin = EmailBody
 
     # Finally read data
-    if plugin != EmailBody:
+    try:
         if deflate:
             self.readChild("body", DeflateFilter, substream, size, plugin) 
         else:
-            chunk = self.readStreamChild("body", substream, plugin)
-    else:
-        if deflate:
-            self.readChild("body", DeflateFilter, substream, size, plugin, in_multipart) 
-        else:
-            chunk = self.readStreamChild("body", substream, plugin, in_multipart)
+            self.readStreamChild("body", substream, plugin)
+    except Exception, msg:
+        error("Error while parsing email body: %s" % msg)
+        substream.seek(0)
+        self.readStreamChild("body", substream, DefaultFilter)
 
 def readMultipartEmail(self, stream, boundary):
     assert boundary[0] == '"' and boundary[-1] == '"'
@@ -171,28 +181,43 @@ def readMultipartEmail(self, stream, boundary):
             break
 
 def getEmailMime(self):
-    content_type = self["header"]["Content-Type"]
+    header = self["header"]
+    if not("Content-Type" in header):
+        raise Exception("No mime")
+        return None
+    content_type = header["Content-Type"]
     assert len(content_type) == 1
     mimes = splitMimes(content_type[0])
     assert len(mimes) == 1
     return mimes[0]
 
 class Email(Filter):
-    def __init__(self, stream, parent, in_multipart=True):
+    def __init__(self, stream, parent):
         Filter.__init__(self, "email", "Email", stream, parent)
         self.readString("id", "AutoLine", "Email identifier")
         self.readChild("header", EmailHeader)
-        readEmailContent(self, stream.createSub(), in_multipart)
+        readEmailContent(self, stream.createSub())
+
+    def __str__(self):
+        header = self["header"]
+        text = "Email"
+        if "From" in header:
+            text = text + " from %s" % header["From"]
+        if "Date" in header:
+            text = text + " (date %s)" % header["Date"]
+        return text
 
 class EmailFilter(Filter):
     def __init__(self, stream, parent=None):
         Filter.__init__(self, "email", "Email maildir parser", stream, parent)
-        cpt = 1
         while not stream.eof():
-            chunk = self.readChild("email[%u]" % cpt, Email, False)
-            end = stream.read(4, seek=False)
-            if len(end.strip()) == 0:
+            chunk = self.readChild("email[]", Email)
+            if stream.eof():
                 break
-            cpt = cpt + 1
+            while not stream.eof():
+                guess = stream.read(5, False)
+                if guess == "From ":
+                    break
+                self.readString("space[]", "AutoLine", "Space")
 
 registerPlugin(EmailFilter, ["message/rfc822", "text/x-mail"])

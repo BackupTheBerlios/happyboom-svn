@@ -20,7 +20,7 @@ def getPluginByMime(mimes, default=DefaultFilter):
         if mime in hachoir_plugins:
             plugins = plugins + hachoir_plugins[mime]
     if len(plugins)==0:
-        plugins = (default,)
+        return default
     if 1<len(plugins):
         warning("More than one plugin have same MIME...")
     return plugins[0]

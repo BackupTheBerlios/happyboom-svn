@@ -5,9 +5,10 @@ Status: can read most important headers
 Author: Victor Stinner
 """
 
+import sys
 from filter import Filter
 from plugin import registerPlugin
-import sys
+from error import error
 
 class ZipCentralDirectory(Filter):
     def __init__(self, stream, parent):
@@ -98,6 +99,7 @@ class ZipFile(Filter):
                 self.read("signature_length", "!H", "Signature length")
                 self.read("signature", "!{signature_length}s", "Signature")
             else:
-                raise Exception("Error, unknow ZIP header (0x%08X)." % header)
+                error("Error, unknow ZIP header (0x%08X)." % header)
+                self.read("raw", "{@end@}s", "Raw")
         
 registerPlugin(ZipFile, "application/x-zip")

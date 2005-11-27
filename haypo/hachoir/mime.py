@@ -43,7 +43,8 @@ def splitMimes(mimes):
     - "text/plain; charset=ISO-8859-1; format=flowed"
       => [['text/plain', {'charset': 'ISO-8859-1', 'format': 'flowed'}]]
     """
-
+    
+    print mimes
     list = []
     for mime in map(string.strip, mimes.split(",")):
         parts = mime.split(";")
@@ -51,16 +52,11 @@ def splitMimes(mimes):
         parts = map(string.strip, parts[1:])
         values = {}
         for part in parts:
-            split_part = part.split("=", 1)             
-            values[ split_part[0] ] = split_part[1]
+            if part != "":
+                split_part = part.split("=", 1)             
+                values[ split_part[0] ] = split_part[1]
         list.append([mime,values])
     return list
-        
-    mimes = map(string.split, mimes, ';')
-    print mimes
-#    for key in mimes:
-#        mimes[key] = map(string.strip, mimes[key])    
-    return mimes
 
 def getBufferMime(buffer, filename):
     magic = getInstance()
