@@ -64,6 +64,12 @@ def readPolygonList(filter, stream):
         filter.readChild("polygon[]", Filter_3DS_Polygon)
 
 class Filter_3DS_Chunk(Filter):
+    # List of chunks which contains other chunks
+    sub_chunks = \
+        (0x4D4D, 0x4100, 0x3D3D, 0xAFFF, 0xA200,
+         0xB002, 0xB006, 0xB007,
+         0xA010, 0xA030, 0xA020, 0xB000)
+    
     def __init__(self, stream, parent):
         Filter.__init__(self, "3ds_chunk", "3DS chunk", stream, parent)
         chunk = self.read("type", "<H", "Chunk type", post=self.toHex)
@@ -74,6 +80,7 @@ class Filter_3DS_Chunk(Filter):
             0x4000: readObject,
             0xA300: readTextureFilename,
             0x0011: readColor,
+# TODO: Uncomment these functions, it's too slow yet            
 #            0x4110: readVertexList,
 #            0x4120: readPolygonList,
 #            0x4140: readMapList,
@@ -82,7 +89,7 @@ class Filter_3DS_Chunk(Filter):
         size = self["size"] - 6
         type = self["type"] 
         end = stream.tell() + size
-        if type in (0x4D4D, 0x4100, 0x3D3D, 0xAFFF, 0xA200, 0xA010, 0xA030, 0xA020):
+        if type in Filter_3DS_Chunk.sub_chunks:
             while stream.tell() < end:
                 self.readChild("chunk[]", Filter_3DS_Chunk)
             assert stream.tell() == end 
@@ -124,7 +131,18 @@ class Filter_3DS_Chunk(Filter):
             0xA020: "Material diffuse",
             0xA030: "Texture specular",
             0xA200: "Texture",
-            0xA300: "Texture filename"
+            0xA300: "Texture filename",
+
+            # Key frames
+            0xB000: "Keyframes",
+            0xB002: "Object node tag",
+            0xB006: "Light target node tag",
+            0xB007: "Spot light node tag",
+            0xB00A: "Keyframes header",
+            0xB009: "Keyframe current time",
+            0xB030: "Node identifier",
+            0xB010: "Node header",
+            0x7001: "Viewport layout"
         }
         if type in know:
             return know[type]

@@ -203,12 +203,15 @@ class FormatChunkCache:
 
     def _getRawData(self, max_size=None):
         stream = self._chunk.getStream()
+        oldpos = stream.tell()
         stream.seek(self._addr)
         if (max_size == None or self._size<max_size) or not self._chunk.isString():
             data = stream.getN(self._size)
+            stream.seek(oldpos)
             return data, False
         else:
             data = stream.getN(max_size)
+            stream.seek(oldpos)
             return data+"(...)", True
 
     def update(self):

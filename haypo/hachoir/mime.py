@@ -44,7 +44,6 @@ def splitMimes(mimes):
       => [['text/plain', {'charset': 'ISO-8859-1', 'format': 'flowed'}]]
     """
     
-    print mimes
     list = []
     for mime in map(string.strip, mimes.split(",")):
         parts = mime.split(";")

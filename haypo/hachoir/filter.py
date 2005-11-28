@@ -335,7 +335,7 @@ class Filter:
         filter.setId(id)
         chunk = self.addFilter(id, filter, oldpos)
         chunk.postProcess()
-        self._stream.seek(chunk.addr + chunk.size)
+        self._stream.seek(oldpos + chunk.size)
         return chunk
         
     def readChild(self, id, filter_class, *args): 

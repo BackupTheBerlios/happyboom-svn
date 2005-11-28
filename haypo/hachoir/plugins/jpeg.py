@@ -7,11 +7,11 @@ Default filter
 
 from filter import Filter
 from plugin import registerPlugin
+from exif import ExifFilter
 
 class JpegChunkApp0(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "jpeg_chunk", "JPEG chunk App0", stream, parent)
-        self.read("size", "!H", "Size")
         self.read("jfif", "5s", "JFIF string")
         self.read("ver_maj", "B", "Major version")
         self.read("ver_min", "B", "Minor version")
@@ -27,18 +27,27 @@ class JpegChunkApp0(Filter):
         thumb = self["thumb_w"] * self["thumb_h"]
         if thumb != 0:
             self.read("thumb_data", "%us" % size, "Thumbnail data", truncate=True)
-        assert self["size"] == self.getSize()
 
 class JpegChunk(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "jpeg_chunk", "JPEG chunk", stream, parent)
-        chunk = self.read("header", "!2B", "Header", post=self.getChunkType)
-        assert self["header"][0] == 0xFF
-        if self["header"][1] == 0xE0:
-            self.readChild("app0", JpegChunkApp0)
+        chunk = self.read("header", "B", "Header")
+        assert self["header"] == 0xFF
+        chunk = self.read("type", "B", "Type", post=self.getChunkType)
+        known = {
+            0xE0: JpegChunkApp0,
+            0xE1: ExifFilter
+        }
+        chunk_type = self["type"]
+        self.read("size", "!H", "Size")
+        size = self["size"] - 2
+        if chunk_type in known:
+            end = stream.tell() + size
+            sub = stream.createSub(size=size)
+            self.readStreamChild("app0", sub, known[chunk_type])
+            assert stream.tell() == end
         else:
-            self.read("size", "!H", "Size")
-            self.read("data", "!%us" % (self["size"] - 2), "Data")
+            self.read("data", "!%us" % size, "Data")
 
     def getChunkType(self, chunk):
         types = {
@@ -50,10 +59,11 @@ class JpegChunk(Filter):
             0xDB: "Define Quantization Table (DQT)",
             0xDC: "Define number of Lines (DNL)",
             0xDD: "Define Restart Interval (DRI)",
+            0xE1: "EXIF",
             0xE0: "APP0",
             0xFE: "Comment"
         }
-        type = chunk.value[1]
+        type = chunk.value
         if type in types:
             type = types[type]
         else:
@@ -63,7 +73,7 @@ class JpegChunk(Filter):
 
 class JpegFile(Filter):
     def checkEndOfChunks(self, stream, array, chunk):
-        if chunk != None and chunk["header"][1] == 0xDA: return True
+        if chunk != None and chunk["type"] == 0xDA: return True
         return stream.eof()
 
     def __init__(self, stream, parent=None):
