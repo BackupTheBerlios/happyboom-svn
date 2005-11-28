@@ -1,4 +1,14 @@
 #!/usr/bin/python
+
+"""
+MIME type detection using libmagic library.
+
+See also:
+- ftp://ftp.astron.com/pub/file/ (libmagic)
+- http://www.demonseed.net/~jp/code/magic.py (100% Python)
+- http://svn.gna.org/viewcvs/castor/trunk/lib/mime.php?view=markup (PHP)
+"""
+
 import os, stat, string
 
 instance = None
@@ -32,6 +42,8 @@ def _getBufferMime(buffer):
         return "application/x-gzip"
     if buffer[:4] == "%PDF":
         return "application/pdf"
+    if buffer[:14] == "gimp xcf file\0":
+        return "image/x-xcf"
     return None        
 
 def splitMimes(mimes):
