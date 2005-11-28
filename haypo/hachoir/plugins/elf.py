@@ -10,8 +10,7 @@ class ELF_Header(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "default", "default", stream, parent)
         self.read("id", "4s", "Identifier")
-        good_id = chr(127) + "ELF"
-        assert self["id"] == good_id 
+        assert self["id"] == (chr(127) + "ELF")
         self.read("class", "B", "Class")
         self.read("encoding", "B", "Encoding")
         self.read("file_version", "B", "File version")

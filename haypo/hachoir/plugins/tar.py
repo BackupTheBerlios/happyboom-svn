@@ -80,12 +80,12 @@ class TarFileEntry(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "tar_file_entry","Tar file entry", stream, parent)
         self.read("name", "!100s", "Name", truncate=False, post=self.stripNul)
-        self.name = self.name.strip("\0")
+        self.name = self["name"].strip("\0")
         self.read("mode", "!8s", "Mode", post=self.convertOctal)
         self.read("uid", "!8s", "User ID", post=self.convertOctal)
         self.read("gid", "!8s", "Group ID", post=self.convertOctal)
         self.read("size", "!12s", "Size", post=self.convertOctal)
-        self.size = self.octal2int(self.size)
+        self.size = self.octal2int(self["size"])
         self.read("mtime", "!12s", "Modification time", self.getTime)
         self.read("check_sum", "!8s", "Check sum")
         self.read("type", "!c", "Type")
@@ -96,7 +96,7 @@ class TarFileEntry(Filter):
         self.read("devmajor", "!8s", "Dev major")
         self.read("devminor", "!8s", "Dev minor")
         self.read("header_padding", "!167s", "Padding (zero)")
-        if self.type in ("\0", "0"):
+        if self["type"] in ("\0", "0"):
             substream = stream.createSub(stream.tell(), self.size)
             plugin = guessPlugin(substream, self.name)
 
@@ -139,8 +139,7 @@ class TarFileEntry(Filter):
             "6": "FIFO special file",
             "7": "Contiguous file"
         }
-        if self.type not in name: return "Unknow type (%02X)" % ord(self.type)
-        return name[self.type]
+        name.get(self["type"], "Unknow type (%02X)" % ord(self["type"]))
 
     def updateParent(self, chunk):
         if not self.isEmpty():
@@ -148,7 +147,8 @@ class TarFileEntry(Filter):
                 % (self.name, self.getType(), humanFilesize(self.size))
         else:
             text = "Tar File (terminator, empty header)"
-        chunk.description = self.description = text
+        chunk.description = text
+        self.setDescription(text)
 
 class TarFile(Filter):
     def __init__(self, stream, parent=None):
