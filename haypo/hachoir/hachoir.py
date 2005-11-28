@@ -8,10 +8,11 @@ Author: Victor Stinner
 """
 
 import sys, os, re, traceback
-from hachoir_class import Hachoir
 from program import PROGRAM, VERSION
 from log import log
 from error import error
+from hachoir_class import Hachoir
+import ui.ui as ui
 
 def usage(defval):
     print "%s version %s" % (PROGRAM, VERSION)
@@ -82,13 +83,17 @@ def main():
         for key in opt:
             setattr(hachoir, key, opt[key])
         try:
-            import ui.ui as ui
+            ui.loadInterface(hachoir)
         except ImportError, err:
-            error("""Error: a Python module is missing:\n%s\n
+            error("""Error: a Python module is missing:
+%s
+
 You can find PyGTK at: http://www.pygtk.org/
-and PyGlade at: http://glade.gnome.org/""" % (err))
+and PyGlade at: http://glade.gnome.org/
+
+Debian: apt-get install python2.4-gtk
+Ubuntu: apt-get install python-gtk2 python-glade2""" % (err))
             sys.exit(1)
-        ui.loadInterface(hachoir)
         hachoir.run(filename)
 
     except SystemExit:
@@ -97,4 +102,6 @@ and PyGlade at: http://glade.gnome.org/""" % (err))
         where = "".join(traceback.format_exception( \
             sys.exc_type, sys.exc_value, sys.exc_traceback))
         error("Exception:\n%s\n%s" % (err, where))
+	sys.exit(1)
+
 if __name__=="__main__": main()    

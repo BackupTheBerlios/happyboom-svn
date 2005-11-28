@@ -1,13 +1,10 @@
 import os
-import pygtk
-pygtk.require ('2.0') # 2.2 for Clipboard
-import gtk
 from log import log
-import ui.ui as ui
+from ui.ui import ui as ui
 
 def warning(message):
-    log.warning(message)
-    if ui.ui != None:
+    log.warning(message)   
+    if ui != None:
         dlg = gtk.MessageDialog( \
             type=gtk.MESSAGE_WARNING,
             buttons=gtk.BUTTONS_OK,
@@ -17,7 +14,7 @@ def warning(message):
 
 def error(message):
     log.error(message)
-    if ui.ui != None:
+    if ui != None:
         dlg = gtk.MessageDialog( \
             type=gtk.MESSAGE_ERROR,
             buttons=gtk.BUTTONS_OK,

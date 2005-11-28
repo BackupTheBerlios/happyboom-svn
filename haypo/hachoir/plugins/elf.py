@@ -8,7 +8,7 @@ from plugin import registerPlugin
 
 class ELF_Header(Filter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, "default", "default", stream, parent)
+        Filter.__init__(self, "elf_header", "ELF header", stream, parent)
         self.read("id", "4s", "Identifier")
         assert self["id"] == (chr(127) + "ELF")
         self.read("class", "B", "Class")
@@ -59,7 +59,7 @@ class ELF_Header(Filter):
 
 class ELF_Filter(Filter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, "default", "default", stream, parent)
+        Filter.__init__(self, "elf", "ELF file", stream, parent)
         self.readChild("header", ELF_Header)
 
 registerPlugin(ELF_Filter, "application/x-executable")

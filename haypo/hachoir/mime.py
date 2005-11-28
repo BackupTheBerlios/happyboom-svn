@@ -9,17 +9,32 @@ See also:
 - http://svn.gna.org/viewcvs/castor/trunk/lib/mime.php?view=markup (PHP)
 """
 
-import os, stat, string
+import os, stat, string, re
+from error import warning
 
 instance = None
 
-def getInstance():
-    global instance
-    if instance == None:
-        import magic
-        instance = magic.open(magic.MAGIC_MIME)
-        instance.load()
-    return instance
+class GuessMime:
+    def __init__(self):
+        self.use_failback = False
+        self.func = None
+        try:
+            import magic
+            self.func = magic.open(magic.MAGIC_MIME)
+            self.func.load()
+        except ImportError:
+            warning("Warning: The library libmagic for Python is unavailable. Using internal fallback engine.")
+            self.use_failback = True
+        if self.use_failback:
+            from  failback.magic import whatis
+            self.func = whatis
+
+    def guess(self, buffer):
+        if not self.use_failback:
+            return self.func.buffer(buffer)
+        else:
+            mime = self.func(buffer)
+            return mime
 
 def getFileMime(realname, filename=None):
     if filename == None:
@@ -37,8 +52,18 @@ def getMimeByExt(ext):
         return 'application/x-gzip'
     return None        
 
-def _getBufferMime(buffer):    
-    if ord(buffer[0])==31 and ord(buffer[1])==139:
+def getStreamMime(stream, filename):
+    oldpos = stream.tell()
+    stream.seek(0)
+    size = stream.getSize()
+    if 4096<size:
+        size = 4096
+    data = stream.getN(size)
+    stream.seek(oldpos)
+    return getBufferMime(data, filename)
+
+def getAnotherBufferMime(buffer):    
+    if 2<=len(buffer) and ord(buffer[0])==31 and ord(buffer[1])==139:
         return "application/x-gzip"
     if buffer[:4] == "%PDF":
         return "application/pdf"
@@ -54,10 +79,18 @@ def splitMimes(mimes):
     - "text/plain, text/xml" => [["text/plain"],["text/xml"]]
     - "text/plain; charset=ISO-8859-1; format=flowed"
       => [['text/plain', {'charset': 'ISO-8859-1', 'format': 'flowed'}]]
+    - "application/x-archive application/x-debian-package"
     """
+
+
+    #mimes = map(string.strip, mimes.split(","))
+    
+    regex = re.compile("[^/]+/[^; ]+(?:;[^;]+)*")
+    mimes = regex.findall(mimes)    
     
     list = []
-    for mime in map(string.strip, mimes.split(",")):
+    for mime in mimes:
+        mime = mime.strip(" ,")
         parts = mime.split(";")
         mime = parts[0]
         parts = map(string.strip, parts[1:])
@@ -70,12 +103,14 @@ def splitMimes(mimes):
     return list
 
 def getBufferMime(buffer, filename):
-    magic = getInstance()
-    mimes = magic.buffer(buffer)
+    global instance
+    if instance == None:
+        instance = GuessMime()
+    mimes = instance.guess(buffer)
     mimes = splitMimes(mimes)
-    if mimes[0][0] == 'application/octet-stream' and filename != None:
+    if (len(mimes) == 0 or mimes[0][0] == 'application/octet-stream') and filename != None:
         ext = os.path.splitext(filename)[1]
-        new_mime = _getBufferMime(buffer)
+        new_mime = getAnotherBufferMime(buffer)
         if new_mime == None:
             new_mime = getMimeByExt(ext)
         if new_mime != None:

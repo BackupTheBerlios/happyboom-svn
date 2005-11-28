@@ -10,7 +10,7 @@ class DebianFileEntry(Filter):
         Filter.__init__(self, "file_entry", "File entry", stream, parent)
         self.readString("header", "UnixLine", "Header")
 #        info = re.split(" +", self.header)
-        info = self.header.split()
+        info = self["header"].split()
         filename = info[0]
         size = int(info[5])
         dataio = stream.createSub(stream.tell(), size)

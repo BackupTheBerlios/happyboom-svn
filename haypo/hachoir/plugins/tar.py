@@ -165,4 +165,4 @@ class TarFile(Filter):
             if file.isEmpty(): return True
         return stream.eof()
         
-registerPlugin(TarFile, "application/x-tar")
+registerPlugin(TarFile, ["application/x-gtar", "application/x-tar"])

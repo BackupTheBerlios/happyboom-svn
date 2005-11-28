@@ -47,15 +47,16 @@ class PdfObject(Filter):
         self.setDescription("Object (%s)" % info)
 
     def readContent(self):
-        chunk = self.readString("line[]", "AutoLine", "", post=stripLine)
+        text = "" 
         deflate = False
-        while chunk.value not in ("endobj", "stream"):
-            self.processLine(chunk.value)
+        while text not in ("endobj", "stream"):
+            self.processLine(text)
+            chunk = self.readString("line[]", "AutoLine", "", post=stripLine)
+            text = chunk.value
+            if re.match(r".*/Filter /FlateDecode.*", chunk.value) != None:
+                deflate = True
             if self.getStream().eof():
                 return "eof"
-            chunk = self.readString("line[]", "AutoLine", "", post=stripLine)
-            if re.match(r"^.*/Filter /FlateDecode", chunk.value) != None:
-                deflate = True
         if chunk.value == "endobj":
             chunk.id = "endobj"
             chunk.description = "Object end"
@@ -90,8 +91,8 @@ class PdfObject(Filter):
             self.readString("data_end[]", "AutoLine", "Data end")
             self.readString("endobj", "AutoLine", "Object end", post=stripLine)
         ver = self.getParent().version
-        if ver[0] > 1 or (ver[0] == 1 and ver[1] > 0):
-            # PDF > 1.0 
+        eol = self.getStream().read(1, seek=False)
+        if eol in ("\n", "\r"):
             self.readString("emptyline", "AutoLine", "")
 
     def readXref(self):

@@ -1,16 +1,9 @@
 import re
-from mime import getFileMime, getBufferMime
+from mime import getFileMime, getStreamMime
 from default import DefaultFilter
 
 def guessPlugin(stream, filename, default=DefaultFilter):
-    oldpos = stream.tell()
-    size = stream.getSize()
-    if 4096<size:
-        size = 4096
-    buffer = stream.getN(size)
-    plugin = getPluginByBuffer(buffer, filename, default)
-    stream.seek(oldpos)
-    return plugin
+    return getPluginByStream(stream, filename, default)
 
 def getPluginByMime(mimes, default=DefaultFilter):
     global hachoir_plugins
@@ -25,19 +18,8 @@ def getPluginByMime(mimes, default=DefaultFilter):
         warning("More than one plugin have same MIME...")
     return plugins[0]
     
-def getPluginByBuffer(buffer, filename, default=DefaultFilter):
-    mime = getBufferMime(buffer, filename)
-    return getPluginByMime(mime, default)
-
 def getPluginByStream(stream, filename, default=DefaultFilter):
-    oldpos = stream.tell()
-    stream.seek(0)
-    size = stream.getSize()
-    if 4096<size:
-        size = 4096
-    data = stream.getN(size)
-    stream.seek(oldpos)
-    mime = getBufferMime(data, filename)
+    mime = getStreamMime(stream, filename)
     return getPluginByMime(mime, default)
 
 def getPluginByFile(filename, realname=None, default=DefaultFilter):

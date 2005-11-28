@@ -119,4 +119,4 @@ class PngChunk(Filter):
     def __str__(self):
         return "PngChunk <size=%u, type=%s>" % (self["size"], self["type"])
 
-registerPlugin(PngFile, "image/png")
+registerPlugin(PngFile, ["image/png", "image/x-png"])

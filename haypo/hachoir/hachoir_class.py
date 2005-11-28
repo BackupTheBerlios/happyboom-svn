@@ -3,8 +3,9 @@ from plugin import getPluginByStream
 from chunk import FilterChunk
 from default import DefaultFilter
 from user_filter import UserFilterDescriptor, loadUserFilter
-from error import error
+from error import error, warning
 from tools import getBacktrace
+from mime import getStreamMime
 
 class Hachoir:
     instance = None
@@ -96,7 +97,11 @@ class Hachoir:
 
     def loadStream(self, stream, filename=None):
         # Look for a plugin
-        split_class = getPluginByStream(stream, filename)
+        split_class = getPluginByStream(stream, filename, None)
+        if split_class == None:
+            mimes = [ item[0] for item in getStreamMime(stream, filename)]
+            warning("Warning: No plugin found for MIME %s." % ", ".join(mimes))
+            split_class = DefaultFilter
             
         # Split 
         try:
