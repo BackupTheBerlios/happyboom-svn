@@ -9,28 +9,30 @@ See also:
 - http://svn.gna.org/viewcvs/castor/trunk/lib/mime.php?view=markup (PHP)
 """
 
-import os, stat, string, re
+import os, sys, stat, string, re
 from error import warning
 
 instance = None
 
 class GuessMime:
     def __init__(self):
-        self.use_failback = False
+        self.use_fallback = False
         self.func = None
         try:
+            path = os.path.dirname(__file__)
+            sys.path.append(path)
             import magic
             self.func = magic.open(magic.MAGIC_MIME)
             self.func.load()
         except ImportError:
             warning("Warning: The library libmagic for Python is unavailable. Using internal fallback engine.")
-            self.use_failback = True
-        if self.use_failback:
-            from  failback.magic import whatis
+            self.use_fallback = True
+        if self.use_fallback:
+            from  fallback.magic import whatis
             self.func = whatis
 
     def guess(self, buffer):
-        if not self.use_failback:
+        if not self.use_fallback:
             return self.func.buffer(buffer)
         else:
             mime = self.func(buffer)
