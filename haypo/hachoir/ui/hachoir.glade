@@ -17,6 +17,7 @@
   <property name="type_hint">GDK_WINDOW_TYPE_HINT_NORMAL</property>
   <property name="gravity">GDK_GRAVITY_NORTH_WEST</property>
   <property name="focus_on_map">True</property>
+  <property name="urgency_hint">False</property>
   <signal name="destroy" handler="on_window_destroy" last_modification_time="Sat, 29 Oct 2005 02:58:52 GMT"/>
 
   <child>
@@ -28,18 +29,20 @@
       <child>
 	<widget class="GtkMenuBar" id="menubar">
 	  <property name="visible">True</property>
+	  <property name="pack_direction">GTK_PACK_DIRECTION_LTR</property>
+	  <property name="child_pack_direction">GTK_PACK_DIRECTION_LTR</property>
 
 	  <child>
-	    <widget class="GtkMenuItem" id="file">
+	    <widget class="GtkMenuItem" id="menu_file">
 	      <property name="visible">True</property>
 	      <property name="label" translatable="yes">_File</property>
 	      <property name="use_underline">True</property>
 
 	      <child>
-		<widget class="GtkMenu" id="file_menu">
+		<widget class="GtkMenu" id="menu_file_menu">
 
 		  <child>
-		    <widget class="GtkImageMenuItem" id="open">
+		    <widget class="GtkImageMenuItem" id="menu_open">
 		      <property name="visible">True</property>
 		      <property name="label">gtk-open</property>
 		      <property name="use_stock">True</property>
@@ -48,7 +51,16 @@
 		  </child>
 
 		  <child>
-		    <widget class="GtkImageMenuItem" id="quit">
+		    <widget class="GtkImageMenuItem" id="menu_close">
+		      <property name="visible">True</property>
+		      <property name="label">gtk-close</property>
+		      <property name="use_stock">True</property>
+		      <signal name="activate" handler="on_toolbutton_close" last_modification_time="Tue, 29 Nov 2005 02:27:30 GMT"/>
+		    </widget>
+		  </child>
+
+		  <child>
+		    <widget class="GtkImageMenuItem" id="menu_quit">
 		      <property name="visible">True</property>
 		      <property name="label">gtk-quit</property>
 		      <property name="use_stock">True</property>
@@ -61,16 +73,16 @@
 	  </child>
 
 	  <child>
-	    <widget class="GtkImageMenuItem" id="help">
+	    <widget class="GtkImageMenuItem" id="menu_help">
 	      <property name="visible">True</property>
 	      <property name="label">gtk-help</property>
 	      <property name="use_stock">True</property>
 
 	      <child>
-		<widget class="GtkMenu" id="help_menu">
+		<widget class="GtkMenu" id="menu_help_menu">
 
 		  <child>
-		    <widget class="GtkImageMenuItem" id="about">
+		    <widget class="GtkImageMenuItem" id="menu_about">
 		      <property name="visible">True</property>
 		      <property name="label">gtk-about</property>
 		      <property name="use_stock">True</property>
@@ -208,6 +220,21 @@
 		  <property name="visible_vertical">True</property>
 		  <property name="is_important">False</property>
 		  <signal name="clicked" handler="on_toolbutton_export" last_modification_time="Wed, 02 Nov 2005 00:47:19 GMT"/>
+		</widget>
+		<packing>
+		  <property name="expand">False</property>
+		  <property name="homogeneous">True</property>
+		</packing>
+	      </child>
+
+	      <child>
+		<widget class="GtkToolButton" id="toolbutton_close">
+		  <property name="visible">True</property>
+		  <property name="stock_id">gtk-close</property>
+		  <property name="visible_horizontal">True</property>
+		  <property name="visible_vertical">True</property>
+		  <property name="is_important">False</property>
+		  <signal name="clicked" handler="on_toolbutton_close" last_modification_time="Tue, 29 Nov 2005 02:21:01 GMT"/>
 		</widget>
 		<packing>
 		  <property name="expand">False</property>
@@ -426,6 +453,7 @@
   <property name="copyright" translatable="yes">Copyright 2005 Victor Stinner</property>
   <property name="comments" translatable="yes">Split binary stream into filters and chunks ...</property>
   <property name="license" translatable="yes">Under GNU GPL licence</property>
+  <property name="wrap_license">False</property>
   <property name="website">http://www.haypocalc.com/wiki/Hachoir</property>
   <property name="website_label" translatable="yes">Website</property>
   <property name="authors">Victor Stinner &lt;victor.stinner AT haypocalc.com&gt;</property>
@@ -446,6 +474,7 @@
   <property name="type_hint">GDK_WINDOW_TYPE_HINT_DIALOG</property>
   <property name="gravity">GDK_GRAVITY_NORTH_WEST</property>
   <property name="focus_on_map">True</property>
+  <property name="urgency_hint">False</property>
   <property name="has_separator">True</property>
 
   <child internal-child="vbox">
@@ -796,6 +825,7 @@ L</property>
   <property name="type_hint">GDK_WINDOW_TYPE_HINT_DIALOG</property>
   <property name="gravity">GDK_GRAVITY_NORTH_WEST</property>
   <property name="focus_on_map">True</property>
+  <property name="urgency_hint">False</property>
   <property name="has_separator">True</property>
 
   <child internal-child="vbox">
@@ -1058,6 +1088,7 @@ L</property>
   <property name="type_hint">GDK_WINDOW_TYPE_HINT_DIALOG</property>
   <property name="gravity">GDK_GRAVITY_NORTH_WEST</property>
   <property name="focus_on_map">True</property>
+  <property name="urgency_hint">False</property>
   <property name="has_separator">True</property>
 
   <child internal-child="vbox">
@@ -1236,6 +1267,7 @@ L</property>
   <property name="type_hint">GDK_WINDOW_TYPE_HINT_DIALOG</property>
   <property name="gravity">GDK_GRAVITY_NORTH_WEST</property>
   <property name="focus_on_map">True</property>
+  <property name="urgency_hint">False</property>
   <property name="has_separator">True</property>
 
   <child internal-child="vbox">

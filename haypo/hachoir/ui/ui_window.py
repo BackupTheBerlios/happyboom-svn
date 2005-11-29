@@ -15,6 +15,9 @@ class MainWindow:
         self.toolbutton_open = xml.get_widget('toolbutton_open')
         self.toolbutton_save = xml.get_widget('toolbutton_save')
         self.toolbutton_property = xml.get_widget('toolbutton_property')
+        self.toolbutton_close = xml.get_widget('toolbutton_close')
+        self.toolbutton_export = xml.get_widget('toolbutton_export')
+        self.menu_close = xml.get_widget('menu_close')
         self.statusbar_state = self.statusbar.get_context_id("State")
         self.table = xml.get_widget('table')
         self.table_store = None
@@ -31,6 +34,9 @@ class MainWindow:
         if not file_present:
             self.toolbutton_parent.set_sensitive(False)
         self.toolbutton_property.set_sensitive(file_present)
+        self.toolbutton_export.set_sensitive(file_present)
+        self.toolbutton_close.set_sensitive(file_present)
+        self.menu_close.set_sensitive(file_present)
 
     def getTableChunk(self, col):
         chunk_id = self.table_store[col][3]
@@ -106,6 +112,9 @@ class MainWindow:
 
     def on_toolbutton_new(self, widget):
         self.on_open_activate(widget)
+
+    def on_toolbutton_close(self, widget):
+        self.ui.hachoir.setFilter(None)
 
     def on_toolbutton_property(self, widget):
         filter = self.ui.hachoir.getFilter()

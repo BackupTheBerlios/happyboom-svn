@@ -26,8 +26,11 @@ class Hachoir:
     def setFilter(self, filter):
         self._main_filter = filter
         self._filter = filter
-        self._addPadding()
-        self._filter.display()
+        if filter != None:
+            self._addPadding()
+            self._filter.display()
+        else:
+            self.ui.window.clear_table()
         self.ui.window.updateToolbar()
 
     def onGoParent(self):
