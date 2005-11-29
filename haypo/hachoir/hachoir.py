@@ -8,7 +8,7 @@ Author: Victor Stinner
 """
 
 import sys, os, re, traceback
-from program import PROGRAM, VERSION
+from program import PROGRAM, VERSION, WEBSITE
 from log import log
 from error import error
 from hachoir_class import Hachoir
@@ -16,7 +16,7 @@ import ui.ui as ui
 
 def usage(defval):
     print "%s version %s" % (PROGRAM, VERSION)
-    print ""
+    print "%s\n" % WEBSITE
     print "Usage: %s [options] file" % (sys.argv[0])
     print ""
     print "Options:"
@@ -60,6 +60,9 @@ def parseArgs(val):
 
 def main():
     try:        
+        print "%s version %s" % (PROGRAM, VERSION)
+        print "%s\n" % WEBSITE
+    
         import imp
         plugins_dir = os.path.join(os.path.dirname(__file__), "plugins")
         plugins_files = os.listdir(plugins_dir)
@@ -91,7 +94,8 @@ def main():
 You can find PyGTK at: http://www.pygtk.org/
 and PyGlade at: http://glade.gnome.org/
 
-Debian: apt-get install python2.4-gtk
+Gentoo: emerge pytgtk
+Debian: apt-get install python2.4-gtk python2.4-magic
 Ubuntu: apt-get install python-gtk2 python-glade2""" % (err))
             sys.exit(1)
         hachoir.run(filename)
