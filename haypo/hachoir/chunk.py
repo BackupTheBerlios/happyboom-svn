@@ -1,5 +1,5 @@
 import struct, re, types
-from config import config
+import config
 from format import checkFormat, splitFormat
 from error import warning, error
 from tools import convertDataToPrintableString
@@ -40,14 +40,21 @@ class Chunk(object):
         else:
             return "%s" % value
 
+    def getRaw(self, max_size=None):
+        oldpos = self._stream.tell()
+        self._stream.seek(self.addr)
+        data = self._stream.getN(max_size)
+        self._stream.seek(oldpos)
+        return data
+
     def getValue(self, max_size=None):
-        return None
+        return self.getRaw(max_size)
 
     def getDisplayData(self):
         if self.display != None:
             return self.display
         else:
-            return self.getValue()
+            return self.getRaw(40)
 
     def setParent(self, parent):
         self._parent = parent
@@ -64,6 +71,7 @@ class Chunk(object):
     size = property(_getSize)        
     id = property(__getId, __setId)
     value = property(getValue)
+    raw = property(getRaw)
     
 class FilterChunk(Chunk):
     def __init__(self, id, filter, parent, parent_addr):
@@ -177,15 +185,15 @@ class StringChunk(Chunk):
         Chunk.update(self)
         self._findSize()
 
-    def getValue(self, max_size=None):
+    def getRaw(self, max_size=None):
         return self._read(None)
-    value = property(getValue)
+    raw = property(getRaw)
 
     def getDisplayData(self):
         if self.display != None:
             return self.display
         else:
-            text = self._read(config["max_string_length"])
+            text = self._read(config.max_string_length)
             return convertDataToPrintableString(text)
         
 class FormatChunkCache:
@@ -201,7 +209,7 @@ class FormatChunkCache:
         endian, size, type = splitFormat(format)
         return (size != "1" and size != "")
 
-    def _getRawData(self, max_size=None):
+    def _getRawData(self, max_size=None, add_comment=True):
         stream = self._chunk.getStream()
         oldpos = stream.tell()
         stream.seek(self._addr)
@@ -212,7 +220,10 @@ class FormatChunkCache:
         else:
             data = stream.getN(max_size)
             stream.seek(oldpos)
-            return data+"(...)", True
+            if add_comment:
+                return data+"(...)", True
+            else:
+                return data, True
 
     def update(self):
         real_format = self._chunk.getRealFormat(self._chunk.getFormat())
@@ -226,6 +237,10 @@ class FormatChunkCache:
     def getSize(self):
         self.update()
         return self._size
+
+    def getRaw(self, max_size=None):
+        self.update()
+        return self._getRawData(max_size, False)[0]
 
     def getValue(self, max_size=None):
         self.update()
@@ -306,6 +321,10 @@ class FormatChunk(Chunk):
             else:
                 self._parent.rescan(self, diff_size, new_id=old_id, new_description=old_description, truncate=True)
         self._parent.updateFormatChunk(self)
+   
+    def getRaw(self, max_size=None):
+        return self._cache.getRaw(max_size)
+    raw = property(getRaw)
    
     def getValue(self, max_size=None):
         return self._cache.getValue(max_size)

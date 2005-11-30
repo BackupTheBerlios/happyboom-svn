@@ -3,7 +3,7 @@ Base class for all splitter filters.
 """
 
 import struct, re, sys, string, types
-from config import config
+import config
 import ui.ui as ui
 from chunk import Chunk, FormatChunk, FilterChunk, StringChunk
 from format import splitFormat    
@@ -256,10 +256,10 @@ class Filter:
         text = ""
         current = self
         while current != None:
-            if text != "": text = " > " + text
+            if text != "": text = "/" + text
             text = current.getId() + text
             current = current.getParent()
-        return text
+        return "/"+text
 
     def updateStatusBar(self):
         text = self.getPath()
@@ -296,7 +296,7 @@ class Filter:
 
     def updateFormatChunk(self, chunk):
         if chunk.id == None: return
-        data = chunk.getValue(config["max_string_length"])
+        data = chunk.getValue(config.max_string_length)
         setattr(self, chunk.id, data)       
 
     def _appendChunk(self, chunk, can_truncate=False, position=None):

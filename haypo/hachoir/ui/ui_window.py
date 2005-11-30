@@ -2,6 +2,40 @@ import os
 import pygtk
 import gtk
 import gtk.glade
+import config
+
+class InfoNotebook:
+    def __init__(self, xml):
+        self.filter_name = xml.get_widget("filter_name")
+        self.filter_description = xml.get_widget("filter_description")
+        self.filter_type = xml.get_widget("filter_type")
+        self.filter_path = xml.get_widget("filter_path")
+        
+        self.stream_type = xml.get_widget("stream_type")        
+        self.stream_size = xml.get_widget("stream_size")
+        
+        self.chunk_name = xml.get_widget("chunk_name")
+        self.chunk_description = xml.get_widget("chunk_description")
+        self.chunk_size = xml.get_widget("chunk_size")
+        self.chunk_address = xml.get_widget("chunk_address")
+        self.chunk_type = xml.get_widget("chunk_type")
+        
+    def updateChunk(self, chunk):
+        self.chunk_name.set_text(chunk.id)
+        self.chunk_description.set_text(chunk.description)
+        self.chunk_address.set_text(str(chunk.addr))
+        self.chunk_size.set_text(str(chunk.size))
+        self.chunk_type.set_text(chunk.__class__.__name__)
+    
+    def updateFilter(self, filter):        
+        self.filter_name.set_text(filter.getId())
+        self.filter_description.set_text(filter.getDescription())
+        self.filter_type.set_text(filter.__class__.__name__)
+        self.filter_path.set_text(filter.getPath())
+
+        stream = filter.getStream()
+        self.stream_type.set_text(stream.__class__.__name__)
+        self.stream_size.set_text("%u" % filter.getSize())
 
 class MainWindow:
     def __init__(self, ui):
@@ -17,14 +51,17 @@ class MainWindow:
         self.toolbutton_property = xml.get_widget('toolbutton_property')
         self.toolbutton_close = xml.get_widget('toolbutton_close')
         self.toolbutton_export = xml.get_widget('toolbutton_export')
+        self.hexa_path = xml.get_widget('hexa_path')
+        self.hexa_content = xml.get_widget('hexa_content')
         self.menu_close = xml.get_widget('menu_close')
         self.statusbar_state = self.statusbar.get_context_id("State")
+        self.info = InfoNotebook(xml)
         self.table = xml.get_widget('table')
         self.table_store = None
         xml.signal_autoconnect(self)
         self.window.connect("key-press-event", self.onKeyUp)
         self.table.connect("button_press_event", self.on_treeview_button_press_event)
-        self.window.set_size_request(760,500)
+#        self.window.set_size_request(760,500)
         self.build_table()
         
     def updateToolbar(self):
@@ -80,14 +117,29 @@ class MainWindow:
         if key.keyval == gtk.keysyms.Escape:
             self.on_go_parent()
         
-    def onTableClicked(self, widget, iter, data=None):
+    def onTableRowActivate(self, widget, iter, data=None):
         row = self.table_store[iter]
         self.ui.on_row_click(row[3])
+        
+    def getActiveChunk(self):
+        select = self.table.get_selection()
+        iter = select.get_selected()[1]
+        if iter != None:
+            row = self.table_store[iter]
+            return self.ui.hachoir.getFilter().getChunk(row[3])
+        else:
+            return None 
+
+    def onTableClick(self, widget, data=None):
+        chunk = self.getActiveChunk()
+        if chunk != None:
+            self.info.updateChunk(chunk)
 
     def build_table(self):
         self.table_store = gtk.TreeStore(int, str, int, str, str, str)
         self.table.set_model(self.table_store)
-        self.table.connect("row-activated", self.onTableClicked)
+        self.table.connect("button_release_event", self.onTableClick)
+        self.table.connect("row-activated", self.onTableRowActivate)
         self.treeview_add_column(self.table, "Address", 0)
         self.treeview_add_column(self.table, "Format", 1)
         self.treeview_add_column(self.table, "Size", 2)
@@ -163,6 +215,30 @@ class MainWindow:
             filename = chooser.get_filename() 
             self.ui.hachoir.saveUser(filename)
         chooser.destroy()
+
+    def on_hexadecimal_clicked(self, widget):
+        chunk = self.getActiveChunk()
+        if chunk == None:
+            return
+        path = chunk.getParent().getPath()+"/"+chunk.id
+        self.hexa_path.set_text(path)
+        raw = chunk.getRaw(config.max_hexa_length)
+        # TODO: Use better str=>hexa function ...
+        content = ""
+        wrap = 16
+        while len(raw) != 0:
+            if len(content) != 0:
+                content = content + "\n"
+            content = content + " ".join([ "%02X" % ord(i) for i in raw[:wrap] ])
+            raw = raw[wrap:]
+        if config.max_hexa_length < chunk.size:
+            if len(content) != 0:
+                content = content + "\n"
+            content = content + " (...)"
+        # TODO: Write new TextBuffer!?
+        buffer = gtk.TextBuffer()
+        buffer.set_text(content)
+        self.hexa_content.set_buffer(buffer)
 
     def on_about_activate(self, widget):
         self.ui.about_dialog.show()

@@ -29,6 +29,7 @@ class Hachoir:
         if filter != None:
             self._addPadding()
             self._filter.display()
+            self.ui.window.info.updateFilter(filter)
         else:
             self.ui.window.clear_table()
         self.ui.window.updateToolbar()
@@ -36,6 +37,7 @@ class Hachoir:
     def onGoParent(self):
         if self._filter.getParent() == None: return
         self._filter = self._filter.getParent()
+        self.ui.window.info.updateFilter(self._filter)
         self._filter.display()
         
     def onRowClick(self, chunk_id):
@@ -44,6 +46,7 @@ class Hachoir:
         if issubclass(chunk.__class__, FilterChunk):
             self._filter = chunk.getFilter()
             self._filter.display()
+            self.ui.window.info.updateFilter(self._filter)
 
     def loadUser(self, filename):
         try:
