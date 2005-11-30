@@ -43,7 +43,10 @@ class Chunk(object):
     def getRaw(self, max_size=None):
         oldpos = self._stream.tell()
         self._stream.seek(self.addr)
-        data = self._stream.getN(max_size)
+        size = self.size
+        if max_size<size:
+            size = max_size
+        data = self._stream.getN(size)
         self._stream.seek(oldpos)
         return data
 
@@ -185,9 +188,9 @@ class StringChunk(Chunk):
         Chunk.update(self)
         self._findSize()
 
-    def getRaw(self, max_size=None):
+    def getValue(self, max_size=None):
         return self._read(None)
-    raw = property(getRaw)
+    value = property(getValue)
 
     def getDisplayData(self):
         if self.display != None:

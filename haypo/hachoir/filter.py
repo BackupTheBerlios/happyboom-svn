@@ -261,13 +261,8 @@ class Filter:
             current = current.getParent()
         return "/"+text
 
-    def updateStatusBar(self):
-        text = self.getPath()
-        ui.window.updateStatusBar("%s: %s (size=%s)" % (text, self.getDescription(), self.getSize()))
-
     def display(self):  
         ui.window.enableParentButton(self.getParent() != None)
-        self.updateStatusBar()
             
         # Update table
         ui.window.clear_table()

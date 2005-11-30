@@ -42,7 +42,6 @@ class MainWindow:
         self.ui = ui
         xml = gtk.glade.XML(self.ui.glade_xml, "main_window")
         self.window = xml.get_widget('main_window')
-        self.statusbar = xml.get_widget('statusbar')
         self.toolbar = xml.get_widget('toolbar')
         self.toolbutton_parent = xml.get_widget('toolbutton_parent')
         self.toolbutton_new = xml.get_widget('toolbutton_new')
@@ -54,7 +53,6 @@ class MainWindow:
         self.hexa_path = xml.get_widget('hexa_path')
         self.hexa_content = xml.get_widget('hexa_content')
         self.menu_close = xml.get_widget('menu_close')
-        self.statusbar_state = self.statusbar.get_context_id("State")
         self.info = InfoNotebook(xml)
         self.table = xml.get_widget('table')
         self.table_store = None
@@ -93,9 +91,6 @@ class MainWindow:
                 self.ui.table_popup.show(pthinfo, event)
             return 1
 
-    def updateStatusBar(self, text):
-        self.statusbar.push(self.statusbar_state, text)
-        
     def enableParentButton(self, enable):
         self.toolbutton_parent.set_sensitive(enable)
 
@@ -149,6 +144,8 @@ class MainWindow:
         self.table.set_reorderable(True)
         self.treeselection = self.table.get_selection()
         self.table.columns_autosize()
+        self.window.maximize()
+        self.window.grab_focus()
 
     def treeview_add_column(self, treeview, name, num):
         col = gtk.TreeViewColumn(name)
@@ -174,7 +171,6 @@ class MainWindow:
         if dlg.run(filter) == gtk.RESPONSE_CANCEL: return
         filter.setId( dlg.getId() )
         filter.setDescription( dlg.getDescription() )
-        filter.updateStatusBar()
         
     def on_open_activate(self, widget):
         chooser = gtk.FileChooserDialog( \
