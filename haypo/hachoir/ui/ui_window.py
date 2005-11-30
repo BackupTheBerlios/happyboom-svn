@@ -34,7 +34,7 @@ class InfoNotebook:
         self.filter_path.set_text(filter.getPath())
 
         stream = filter.getStream()
-        self.stream_type.set_text(stream.__class__.__name__)
+        self.stream_type.set_text(stream.getType())
         self.stream_size.set_text("%u" % filter.getSize())
 
 class MainWindow:

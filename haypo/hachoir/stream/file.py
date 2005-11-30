@@ -1,5 +1,6 @@
 from error import StreamError
 from stream import Stream
+import os
 
 class FileStream(Stream):
     def __init__(self, file, filename=None):
@@ -12,6 +13,10 @@ class FileStream(Stream):
         self.__file.seek(0,2) # Seek to end
         self.__size = self.__file.tell()
         self.__file.seek(0,0) # Seel to beginning
+
+    def getType(self):
+        return "%s (%s)" % \
+            (self.__class__.__name__, self.filename)
         
     def read(self, size, seek=True):
         data = self.__file.read(size)
@@ -20,7 +25,11 @@ class FileStream(Stream):
         return data            
 
     def clone(self):
-        return FileStream(self.__file, self.filename)
+        # TODO: Don't copy low-level file IO,
+        # but only copy seed :-)
+        # => use internal seed + cache
+        file_copy = open(self.filename)
+        return FileStream(file_copy, self.filename)
 
     def seek(self, pos, where=0):
         """ Read file seek document to understand where. """

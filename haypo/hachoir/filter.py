@@ -68,20 +68,25 @@ class Filter:
     def getChunks(self):
         return self._chunks
 
-    def getUniqChunkId(self, id):
-        if id not in self._chunks_dict: return id
-        m = re.compile("^(.*?)([0-9]+)$").match(id)
-        if m != None:
-            root = m.group(1)
-            uniq = int(m.group(2))+1
-        else:
-            root = id
-            uniq = 2
-        new_id = "%s%u" % (root, uniq)
+    def _getUniqChunkId(self, pattern, root, index):
+        new_id = pattern % (root, index)
         while new_id in self._chunks_dict:
-            uniq = uniq+1
-            new_id = "%s%u" % (root, uniq)
+            index = index + 1
+            new_id = pattern % (root, index)
         return new_id 
+
+    def getUniqChunkId(self, id):
+        if id[-2:] == "[]":
+            return self._getUniqChunkId("%s[%u]", id[:-2], 1)
+
+        if id in self._chunks_dict:
+            m = re.compile("^(.*?)([0-9]+)$").match(id)
+            if m != None:
+                return self._getUniqChunkId("%s%u", m.group(1), int(m.group(2))+1)
+            else:
+                return self._getUniqChunkId("%s%u", id, 2)
+        else:
+            return id
 
     def updateChunkId(self, chunk, new_id):
         if chunk.id == new_id: return
@@ -325,6 +330,7 @@ class Filter:
         return chunk
         
     def readStreamChild(self, id, stream, filter_class, *args): 
+        id = self.getUniqChunkId(id)
         oldpos = self._stream.tell()
         filter = filter_class(stream, self, *args)
         filter.setId(id)
@@ -436,6 +442,7 @@ class ArrayFilter(Filter):
             chunk_id = "%s[%u]" % (self.getId(), nb)
             addr = self._stream.tell()
             filter = self._entry_class(self._stream, self)
+            filter.setId(chunk_id)
             nb = nb + 1
             chunk = FilterChunk(chunk_id, filter, self, addr)
             self._array.append( chunk )
@@ -493,10 +500,10 @@ class ArrayFilter(Filter):
         return new
 
 class DeflateFilter(Filter):
-    def __init__(self, stream, parent, bz_stream, size, filter):
+    def __init__(self, stream, parent, bz_stream, size, filter, *args):
         Filter.__init__(self, "deflate", "Deflate", bz_stream, parent)
         self._addr = stream.tell()
-        self.readChild("data", filter)
+        self.readChild("data", filter, *args)
         self._compressed_size = size
 
     def getSize(self):

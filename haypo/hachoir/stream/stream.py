@@ -34,6 +34,9 @@ class Stream:
     
     #--- End of virtual functions -------------------------------------------    
 
+    def getType(self):
+        return self.__class__.__name__
+
     def eof(self):
         return self.getLastPos() <= self.tell() 
 
@@ -134,6 +137,11 @@ class LimitedStream(Stream):
         self._end = self._start + self._size
         self._stream.seek(self._start)
 
+    def getType(self):
+        return "%s of %s: %s..%s" % \
+            (self.__class__.__name__, self._stream.getType(),
+             self._start, self._end)
+ 
     def search(self, str, size_max=None):
         if self._end == 0: return -1
         if size_max == None or self._end-self.tell() < size_max:
@@ -179,7 +187,7 @@ class SubStream(LimitedStream):
         if pos != -1:
             pos = pos - self._start
         return pos
-        
+               
     def read(self, size, seek=True):
         """ Works like Posix read (can returns less than size bytes. """
         return self._stream.read(size, seek)

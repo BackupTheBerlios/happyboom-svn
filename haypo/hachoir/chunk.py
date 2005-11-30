@@ -78,12 +78,13 @@ class Chunk(object):
     
 class FilterChunk(Chunk):
     def __init__(self, id, filter, parent, parent_addr):
-        Chunk.__init__(self, id, \
-            filter.getDescription(), filter.getStream(), filter.getAddr(), \
-            filter.getSize(), parent)
+        self._description = filter.getDescription()
         self.parent_addr = parent_addr
         self._filter = filter
         self._filter.filter_chunk = self
+        Chunk.__init__(self, id, \
+            filter.getDescription(), filter.getStream(), filter.getAddr(), \
+            filter.getSize(), parent)
     
     def getFormat(self):
         return self._filter.getId()
@@ -116,6 +117,13 @@ class FilterChunk(Chunk):
 
     def getFilter(self):
         return self._filter
+
+    def _getDescription(self):
+        return self._description
+    def _setDescription(self, description):
+        self._description = description
+        self._filter.setDescription(description)
+    description = property(_getDescription, _setDescription)
 
 class StringChunk(Chunk):
     cache_hit = 0
