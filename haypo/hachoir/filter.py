@@ -55,7 +55,7 @@ class Filter:
 
     def deleteChunk(self, chunk):
         if len(self._chunks) < 2:
-            error("Can't not the chunk %s (there is only one chunk)." % chunk.id)
+            error("Can't not delete the chunk %s (there is only one chunk)." % chunk.id)
             return            
         chunk_size = chunk.size
         pos = self._chunks.index(chunk)

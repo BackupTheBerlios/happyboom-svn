@@ -44,7 +44,7 @@ class Chunk(object):
         oldpos = self._stream.tell()
         self._stream.seek(self.addr)
         size = self.size
-        if max_size<size:
+        if max_size != None and max_size<size:
             size = max_size
         data = self._stream.getN(size)
         self._stream.seek(oldpos)

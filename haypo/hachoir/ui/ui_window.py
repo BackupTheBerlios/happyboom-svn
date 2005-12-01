@@ -22,11 +22,15 @@ class InfoNotebook:
         self.chunk_type = xml.get_widget("chunk_type")
         
     def updateChunk(self, chunk):
-        self.chunk_name.set_text(chunk.id)
-        self.chunk_description.set_text(chunk.description)
-        self.chunk_address.set_text(str(chunk.addr))
-        self.chunk_size.set_text(str(chunk.size))
-        self.chunk_type.set_text(chunk.__class__.__name__)
+        if chunk != None:
+            self.chunk_name.set_text(chunk.id)
+            self.chunk_description.set_text(chunk.description)
+            self.chunk_address.set_text(str(chunk.addr))
+            self.chunk_size.set_text(str(chunk.size))
+            self.chunk_type.set_text(chunk.__class__.__name__)
+        chunk_present = (chunk != None)
+        self.info_chunk_save = chunk_present
+        self.info_chunk_delete = chunk_present
     
     def updateFilter(self, filter):        
         self.filter_name.set_text(filter.getId())
@@ -45,17 +49,17 @@ class MainWindow:
         self.window = xml.get_widget('main_window')
         self.toolbar = xml.get_widget('toolbar')
         self.toolbutton_parent = xml.get_widget('toolbutton_parent')
-        self.toolbutton_new = xml.get_widget('toolbutton_new')
         self.toolbutton_open = xml.get_widget('toolbutton_open')
-        self.toolbutton_save = xml.get_widget('toolbutton_save')
-        self.toolbutton_property = xml.get_widget('toolbutton_property')
         self.toolbutton_close = xml.get_widget('toolbutton_close')
-        self.toolbutton_export = xml.get_widget('toolbutton_export')
         self.ascii_path = xml.get_widget('ascii_path')
         self.ascii_content = xml.get_widget('ascii_content')
         self.hexa_path = xml.get_widget('hexa_path')
         self.hexa_content = xml.get_widget('hexa_content')
         self.menu_close = xml.get_widget('menu_close')
+        self.info_filter_open = xml.get_widget('info_filter_open')
+        self.info_filter_save = xml.get_widget('info_filter_save')
+        self.info_filter_export = xml.get_widget('info_filter_export')
+        self.info_filter_property = xml.get_widget('info_filter_property')
         self.info = InfoNotebook(xml)
         self.table = xml.get_widget('table')
         self.table_store = None
@@ -64,16 +68,37 @@ class MainWindow:
         self.table.connect("button_press_event", self.on_treeview_button_press_event)
 #        self.window.set_size_request(760,500)
         self.build_table()
+
+    def onSaveChunk(self, event):
+        chunk = self.getActiveChunk()
+        assert chunk != None
+
+        chooser = gtk.FileChooserDialog( \
+            title="Write chunk data to ...",
+            action=gtk.FILE_CHOOSER_ACTION_SAVE,
+            buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_SAVE,gtk.RESPONSE_OK))
+        if chooser.run() == gtk.RESPONSE_OK:
+            filename = chooser.get_filename() 
+            raw = chunk.getRaw()
+            f = open(filename, 'w')
+            f.write(raw)
+            f.close()
+        chooser.destroy()
+
+    def onDeleteChunk(self, event):
+        chunk = self.getActiveChunk()
+        chunk.getParent().deleteChunk(chunk)
         
     def updateToolbar(self):
         file_present = (self.ui.hachoir.getFilter() != None)
-        self.toolbutton_open.set_sensitive(file_present)
-        self.toolbutton_save.set_sensitive(file_present)
+        filter_present = file_present
         if not file_present:
             self.toolbutton_parent.set_sensitive(False)
-        self.toolbutton_property.set_sensitive(file_present)
-        self.toolbutton_export.set_sensitive(file_present)
         self.toolbutton_close.set_sensitive(file_present)
+        self.info_filter_open.set_sensitive(filter_present)
+        self.info_filter_save.set_sensitive(filter_present)
+        self.info_filter_export.set_sensitive(filter_present)
+        self.info_filter_property.set_sensitive(filter_present)
         self.menu_close.set_sensitive(file_present)
 
     def getTableChunk(self, col):
@@ -130,8 +155,7 @@ class MainWindow:
 
     def onTableClick(self, widget, data=None):
         chunk = self.getActiveChunk()
-        if chunk != None:
-            self.info.updateChunk(chunk)
+        self.info.updateChunk(chunk)
 
     def build_table(self):
         self.table_store = gtk.TreeStore(int, str, int, str, str, str)
