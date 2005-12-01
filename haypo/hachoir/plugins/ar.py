@@ -1,11 +1,12 @@
 """
-Debian (.deb) archive file
+GNU ar archive : archive file (.a) and Debian (.deb) archive.
 """
 
 from filter import Filter, DeflateFilter
 from plugin import registerPlugin, guessPlugin
+from error import error
    
-class DebianFileEntry(Filter):
+class ArchiveFileEntry(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "file_entry", "File entry", stream, parent)
         self.readString("header", "UnixLine", "Header")
@@ -22,12 +23,10 @@ class DebianFileEntry(Filter):
         chunk.description = desc
         self.setDescription(desc)
         
-class DebianFile(Filter):
+class ArchiveFile(Filter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, "deb_file", "Debian archive file", stream, parent)
-        self.readString("id", "UnixLine", "Debian archive identifier")
-        self.readString("header", "UnixLine", "Header")
-        self.readString("version", "UnixLine", "Version")
+        Filter.__init__(self, "ar_file", "GNU ar file", stream, parent)
+        self.readString("id", "UnixLine", "ar archive identifier")
         while not stream.eof():
             while True:
                 data = stream.read(1, False)
@@ -35,6 +34,6 @@ class DebianFile(Filter):
                     self.readString("empty_line[]", "UnixLine", "Empty line")
                 else:
                     break
-            self.readChild("file[]", DebianFileEntry)
+            self.readChild("file[]", ArchiveFileEntry)
         
-registerPlugin(DebianFile, "application/x-debian-package")
+registerPlugin(ArchiveFile, ["application/x-debian-package", "application/x-archive"])

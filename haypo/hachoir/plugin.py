@@ -1,6 +1,7 @@
 import re
 from mime import getFileMime, getStreamMime
 from default import DefaultFilter
+from error import warning
 
 def guessPlugin(stream, filename, default=DefaultFilter):
     return getPluginByStream(stream, filename, default)
