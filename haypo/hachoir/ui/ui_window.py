@@ -3,6 +3,7 @@ import pygtk
 import gtk
 import gtk.glade
 import config
+from tools import convertDataToPrintableString
 
 class InfoNotebook:
     def __init__(self, xml):
@@ -50,6 +51,8 @@ class MainWindow:
         self.toolbutton_property = xml.get_widget('toolbutton_property')
         self.toolbutton_close = xml.get_widget('toolbutton_close')
         self.toolbutton_export = xml.get_widget('toolbutton_export')
+        self.ascii_path = xml.get_widget('ascii_path')
+        self.ascii_content = xml.get_widget('ascii_content')
         self.hexa_path = xml.get_widget('hexa_path')
         self.hexa_content = xml.get_widget('hexa_content')
         self.menu_close = xml.get_widget('menu_close')
@@ -211,6 +214,34 @@ class MainWindow:
             filename = chooser.get_filename() 
             self.ui.hachoir.saveUser(filename)
         chooser.destroy()
+
+    def on_ascii_clicked(self, widget):
+        chunk = self.getActiveChunk()
+        if chunk == None:
+            return
+        path = chunk.getParent().getPath()+"/"+chunk.id
+        self.ascii_path.set_text(path)
+        raw = chunk.getRaw(config.max_ascii_length)
+        # TODO: Remove old code
+        if False:
+            # TODO: Use better str=>ascii code ...
+            content = ""
+            wrap = 16
+            while len(raw) != 0:
+                if len(content) != 0:
+                    content = content + "\n"
+                content = content + convertDataToPrintableString(raw[:wrap])
+                raw = raw[wrap:]
+        else:
+            content = convertDataToPrintableString(raw, True)
+        if config.max_hexa_length < chunk.size:
+            if len(content) != 0:
+                content = content + "\n"
+            content = content + " (...)"
+        # TODO: Write new TextBuffer!?
+        buffer = gtk.TextBuffer()
+        buffer.set_text(content)
+        self.ascii_content.set_buffer(buffer)
 
     def on_hexadecimal_clicked(self, widget):
         chunk = self.getActiveChunk()

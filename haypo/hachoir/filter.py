@@ -77,7 +77,7 @@ class Filter:
 
     def getUniqChunkId(self, id):
         if id[-2:] == "[]":
-            return self._getUniqChunkId("%s[%u]", id[:-2], 1)
+            return self._getUniqChunkId("%s[%u]", id[:-2], 0)
 
         if id in self._chunks_dict:
             m = re.compile("^(.*?)([0-9]+)$").match(id)

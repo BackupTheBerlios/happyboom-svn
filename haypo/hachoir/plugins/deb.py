@@ -9,15 +9,18 @@ class DebianFileEntry(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "file_entry", "File entry", stream, parent)
         self.readString("header", "UnixLine", "Header")
-#        info = re.split(" +", self.header)
         info = self["header"].split()
-        filename = info[0]
-        size = int(info[5])
-        dataio = stream.createSub(stream.tell(), size)
-        plugin = guessPlugin(dataio, filename)
-#        self.readStreamChild("data", dataio, plugin)
-#        self.read("data", "%us" % size, "Data")
-        self.readChild("data", DeflateFilter, dataio, size, plugin)
+        assert len(info) == 7
+        self.filename = info[0]
+        self.size = int(info[5])
+        dataio = stream.createSub(stream.tell(), self.size)
+        plugin = guessPlugin(dataio, self.filename)
+        self.readChild("data", DeflateFilter, dataio, self.size, plugin)
+
+    def updateParent(self, chunk):
+        desc = "File entry (%s)" % self.filename
+        chunk.description = desc
+        self.setDescription(desc)
         
 class DebianFile(Filter):
     def __init__(self, stream, parent):
@@ -25,10 +28,13 @@ class DebianFile(Filter):
         self.readString("id", "UnixLine", "Debian archive identifier")
         self.readString("header", "UnixLine", "Header")
         self.readString("version", "UnixLine", "Version")
-        self.readArray("file", DebianFileEntry, "Files", self.checkEnd)
-
-    def checkEnd(self, stream, array, last):
-#        if len(array)==1: return True
-        return stream.eof()
+        while not stream.eof():
+            while True:
+                data = stream.read(1, False)
+                if data == "\n":
+                    self.readString("empty_line[]", "UnixLine", "Empty line")
+                else:
+                    break
+            self.readChild("file[]", DebianFileEntry)
         
 registerPlugin(DebianFile, "application/x-debian-package")

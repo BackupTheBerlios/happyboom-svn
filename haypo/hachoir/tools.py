@@ -102,7 +102,7 @@ def humanFilesize(size):
         last_unit = unit
     return "%u %s" % (size, unit)
 
-def convertDataToPrintableString(data):
+def convertDataToPrintableString(data, keep_n=False):
     if len(data) == 0:
         return "(empty)"
     display = ""
@@ -114,7 +114,10 @@ def convertDataToPrintableString(data):
                 "\t": "\\t",
                 "\0": "\\0"}
             if c in know:
-                display = display + know[c]
+                if not keep_n or c != "\n":
+                    display = display + know[c]
+                else:
+                    display = display + c
             else:
 #                display = display + "\\x%02X" % ord(c)
                 display = display + "."

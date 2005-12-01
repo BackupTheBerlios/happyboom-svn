@@ -153,16 +153,12 @@ class TarFileEntry(Filter):
 class TarFile(Filter):
     def __init__(self, stream, parent=None):
         Filter.__init__(self, "tar_file", "TAR archive file", stream, parent)
-
-        self.readArray("files", TarFileEntry, "Tar Files", self.checkEndOfChunks)
+        while not stream.eof():
+            chunk = self.readChild("file[]", TarFileEntry)
+            if chunk.getFilter().isEmpty():
+                break
         
-#        padding = 4096 - stream.tell() % 4096
-#        self.read("padding", "!%ss" % padding, "Padding (4096 align)")
-#        assert stream.eof()
-
-    def checkEndOfChunks(self, stream, array, file):
-        if file != None:
-            if file.isEmpty(): return True
-        return stream.eof()
+        padding = stream.getSize() - stream.tell()
+        self.read("padding", "!%ss" % padding, "Padding (4096 align)")
         
 registerPlugin(TarFile, ["application/x-gtar", "application/x-tar"])

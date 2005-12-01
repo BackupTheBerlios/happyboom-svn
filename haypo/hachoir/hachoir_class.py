@@ -83,7 +83,7 @@ class Hachoir:
     def _addPadding(self):
         filter_size = self._filter.getSize()
         stream_size = self._filter.getStream().getSize()
-        diff_size = filter_size - stream_size
+        diff_size = filter_size - stream_size + 1
         if diff_size < 0:
             chunks = self._filter.getChunks()
             if len(chunks) != 0:

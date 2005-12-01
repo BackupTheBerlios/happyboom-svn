@@ -152,28 +152,17 @@ class ElfFile(Filter):
             section = self.readChild("prg_header[]", ProgramHeader32)
             sections.append(section.getFilter())
 
-        i = 1
-        for section in sections:
-            print "Section %u: type %u, data in %u..%u " % (i, section["type"], section["offset"], section["offset"]+section["file_size"])
-            i = i + 1
+#        i = 1
+#        for section in sections:
+#            print "Section %u: type %u, data in %u..%u " % (i, section["type"], section["offset"], section["offset"]+section["file_size"])
+#            i = i + 1
             
-        if False:
-            sections.sort( sortSection )
-            for section in sections:
-                if section["type"] != 6 and section["offset"] != 0:
-                    print "  DO Section: %u..%u" % (section["offset"], section["offset"]+section["file_size"])
-                    seek(self, stream, section["offset"])
-                    print stream.tell(), section["offset"]
-#                    assert stream.tell() == section["offset"]
-                    self.read("section[]", "%us" % section["file_size"], "")
-            seek(self, stream, elf["shoff"])
-            assert stream.tell() == elf["shoff"]            
-        else:
-            size = elf["shoff"] - stream.tell()
-            newstream = stream.clone()
-            chunk = self.readChild("data", DeflateFilter, newstream, size, Sections, sections) 
-            chunk.description = "Sections (use an evil hack to manage share same data on differents parts)"
-            assert stream.tell() == elf["shoff"]
+        size = elf["shoff"] - stream.tell()
+        newstream = stream.clone()
+        chunk = self.readChild("data", DeflateFilter, newstream, size, Sections, sections) 
+        chunk.description = "Sections (use an evil hack to manage share same data on differents parts)"
+        assert stream.tell() == elf["shoff"]
+
         for i in range(0, elf["shnum"]):
             chunk = self.readChild("section_header[]", SectionHeader32)
             assert chunk.size == 40
