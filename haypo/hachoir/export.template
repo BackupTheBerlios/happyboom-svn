@@ -6,11 +6,11 @@ Description:
 """
 
 from filter import Filter
-from plugins import registerPlugin
+from plugin import registerPlugin
 
 class MyFilter(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "{id}", "{description}", stream, parent)
 {chunks}
 
-#registerPlugin(MyFilter, "<MIME type>")
+#registerPlugin(MyFilter, "")
