@@ -165,6 +165,7 @@ class ExifEntry(Filter):
 
 def sortExifEntry(a,b):
     return int( a["offset"] - b["offset"] )
+
 class ExifIFD(Filter):
     def __init__(self, stream, parent, endian, offset_diff):
         Filter.__init__(self, "exif", "Exif IFD", stream, parent)
@@ -182,10 +183,14 @@ class ExifIFD(Filter):
             if 4 < entry.size:
                 entries.append(entry)
         self.read("next", endian+"L", "Next IFD offset")
+#        self.read("x", "12s", "")
         entries.sort( sortExifEntry )                
         for entry in entries:
             offset = entry["offset"]+offset_diff
-            assert stream.tell() == offset
+            padding = offset - stream.tell()
+            if 0 < padding:
+                self.read("padding[]", "%us" % padding, "Padding (?)")
+            assert offset == stream.tell()
             self.read("entry_value[]", entry.format, "Value of %s" % entry.getId())
 
     def updateParent(self, chunk):

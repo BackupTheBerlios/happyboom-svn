@@ -66,7 +66,7 @@ class MainWindow:
         xml.signal_autoconnect(self)
         self.window.connect("key-press-event", self.onKeyUp)
         self.table.connect("button_press_event", self.on_treeview_button_press_event)
-#        self.window.set_size_request(760,500)
+        self.window.set_size_request(600,560)
         self.build_table()
 
     def onSaveChunk(self, event):
@@ -171,8 +171,6 @@ class MainWindow:
         self.table.set_reorderable(True)
         self.treeselection = self.table.get_selection()
         self.table.columns_autosize()
-        self.window.maximize()
-        self.window.grab_focus()
 
     def treeview_add_column(self, treeview, name, num):
         col = gtk.TreeViewColumn(name)

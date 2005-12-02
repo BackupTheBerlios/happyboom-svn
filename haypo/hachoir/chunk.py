@@ -224,7 +224,7 @@ class FormatChunkCache:
         stream = self._chunk.getStream()
         oldpos = stream.tell()
         stream.seek(self._addr)
-        if (max_size == None or self._size<max_size) or not self._chunk.isString():
+        if (max_size == None or self._size<=max_size) or not self._chunk.isString():
             data = stream.getN(self._size)
             stream.seek(oldpos)
             return data, False
@@ -289,6 +289,9 @@ class FormatChunk(Chunk):
         id = match.group(1)
         if id == "@end@":
             size = self._stream.getLastPos() - self.addr
+            if size < 0:
+                warning("Size < 0 for chunk %s, will use size=0!" % self.id)
+                size = 0
         else:
             size = self._parent[id]
         return str(size)

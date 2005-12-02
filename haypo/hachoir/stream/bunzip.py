@@ -25,11 +25,12 @@ def BunzipStream(stream):
     if filename==None:
         os.unlink(realname)
 
-    # Check data size
+    # Check data size (buggy with Python <= 2.4.2 and maybe other)
     io.seek(0,2)
     guess_size = io.tell()
     io.seek(0)
 
+    # Check data size
     io.seek(-1,2)
     real_size = io.tell() + 1
     io.seek(0)

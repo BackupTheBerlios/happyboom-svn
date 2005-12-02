@@ -4,7 +4,7 @@ import gtk.glade
 from chunk import FormatChunk, FilterChunk, StringChunk
 from ui_new_chunk import NewChunkDialog
 from ui_new_string import NewStringDialog
-from format import splitFormat # TODO: remove this line
+from format import splitFormat
 from error import error
 
 MAX_CHUNK_SIZE=1024 # When copy to clipboard

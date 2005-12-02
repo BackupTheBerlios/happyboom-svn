@@ -13,11 +13,16 @@ class FileStream(Stream):
         if copy != None:
             self._size = copy._size
             self._seed = copy._seed
+            self._end = copy._end
         else:
             self._file.seek(0,2) # Seek to end
             self._size = self._file.tell()
             self._file.seek(0,0) # Seel to beginning
             self._seed = 0
+            if self._size != 0:
+                self._end = self._size-1
+            else:
+                self._end = 0
 
     def getType(self):
         return "%s (%s)" % \
@@ -66,4 +71,4 @@ class FileStream(Stream):
         return self._size
 
     def getLastPos(self):
-        return self._size-1
+        return self._end
