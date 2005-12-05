@@ -8,3 +8,6 @@ Pedro Côrte-Real <pedrocr AT gmail.com>
     o nice(19) patch to limit CPU use
 Victor Stinner aka haypo <vitor.stinner AT haypocalc.com>
     o First author of the patch
+Thomas de Grenier de Latour <degrenier AT easyconnect.fr>
+    o Patch for use of autotools and getttext (based on official Gimp
+      plugin template), and also wrote first translation (in french)

@@ -8,11 +8,10 @@ For this, you will need:
 - GTK 2.x (version 2.6 or greater?) and development headers of GTK+
   http://www.gtk.org/
 
-Instruction to compile
-======================
+Instructions to compile
+=======================
 
 ./autogen.sh
-./configure
 make
 make install
 
