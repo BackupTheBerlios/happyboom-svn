@@ -1,0 +1,78 @@
+# translation of ru.po to Russian
+# translation of gimp20-greycstoration.po to Russian
+# This file is distributed under the same license as the PACKAGE package.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER.
+# Alexandre Prokoudine <alexandre.prokoudine@gmail.com>, 2005.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: ru\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2005-12-05 03:43+0300\n"
+"PO-Revision-Date: 2005-12-05 03:55+0300\n"
+"Last-Translator: Alexandre Prokoudine <alexandre.prokoudine@gmail.com>\n"
+"Language-Team: Russian <ru@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.10.2\n"
+"Plural-Forms:  nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+#. Insert table in a new notebook page
+#: ../src/dialog.cpp:122
+msgid "Restore"
+msgstr "Восстановление"
+
+#. Power1
+#: ../src/dialog.cpp:127
+msgid "_Detail factor (p1):"
+msgstr "Коэфф. _детализации (p1):"
+
+#: ../src/dialog.cpp:128
+msgid "_Gradient factor (p2):"
+msgstr "Коэфф. _градиента (p2):"
+
+#: ../src/dialog.cpp:129
+msgid "_Time step (dt):"
+msgstr "_Шаг во времени (dt):"
+
+#: ../src/dialog.cpp:130
+msgid "_Blur (sigma):"
+msgstr "_Размывание (sigma):"
+
+#: ../src/dialog.cpp:131
+msgid "Blur _iterations (iter) :"
+msgstr "_Итераций размывания (iter) :"
+
+#. New vbox
+#: ../src/dialog.cpp:141
+msgid "Quality"
+msgstr "Качество"
+
+#. linear checkbox
+#: ../src/dialog.cpp:147
+msgid "Use linear interpolation:"
+msgstr "Линейная интерполяция:"
+
+#. normalize checkbox
+#: ../src/dialog.cpp:153
+msgid "Normalize picture to [0-255]:"
+msgstr "Нормализовать изображение до [0-255]:"
+
+#. Insert parameters into the table
+#: ../src/dialog.cpp:170
+msgid "_Angular step (da):"
+msgstr "Шаг _угла (da):"
+
+#: ../src/dialog.cpp:171
+msgid "_Integral step (dt):"
+msgstr "_Интегральный шаг (dt):"
+
+#: ../src/dialog.cpp:172
+msgid "_Gaussian precision (gauss):"
+msgstr "Точность _гауссова алгоритма (gauss):"
+
+#: ../src/dialog.cpp:188
+msgid "GREYCstoration"
+msgstr "GREYCstoration"
+

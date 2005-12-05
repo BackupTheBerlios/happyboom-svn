@@ -1,13 +1,15 @@
-David Tschumperlé <David.Tschumperle AT greyc.ensicaen.fr>
+David Tschumperlé <David.Tschumperle AT greyc.ensicaen.fr>, french
     o Author of the GREYCstoration algorithm
 David Rodríguez García <david AT livux.com>
     o Patch to limit progress bar updates
-Michael Schumacher <schumaml AT gmx.de>
+Michael Schumacher <schumaml AT gmx.de>, german
     o Prepared Win32 binaries
 Pedro Côrte-Real <pedrocr AT gmail.com>
     o nice(19) patch to limit CPU use
-Victor Stinner aka haypo <vitor.stinner AT haypocalc.com>
+Victor Stinner aka haypo <vitor.stinner AT haypocalc.com>, french
     o First author of the patch
 Thomas de Grenier de Latour <degrenier AT easyconnect.fr>
     o Patch for use of autotools and getttext (based on official Gimp
       plugin template), and also wrote first translation (in french)
+Alexandre Prokoudine <alexandre.prokoudine AT gmail.com>, russian
+    o Russian translation
