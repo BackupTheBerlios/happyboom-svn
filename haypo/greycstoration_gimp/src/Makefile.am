@@ -11,7 +11,6 @@ greycstoration_SOURCES = \
 	greycstoration.cpp \
 	image.h \
 	image.cpp \
-	main.h \
 	main.cpp
 
 AM_CPPFLAGS = \

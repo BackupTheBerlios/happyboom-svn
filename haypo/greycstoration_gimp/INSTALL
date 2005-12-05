@@ -8,14 +8,27 @@ For this, you will need:
 - GTK 2.x (version 2.6 or greater?) and development headers of GTK+
   http://www.gtk.org/
 
+The plugin is only tested on Linux, but Michael Schumacher
+prepared Win32 binaries.
+
 Instructions to compile
 =======================
 
-./autogen.sh
-make
-make install
+  ./configure  [see --help for options]
+  make
+  make install
 
-That's all :-)
+Last step ("make install") should be run by the root user. If you are not the
+administrator on your station, you can still install the plugin in your home 
+directory ("$HOME/.gimp-2.2/plug-ins/"):
+  gimptool --install-bin src/greycstoration
 
-The plugin is only tested on Linux, but Michael Schumacher
-prepared Win32 binaries.
+Instruction to compile SVN sources
+==================================
+
+Prior to running the above described commands, you must create the "configure"
+script by running this command:
+  ./autogen.sh
+
+This requires that you have installed some recent enough versions of GNU 
+autotools (tested with autoconf-1.9.6 and automake-2.59).
