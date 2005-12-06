@@ -56,17 +56,19 @@ class Tachatter:
 
     def readComment(self):
         comment = "/*"
+        end = 0
         while True:
             c=self.file.read(1)
             assert c != ""
             comment = comment + c
             if c == "*":
-                c = self.file.read(1)
-                comment = comment + c
-                if c == "/":
-                    if not self.eat_comments:
-                        self.unput(comment)
-                    return
+                end = 1
+            elif end == 1 and c == "/":
+                if not self.eat_comments:
+                    self.unput(comment)
+                return
+            else:
+                end = 0
 
     def readString(self, quote):
         str = quote
@@ -216,7 +218,8 @@ def parseArgs(tachatte):
     try:
         short = ""
         long = ["help", "version", \
-            "reversible", "number=", "string="]
+            "reversible", "eat-comments",
+            "number=", "string="]
         opts, args = getopt.getopt(sys.argv[1:], short, long)
     except getopt.GetoptError:
         usage()
