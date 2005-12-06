@@ -1,8 +1,9 @@
 #!/usr/bin/python
-# Python script to parse Apache log file
-# 21 septembre 2005
-# Author: Victor Stinner
+# -*- coding: iso-8859-1 -*-
 #
+# Python script to parse Apache log file
+# Creation: 21 septembre 2005
+# Author: Victor Stinner
 
 import re, time, sys, traceback
 
