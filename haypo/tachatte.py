@@ -9,6 +9,16 @@ import sys, re, random, string
 PROGRAM="Tachatte"
 VERSION="2005-12-06"
 
+def count_bits(n):
+    if n < 2:
+        return 1
+    length = 0
+    n = n - 1
+    while 0 < n:
+        n = n/2
+        length = length + 1
+    return length
+
 class Word:
     def __init__(self, old, new):
         self.old = old
@@ -19,7 +29,7 @@ class Tachatter:
         # Options
         self.encode_number = True
         self.encode_string = True
-        self.reversible = False
+        self.mode = "random"
         self.eat_comments = False 
         self.obscure = \
             ["tachatte", "zob", "couille", "merde",
@@ -27,7 +37,8 @@ class Tachatter:
              "batard", "tarace", "chameau"]
         
         # Attributes
-        self.uniq = 1
+        self.uniq = 0
+        self.word_generator = None
         self.word = None
         self.thesaurus={}
         self.exclude = ["if", "else", "return", "for", "while", "do"]
@@ -48,10 +59,9 @@ class Tachatter:
 
     def getHeaders(self):
         content = self.c_include
-        if not self.reversible:
-            for word in self.thesaurus:
-                item = self.thesaurus[word]
-                content = content + "#define %s %s\n" % (item.new, item.old)
+        for word in self.thesaurus:
+            item = self.thesaurus[word]
+            content = content + "#define %s %s\n" % (item.new, item.old)
         return content
 
     def readComment(self):
@@ -83,20 +93,38 @@ class Tachatter:
         else:
             self.unput(str)
 
-    def generateWordReversible(self, new_thesaurus):
+    def generateWord(self, word, new_thesaurus):
+        if self.mode in ("moo", "tachatte"):
+            return self.generateWordUniq(new_thesaurus)
+        elif self.mode == "shit":
+            return self.generateWordRepeat(new_thesaurus)
+        else:
+            return self.generateWordRandom(new_thesaurus)
+
+    def generateWordRepeat(self, new_thesaurus):
+        if 1000 <= self.uniq:
+            raise Exception("Too much shit! (more than %u words)" % 1000)
+        start_up, start_low, repeat, end = self.word_generator
+        if self.uniq & 1 == 1:
+            word = start_up + repeat * (1+self.uniq/2) + end
+        else:            
+            word = start_low + repeat * (1+self.uniq/2) + end
         self.uniq = self.uniq + 1
-        if 256 <= self.uniq:
-            raise Exception("No more shit!")
-        up="TACHATTE"
-        down="tachatte"
+        return word
+
+    def generateWordUniq(self, new_thesaurus):
+        up, down = self.word_generator
+        if (1 << len(up)) <= self.uniq:
+            raise Exception("No more shit! (more than %u words)" % (1 << len(up)))
         word = ""
         index = self.uniq
-        for i in range(0,8):
+        for i in range(0,len(up)):
             if (index & 1 == 1):
                 word = word + up[i]
             else:
                 word = word + down[i]
             index = index/2
+        self.uniq = self.uniq + 1
         return word     
 
     def generateWordRandom(self, new_thesaurus):
@@ -179,13 +207,23 @@ class Tachatter:
         self.generateThesaurus()
 
     def generateThesaurus(self):        
+        # Compute length of thesaurus in bits
+        length = count_bits( len(self.thesaurus) )
+            
+        # Choose uniq word generator
+        if self.mode == "shit":
+            self.word_generator = ("Sh", "sh", "i", "t")
+        elif self.mode == "moo":
+            if length<3:
+                length = 3
+            self.word_generator = ("M"+"O"*(length-1), "m"+"o"*(length-1))
+        else:
+            self.word_generator = ("TACHATTE", "tachatte")
+
         new_words = {}
         for word in self.thesaurus:
             item = self.thesaurus[word]
-            if self.reversible:
-                item.new = self.generateWordReversible(new_words)
-            else:
-                item.new = self.generateWordRandom(new_words)
+            item.new = self.generateWord(item.old, new_words)
             new_words[item.new] = item
 
 def usage():
@@ -196,7 +234,7 @@ def usage():
     print "Options :"
     print "\t--help            : Print this help"
     print "\t--version         : Print the software version"
-    print "\t--reversible      : Use reversible mode"
+    print "\t--mode=MODE       : Mode (random, moo, tachatte or shit)"
     print "\t--eat-comments    : Eat comments (default: off)"
     print "\t--number=ENABLE   : Encode numbers? (default: on)"
     print "\t--string=ENABLE   : Encode numbers? (default: on)"
@@ -218,7 +256,7 @@ def parseArgs(tachatte):
     try:
         short = ""
         long = ["help", "version", \
-            "reversible", "eat-comments",
+            "mode=", "eat-comments",
             "number=", "string="]
         opts, args = getopt.getopt(sys.argv[1:], short, long)
     except getopt.GetoptError:
@@ -227,17 +265,22 @@ def parseArgs(tachatte):
     for o, a in opts:
         if o == "--help":
             usage()
-        if o == "--version":
+        elif o == "--version":
             print "%s version %s" % (PROGRAM, VERSION)
             sys.exit(0)
-        if o == "--reversible":
-            tachatte.reversible = True
-        if o == "--eat-comments":
+        elif o == "--mode":
+            if a not in ("random", "tachatte", "moo", "shit"):
+                usage()
+            tachatte.mode = a
+        elif o == "--eat-comments":
             tachatte.eat_comments = True
-        if o == "--number":
+        elif o == "--number":
             tachatte.encode_number = arg2bool(a)
-        if o == "--string":
+        elif o == "--string":
             tachatte.encode_string = arg2bool(a)
+        else:
+            # What's the hell?!
+            usage()
 
     if len(args) != 1:
         usage()
