@@ -8,6 +8,16 @@
 import sys, re, random, string
 PROGRAM="Tachatte"
 VERSION="2005-12-06"
+        
+def sortThesaurusItem(a,b):
+    return b.count - a.count
+
+def sortThesaurus(thesaurus):
+    sorted = []
+    for item in thesaurus.values():
+        sorted.append(item)
+    sorted.sort(sortThesaurusItem)
+    return sorted 
 
 def count_bits(n):
     if n < 2:
@@ -20,17 +30,20 @@ def count_bits(n):
     return length
 
 class Word:
-    def __init__(self, old, new):
+    def __init__(self, old, new, need_define):
         self.old = old
         self.new = new
+        self.count = 1
+        self.need_define = need_define 
 
 class Tachatter:
     def __init__(self):
         # Options
         self.encode_number = True
         self.encode_string = True
-        self.mode = "random"
+        self.mode = "words"
         self.eat_comments = False 
+        self.sort_thesaurus = True  # most used names are shorter
         self.obscure = \
             ["tachatte", "zob", "couille", "merde",
              "poil", "grossepute", "putain", "encule",
@@ -61,7 +74,8 @@ class Tachatter:
         content = self.c_include
         for word in self.thesaurus:
             item = self.thesaurus[word]
-            content = content + "#define %s %s\n" % (item.new, item.old)
+            if item.need_define:
+                content = content + "#define %s %s\n" % (item.new, item.old)
         return content
 
     def readComment(self):
@@ -166,11 +180,15 @@ class Tachatter:
     def unput(self, str):
         self.content.append(str)
 
-    def unputWord(self, word):
+    def unputWord(self, word, need_define=True):
         if word not in self.thesaurus:
             key = len(self.thesaurus)+1
-            self.thesaurus[word] = Word(word, None) 
-        self.content.append( self.thesaurus[word] )
+            item = Word(word, None, need_define) 
+            self.thesaurus[word] = item
+        else:
+            item = self.thesaurus[word]
+            item.count = item.count + 1
+        self.content.append(item)
 
     def processEOL(self):
         if self.word != None:
@@ -238,9 +256,12 @@ class Tachatter:
         else:
             self.word_generator = ("TACHATTE", "tachatte")
 
+        if self.sort_thesaurus:
+            values = sortThesaurus(self.thesaurus)
+        else:
+            values = self.thesaurus.values()
         new_words = {}
-        for word in self.thesaurus:
-            item = self.thesaurus[word]
+        for item in values:
             item.new = self.generateWord(item.old, new_words)
             new_words[item.new] = item
 
@@ -252,7 +273,7 @@ def usage():
     print "Options :"
     print "\t--help            : Print this help"
     print "\t--version         : Print the software version"
-    print "\t--mode=MODE       : Mode (random, moo, tachatte, letter or shit)"
+    print "\t--mode=MODE       : Mode (words, moo, tachatte, letter or shit)"
     print "\t--eat-comments    : Eat comments (default: off)"
     print "\t--number=ENABLE   : Encode numbers? (default: on)"
     print "\t--string=ENABLE   : Encode numbers? (default: on)"
@@ -287,7 +308,7 @@ def parseArgs(tachatte):
             print "%s version %s" % (PROGRAM, VERSION)
             sys.exit(0)
         elif o == "--mode":
-            if a not in ("random", "tachatte", "moo", "shit", "letter"):
+            if a not in ("words", "tachatte", "moo", "shit", "letter"):
                 usage()
             tachatte.mode = a
         elif o == "--eat-comments":
@@ -296,9 +317,6 @@ def parseArgs(tachatte):
             tachatte.encode_number = arg2bool(a)
         elif o == "--string":
             tachatte.encode_string = arg2bool(a)
-        else:
-            # What's the hell?!
-            usage()
 
     if len(args) != 1:
         usage()
