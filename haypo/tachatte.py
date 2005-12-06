@@ -41,9 +41,12 @@ class Tachatter:
         # Options
         self.encode_number = True
         self.encode_string = True
+        self.encode_syntax = False 
         self.mode = "words"
         self.eat_comments = False 
-        self.sort_thesaurus = True  # most used names are shorter
+        self.eat_spaces = False 
+        self.sort_thesaurus = False # most used names are shorter
+        self.random_thesaurus = False  # most used names are shorter
         self.obscure = \
             ["tachatte", "zob", "couille", "merde",
              "poil", "grossepute", "putain", "encule",
@@ -55,25 +58,44 @@ class Tachatter:
         self.word = None
         self.thesaurus={}
         self.exclude = ["if", "else", "return", "for", "while", "do"]
+        self.exclude = []
+        self.syntax1 = re.compile(r"[][{}();,.*=&|:?+!<>-]")
+        self.syntax2 = re.compile(r"(?:[*/+-=|!]=|\+\+|--|&&|\<\<|\>\>|\|\||-\>)")
+        self.syntax3 = re.compile(r"(?:(?:\<\<|\>\>)=|\.\.\.)")
         self.file = None
         self.regex_c_include = re.compile("^# *include")
         self.c_include = ""
         self.start_word = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
         self.content = []
 
-    def getContent(self):
+    def getContent(self, width=79):
         text = ""
+        line = ""
+        tmp_text = ""
+        if not self.eat_spaces:
+            width = None
         for item in self.content:
             if isinstance(item, Word):
-                text = text + item.new
+                str_item = item.new
             else:
-                text = text + item
+                str_item = item
+#       TODO: Fix code to allow wrap       
+            if width != None:
+                if width <= len(line + str_item):
+                    text = text + line + "\n"
+                    line = ""
+            line = line + str_item
+        text = text + line            
+        if self.eat_spaces:
+            text = text.strip()+"\n"
         return text                
 
     def getHeaders(self):
         content = self.c_include
-        for word in self.thesaurus:
-            item = self.thesaurus[word]
+        values = self.thesaurus.values()
+        if self.random_thesaurus:
+            random.shuffle(values)
+        for item in values:
             if item.need_define:
                 content = content + "#define %s %s\n" % (item.new, item.old)
         return content
@@ -108,16 +130,27 @@ class Tachatter:
             self.unput(str)
 
     def generateWord(self, word, new_thesaurus):
-        if self.mode in ("moo", "tachatte"):
-            return self.generateWordUniq(new_thesaurus)
-        elif self.mode == "shit":
-            return self.generateWordRepeat(new_thesaurus)
-        elif self.mode == "letter":
-            return self.generateWordLetter(new_thesaurus)
-        else:
-            return self.generateWordRandom(new_thesaurus)
+        last = None
+        tries = 1
+        while tries < 100:
+            if self.mode in ("moo", "tachatte"):
+                word = self.generateWordUniq()
+            elif self.mode == "shit":
+                word = self.generateWordRepeat()
+            elif self.mode == "letter":
+                word = self.generateWordLetter()
+            else:
+                word = self.generateWordRandom()
+            if word not in self.thesaurus \
+            and word not in new_thesaurus:
+                return word
+            if word == last:
+                break
+            last = word
+            tries = tries + 1
+        raise Exception("No more shit!")
 
-    def generateWordRepeat(self, new_thesaurus):
+    def generateWordRepeat(self):
         if 1000 <= self.uniq:
             raise Exception("Too much shit! (more than %u words)" % 1000)
         start_up, start_low, repeat, end = self.word_generator
@@ -128,22 +161,21 @@ class Tachatter:
         self.uniq = self.uniq + 1
         return word
 
-    def generateWordUniq(self, new_thesaurus):
-        up, down = self.word_generator
-        if (1 << len(up)) <= self.uniq:
-            raise Exception("No more shit! (more than %u words)" % (1 << len(up)))
+    def generateWordUniq(self):
+        base = len(self.word_generator)
+        length = len(self.word_generator[0])
+        max = base ** length 
+        if max <= self.uniq:
+            raise Exception("No more shit! (more than %u words)" % max)
         word = ""
         index = self.uniq
-        for i in range(0,len(up)):
-            if (index & 1 == 1):
-                word = word + up[i]
-            else:
-                word = word + down[i]
-            index = index/2
+        for i in range(0,length):
+            word = word + self.word_generator[index % base][i]
+            index = index / base
         self.uniq = self.uniq + 1
         return word
 
-    def generateWordLetter(self, new_thesaurus):
+    def generateWordLetter(self):
         up, down = self.word_generator
         if (1 << len(up)) <= self.uniq:
             raise Exception("No more shit! (more than %u words)" % (1 << len(up)))
@@ -159,24 +191,36 @@ class Tachatter:
             index = index / 26
         return word[::-1] 
 
-    def generateWordRandom(self, new_thesaurus):
-        tries = 0
-        while tries < 100:
-            tries = tries + 1
-            index = random.randint(0, len(self.obscure)-1)
-            obscure = self.obscure[index]
-            new = ""
-            for c in obscure:
-                if 70 < random.randint(0,100):
-                    # Take 30% of upper case
-                    new = new + string.upper(c)
-                else:
-                    new = new + c
-            if new not in self.thesaurus \
-            and new not in new_thesaurus:
-                return new
-        raise Exception("No more shit!")
+    def generateWordRandom(self):
+        index = random.randint(0, len(self.obscure)-1)
+        obscure = self.obscure[index]
+        new = ""
+        for c in obscure:
+            if 70 < random.randint(0,100):
+                # Take 30% of upper case
+                new = new + string.upper(c)
+            else:
+                new = new + c
+        return new                
         
+    def last_is_new_line(self):
+        if len(self.content) == 0:
+            return None
+        last = self.content[-1]
+        if isinstance(last, Word):
+            return False
+        else:
+            return last[-1] in "\r\n"
+
+    def last_is_space(self):
+        if len(self.content) == 0:
+            return None
+        last = self.content[-1]
+        if isinstance(last, Word):
+            return False
+        else:
+            return last[-1] in string.whitespace
+
     def unput(self, str):
         self.content.append(str)
 
@@ -198,9 +242,16 @@ class Tachatter:
                 self.unputWord(self.word)
             self.word = None
 
-    def process(self, file):
+    def init(self):
+        if self.mode == "letter" and not self.random_thesaurus:
+            self.sort_thesaurus = True 
+        if self.sort_thesaurus:
+            self.random_thesaurus = False
         if self.encode_number:
             self.start_word = self.start_word + "0123456789"
+
+    def process(self, file):
+        self.init()
         self.file = file
         while True:
             c = self.file.read(1)
@@ -224,6 +275,24 @@ class Tachatter:
                         self.c_include = self.c_include + macro 
                     else:
                         self.unput(macro)
+                elif self.encode_syntax and self.syntax1.match(c) != None:
+                    d = self.file.read(1)
+                    e = self.file.read(1)
+                    cd = c+d
+                    cde = cd+e
+                    if not self.last_is_space():
+                        self.unput(" ")
+                    if len(cde) == 3 and self.syntax3.match(c+d+e) != None:
+                        self.unputWord(c+d+e)
+                        self.unput(" ")
+                    elif len(cd) == 2 and self.syntax2.match(c+d) != None:
+                        self.unputWord(c+d)
+                        self.unput(" ")
+                        self.file.seek(-len(e), 1)
+                    else:
+                        self.unputWord(c)
+                        self.unput(" ")
+                        self.file.seek(-len(d+e), 1)
                 elif c in ("'", "\""):
                     self.readString(c)
                 elif c=="/":
@@ -238,7 +307,14 @@ class Tachatter:
                         self.unput(c)
                         self.file.seek(-1, 1)
                 else:
-                    self.unput(c)
+                    if self.eat_spaces:
+                        if c in string.whitespace:
+                            if not self.last_is_space():
+                                self.unput(" ")
+                        else:
+                            self.unput(c)
+                    else:
+                        self.unput(c)
         self.processEOL()
         self.generateThesaurus()
 
@@ -258,6 +334,9 @@ class Tachatter:
 
         if self.sort_thesaurus:
             values = sortThesaurus(self.thesaurus)
+        elif self.random_thesaurus:
+            values = self.thesaurus.values()
+            random.shuffle(values)
         else:
             values = self.thesaurus.values()
         new_words = {}
@@ -274,7 +353,10 @@ def usage():
     print "\t--help            : Print this help"
     print "\t--version         : Print the software version"
     print "\t--mode=MODE       : Mode (words, moo, tachatte, letter or shit)"
+    print "\t--random          : Shuffle thesaurus (default: off)"
     print "\t--eat-comments    : Eat comments (default: off)"
+    print "\t--eat-spaces      : Eat white spaces (default: off)"
+    print "\t--syntax=ENABLE   : Encode syntax? (default: off)"
     print "\t--number=ENABLE   : Encode numbers? (default: on)"
     print "\t--string=ENABLE   : Encode numbers? (default: on)"
     print
@@ -295,8 +377,8 @@ def parseArgs(tachatte):
     try:
         short = ""
         long = ["help", "version", \
-            "mode=", "eat-comments",
-            "number=", "string="]
+            "mode=", "eat-spaces", "eat-comments", "random",
+            "number=", "string=", "syntax="]
         opts, args = getopt.getopt(sys.argv[1:], short, long)
     except getopt.GetoptError:
         usage()
@@ -311,10 +393,16 @@ def parseArgs(tachatte):
             if a not in ("words", "tachatte", "moo", "shit", "letter"):
                 usage()
             tachatte.mode = a
+        elif o == "--eat-spaces":
+            tachatte.eat_spaces = True
         elif o == "--eat-comments":
             tachatte.eat_comments = True
         elif o == "--number":
             tachatte.encode_number = arg2bool(a)
+        elif o == "--syntax":
+            tachatte.encode_syntax = arg2bool(a)
+        elif o == "--random":
+            tachatte.random_thesaurus = True
         elif o == "--string":
             tachatte.encode_string = arg2bool(a)
 
