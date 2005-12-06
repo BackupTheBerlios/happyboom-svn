@@ -20,6 +20,7 @@ class Tachatter:
         self.encode_number = True
         self.encode_string = True
         self.reversible = False
+        self.eat_comments = False 
         self.obscure = \
             ["tachatte", "zob", "couille", "merde",
              "poil", "grossepute", "putain", "encule",
@@ -31,11 +32,9 @@ class Tachatter:
         self.thesaurus={}
         self.exclude = ["if", "else", "return", "for", "while", "do"]
         self.file = None
-        self.regex_c_include = re.compile("^include")
+        self.regex_c_include = re.compile("^# *include")
         self.c_include = ""
-        self.start_word = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        if self.encode_number:
-            self.start_word = self.start_word + "0123456789"
+        self.start_word = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
         self.content = []
 
     def getContent(self):
@@ -56,12 +55,17 @@ class Tachatter:
         return content
 
     def readComment(self):
+        comment = "/*"
         while True:
             c=self.file.read(1)
             assert c != ""
+            comment = comment + c
             if c == "*":
                 c = self.file.read(1)
+                comment = comment + c
                 if c == "/":
+                    if not self.eat_comments:
+                        self.unput(comment)
                     return
 
     def readString(self, quote):
@@ -120,47 +124,56 @@ class Tachatter:
             self.thesaurus[word] = Word(word, None) 
         self.content.append( self.thesaurus[word] )
 
-    def processEOL(self, c):
+    def processEOL(self):
         if self.word != None:
             if self.word in self.exclude:
                 self.unput(self.word)
             else:
                 self.unputWord(self.word)
             self.word = None
-        if c != None:
-            self.unput(c)
 
     def process(self, file):
+        if self.encode_number:
+            self.start_word = self.start_word + "0123456789"
         self.file = file
         while True:
             c = self.file.read(1)
             if c == '':
                 break
-            elif c=="#":
-                line = self.file.readline()
-                if self.regex_c_include.match(line) != None:
-                    self.c_include = self.c_include + "#%s" % line 
-                else:
-                    self.unput('#'+line)
-            elif c in ("'", "\""):
-                self.readString(c)
-            elif c=="/":
-                c=f.read(1)
-                if c == "/":
-                    line = self.file.readline()
-                    self.unput('/'+line)
-                elif c=="*":
-                    self.readComment()
-                else:
-                    f.seek(-1,1)
-            elif c in self.start_word:
+
+            if c in self.start_word:
                 if self.word != None:
                     self.word = self.word + c
                 else:
                     self.word = c
             else:
-                self.processEOL(c)
-        self.processEOL(None)
+                self.processEOL()
+                if c=="#":
+                    line = self.file.readline()
+                    macro = "#"+line
+                    while re.match(r"^.*\\ *$", line.strip()) != None:
+                        line = self.file.readline()
+                        macro = macro + line
+                    if self.regex_c_include.match(macro) != None:
+                        self.c_include = self.c_include + macro 
+                    else:
+                        self.unput(macro)
+                elif c in ("'", "\""):
+                    self.readString(c)
+                elif c=="/":
+                    d = self.file.read(1)
+                    if d == "/":
+                        line = self.file.readline()
+                        if not self.eat_comments:
+                            self.unput('//'+line)
+                    elif d=="*":
+                        self.readComment()
+                    else:
+                        self.unput(c)
+                        self.file.seek(-1, 1)
+                else:
+                    self.unput(c)
+        self.processEOL()
         self.generateThesaurus()
 
     def generateThesaurus(self):        
@@ -182,7 +195,20 @@ def usage():
     print "\t--help            : Print this help"
     print "\t--version         : Print the software version"
     print "\t--reversible      : Use reversible mode"
+    print "\t--eat-comments    : Eat comments (default: off)"
+    print "\t--number=ENABLE   : Encode numbers? (default: on)"
+    print "\t--string=ENABLE   : Encode numbers? (default: on)"
+    print
+    print "Values for ENABLE: 0, 1, on, off, true or false."
     sys.exit(2)
+
+def arg2bool(arg):
+    arg = arg.lower()
+    if arg in ("0", "off", "false"):
+        return False
+    if arg in ("1", "on", "true"):
+        return True
+    usage()        
 
 def parseArgs(tachatte):
     import getopt
@@ -190,7 +216,7 @@ def parseArgs(tachatte):
     try:
         short = ""
         long = ["help", "version", \
-            "reversible"]
+            "reversible", "number=", "string="]
         opts, args = getopt.getopt(sys.argv[1:], short, long)
     except getopt.GetoptError:
         usage()
@@ -203,6 +229,12 @@ def parseArgs(tachatte):
             sys.exit(0)
         if o == "--reversible":
             tachatte.reversible = True
+        if o == "--eat-comments":
+            tachatte.eat_comments = True
+        if o == "--number":
+            tachatte.encode_number = arg2bool(a)
+        if o == "--string":
+            tachatte.encode_string = arg2bool(a)
 
     if len(args) != 1:
         usage()
