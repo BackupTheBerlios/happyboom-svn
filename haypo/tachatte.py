@@ -98,6 +98,8 @@ class Tachatter:
             return self.generateWordUniq(new_thesaurus)
         elif self.mode == "shit":
             return self.generateWordRepeat(new_thesaurus)
+        elif self.mode == "letter":
+            return self.generateWordLetter(new_thesaurus)
         else:
             return self.generateWordRandom(new_thesaurus)
 
@@ -125,7 +127,23 @@ class Tachatter:
                 word = word + down[i]
             index = index/2
         self.uniq = self.uniq + 1
-        return word     
+        return word
+
+    def generateWordLetter(self, new_thesaurus):
+        up, down = self.word_generator
+        if (1 << len(up)) <= self.uniq:
+            raise Exception("No more shit! (more than %u words)" % (1 << len(up)))
+        word = ""
+        word = chr(ord('a') + self.uniq % 26)
+        index = self.uniq / 26
+        self.uniq = self.uniq + 1
+        if index == 1:
+            return "a"+word
+        index = index - 1
+        while 0 < index:
+            word = word + chr(ord('a')+index % 26)
+            index = index / 26
+        return word[::-1] 
 
     def generateWordRandom(self, new_thesaurus):
         tries = 0
@@ -234,7 +252,7 @@ def usage():
     print "Options :"
     print "\t--help            : Print this help"
     print "\t--version         : Print the software version"
-    print "\t--mode=MODE       : Mode (random, moo, tachatte or shit)"
+    print "\t--mode=MODE       : Mode (random, moo, tachatte, letter or shit)"
     print "\t--eat-comments    : Eat comments (default: off)"
     print "\t--number=ENABLE   : Encode numbers? (default: on)"
     print "\t--string=ENABLE   : Encode numbers? (default: on)"
@@ -269,7 +287,7 @@ def parseArgs(tachatte):
             print "%s version %s" % (PROGRAM, VERSION)
             sys.exit(0)
         elif o == "--mode":
-            if a not in ("random", "tachatte", "moo", "shit"):
+            if a not in ("random", "tachatte", "moo", "shit", "letter"):
                 usage()
             tachatte.mode = a
         elif o == "--eat-comments":
