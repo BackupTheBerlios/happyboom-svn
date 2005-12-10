@@ -65,6 +65,8 @@ def getStreamMime(stream, filename):
     return getBufferMime(data, filename)
 
 def getAnotherBufferMime(buffer):    
+    if buffer[:2] == "\x4d\x4d" and buffer[6:12]=="\x02\0\x0A\0\0\0":
+        return "image/x-3ds"
     if 2<=len(buffer) and ord(buffer[0])==31 and ord(buffer[1])==139:
         return "application/x-gzip"
     if buffer[:4] == "%PDF":
@@ -110,7 +112,7 @@ def getBufferMime(buffer, filename):
         instance = GuessMime()
     mimes = instance.guess(buffer)
     mimes = splitMimes(mimes)
-    if (len(mimes) == 0 or mimes[0][0] == 'application/octet-stream') and filename != None:
+    if len(mimes) == 0 or mimes[0][0] in ('application/octet-stream', 'image/tiff'):
         ext = os.path.splitext(filename)[1]
         new_mime = getAnotherBufferMime(buffer)
         if new_mime == None:

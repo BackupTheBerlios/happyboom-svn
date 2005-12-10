@@ -77,14 +77,14 @@ class Filter_3DS_Chunk(Filter):
         self.read("size", "<L", "Chunk size")
         types = {
             0xA000: readMaterial,
-            0x4000: readObject,
+#            0x4000: readObject,
             0xA300: readTextureFilename,
             0x0011: readColor,
+            0x0002: readVersion,
 # TODO: Uncomment these functions, it's too slow yet            
 #            0x4110: readVertexList,
 #            0x4120: readPolygonList,
-#            0x4140: readMapList,
-            0x0002: readVersion
+#            0x4140: readMapList
         }
         size = self["size"] - 6
         type = self["type"] 
@@ -155,6 +155,4 @@ class Filter_3DS_File(Filter):
         while not stream.eof():
             self.readChild("chunk[]", Filter_3DS_Chunk)
 
-# TODO: What the is that!? => image/tiff
-# What's the right MIME type?
-registerPlugin(Filter_3DS_File, "image/tiff")
+registerPlugin(Filter_3DS_File, "image/x-3ds")
