@@ -174,7 +174,7 @@ class ExifIFD(Filter):
         entries = []
         while True:
             next = stream.getFormat("!L", False)[0]
-            if next == 0:
+            if next in (0, 0xF0000000):
                 break
             chunk = self.readChild("entry[]", ExifEntry, endian)
             entry = chunk.getFilter()
@@ -184,7 +184,7 @@ class ExifIFD(Filter):
                 entries.append(entry)
         self.read("next", endian+"L", "Next IFD offset")
 #        self.read("x", "12s", "")
-        entries.sort( sortExifEntry )                
+        entries.sort( sortExifEntry )
         for entry in entries:
             offset = entry["offset"]+offset_diff
             padding = offset - stream.tell()
@@ -240,8 +240,16 @@ class ExifFilter(Filter):
             self.read("whatsthis?", endian+"H", "What's this ??")
             while True:
                 tag = stream.getN(2, False)
+                if tag == "\xFF\xD8":
+                    size = stream.getSize() - stream.tell()
+                    sub = stream.createLimited(size=size)
+                    from jpeg import JpegFile
+                    self.readStreamChild("thumbnail", sub, JpegFile)
+                    break
                 if tag == "\xFF\xFF":
                     break
                 self.readChild("ifd[]", ExifIFD, endian, 6)
         size = stream.getSize() - stream.tell()
-        self.read("end", "%us" % size, "End")
+        if size != 0:                
+            self.read("end", "%us" % size, "End")
+        assert self.getSize() == stream.getSize()

@@ -371,6 +371,7 @@ class Filter:
     
     def read(self, id, format, description, post=None):
         """ Returns chunk """
+        id = self.getUniqChunkId(id)
         chunk = FormatChunk(id, description, self._stream, self._stream.tell(), format, self)
         self.appendChunk(chunk)
         self._stream.seek(chunk.addr + chunk.size)

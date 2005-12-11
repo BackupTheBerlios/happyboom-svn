@@ -47,7 +47,11 @@ class Stream:
             size = self.getSize()-start
         return SubStream(self, start, size, self.filename)
 
-    def createLimited(self, start, size):
+    def createLimited(self, start=None, size=None):
+        if start==None:
+            start = self.tell()
+        if size == None:
+            size = self.getSize()-start
         return LimitedStream(self, start, size, self.filename)
 
     def getFormat(self, format, seek=True):
