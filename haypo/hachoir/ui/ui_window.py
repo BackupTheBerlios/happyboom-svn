@@ -195,7 +195,14 @@ class MainWindow:
         self.on_open_activate(widget)
 
     def on_toolbutton_close(self, widget):
-        self.ui.hachoir.setFilter(None)
+        dlg = gtk.MessageDialog( \
+            type=gtk.MESSAGE_QUESTION,
+            buttons=gtk.BUTTONS_YES_NO,
+            message_format="Are you sure that you want to close the file?")
+        dlg.set_default_response(gtk.RESPONSE_NO)            
+        if dlg.run() == gtk.RESPONSE_YES:
+            self.ui.hachoir.setFilter(None)
+        dlg.destroy()
 
     def on_toolbutton_property(self, widget):
         filter = self.ui.hachoir.getFilter()

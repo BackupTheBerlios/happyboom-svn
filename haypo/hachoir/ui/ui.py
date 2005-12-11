@@ -6,7 +6,7 @@ def loadInterface(hachoir):
     try:
         pygtk.require ('2.0') # 2.2 for Clipboard
     except:
-	raise Exception("Sorry, you need pyGTK version 2.0")	
+        raise Exception("Sorry, you need pyGTK version 2.0")	
     from ui_glade import GladeInterface    
     glade = os.path.join(os.path.dirname(__file__), 'hachoir.glade')
     ui = GladeInterface(glade, hachoir)

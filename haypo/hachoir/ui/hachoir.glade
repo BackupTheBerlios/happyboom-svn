@@ -917,6 +917,7 @@
 
 	      <child>
 		<widget class="GtkHButtonBox" id="hbuttonbox2">
+		  <property name="border_width">6</property>
 		  <property name="visible">True</property>
 		  <property name="layout_style">GTK_BUTTONBOX_DEFAULT_STYLE</property>
 		  <property name="spacing">0</property>
@@ -998,6 +999,7 @@
 
 	  <child>
 	    <widget class="GtkVBox" id="vbox5">
+	      <property name="border_width">6</property>
 	      <property name="visible">True</property>
 	      <property name="homogeneous">False</property>
 	      <property name="spacing">0</property>
@@ -1143,6 +1145,7 @@
 
 	  <child>
 	    <widget class="GtkVBox" id="vbox6">
+	      <property name="border_width">6</property>
 	      <property name="visible">True</property>
 	      <property name="homogeneous">False</property>
 	      <property name="spacing">0</property>

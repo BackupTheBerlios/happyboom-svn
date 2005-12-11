@@ -1,10 +1,11 @@
 import os
 from log import log
-from ui.ui import ui as ui
+import ui.ui
 
 def warning(message):
     log.warning(message)   
-    if ui != None:
+    if ui.ui.ui != None:
+        import gtk
         dlg = gtk.MessageDialog( \
             type=gtk.MESSAGE_WARNING,
             buttons=gtk.BUTTONS_OK,
@@ -14,7 +15,9 @@ def warning(message):
 
 def error(message):
     log.error(message)
-    if ui != None:
+    print ui.ui
+    if ui.ui.ui != None:
+        import gtk
         dlg = gtk.MessageDialog( \
             type=gtk.MESSAGE_ERROR,
             buttons=gtk.BUTTONS_OK,
