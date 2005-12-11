@@ -75,20 +75,6 @@ class PngTime(Filter):
         return "PNG time chunk <%04u-%02u-%02u %02u:%02u:%02u>" % \
             (self["year"], self["month"], self["day"],
              self["hour"], self["minute"], self["second"])
-
-class PngFile(Filter):
-    """
-    Split a PNG file into chunks.
-    """
-
-    def __init__(self, stream, parent=None):
-        Filter.__init__(self, "png_file", "PNG file", stream, parent)
-        self.read("header", "!8s", "File header")
-        assert self["header"] == "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A"
-        self.readArray("chunks", PngChunk, "Png chunks", self.checkEndOfChunks)
-
-    def checkEndOfChunks(self, stream, array, png_chunk):
-        return stream.eof()
         
 class PngChunk(Filter):
     def __init__(self, stream, parent):
@@ -118,5 +104,17 @@ class PngChunk(Filter):
 
     def __str__(self):
         return "PngChunk <size=%u, type=%s>" % (self["size"], self["type"])
+
+class PngFile(Filter):
+    """
+    Split a PNG file into chunks.
+    """
+
+    def __init__(self, stream, parent=None):
+        Filter.__init__(self, "png_file", "PNG file", stream, parent)
+        self.read("header", "!8s", "File header")
+        assert self["header"] == "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A"
+        while not stream.eof():
+            self.readChild("chunks[]", PngChunk)
 
 registerPlugin(PngFile, ["image/png", "image/x-png"])

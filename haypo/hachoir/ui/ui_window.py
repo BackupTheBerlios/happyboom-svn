@@ -68,6 +68,13 @@ class MainWindow:
         self.table.connect("button_press_event", self.on_treeview_button_press_event)
         self.window.set_size_request(600,560)
         self.build_table()
+        
+    def onChunkCopy(self, event):
+        chunk = self.getActiveChunk()
+        print "Copy %s" % chunk
+        assert chunk != None
+        text = chunk.getStringValue()
+        self.ui.getClipboard().set_text(text)
 
     def onSaveChunk(self, event):
         chunk = self.getActiveChunk()

@@ -45,7 +45,10 @@ class GifColorMap(Filter):
             assert issubclass(parent.__class__, GifFile)
             screen = parent.getChunk("screen").getFilter()
             self._nb_colors = (1 << screen.bits_per_pixel)
-        self.readArray("color", GifColor, "Color map", self.checkEndOfMap)
+        n = 0
+        while n<self._nb_colors:
+            self.readChild("color[]", GifColor)
+            n = n + 1
 
     def checkEndOfMap(self, stream, array, color):
         return len(array) == self._nb_colors 
@@ -60,11 +63,10 @@ class GifExtension(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "gif_ext", "GIF extension", stream, parent)
         self.read("func", "<B", "Function")
-        self.readArray("chunks", GifExtensionChunk, "Extension chunks", self.checkEnd)
-
-    def checkEnd(self, stream, array, chunk):
-        if chunk == None: return False
-        return chunk["size"] == 0 
+        while True:
+            chunk = self.readChild("chunk[]", GifExtensionChunk)
+            if chunk.getFilter()["size"] == 0:
+                break
         
 class GifScreenDescriptor(Filter):
     def __init__(self, stream, parent):
