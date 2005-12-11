@@ -103,7 +103,7 @@ Gentoo: emerge pytgtk
 Debian: apt-get install python2.4-gtk python2.4-magic
 Ubuntu: apt-get install python-gtk2 python-glade2""" % (err))
                 sys.exit(1)
-        if True:
+        if False:
             import profile, pstats
             profile.run('global hachoir; hachoir.run("%s")' % filename, 'hachoir.loadStream')
             #pstats.Stats('hachoir.loadStream').sort_stats('time').print_stats()
