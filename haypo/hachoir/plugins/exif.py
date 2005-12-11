@@ -154,7 +154,7 @@ class ExifEntry(Filter):
         parent.description = "Exif entry (%s)" % self.getTag() 
 
     def getTag(self):
-        return ExifEntry.tag_name.get(self["tag"], "Unknown tag (0x%03X)" % self["tag"])
+        return ExifEntry.tag_name.get(self["tag"], "Unknown tag (0x%04X)" % self["tag"])
 
     def processType(self, chunk):
         return ExifEntry.type_name.get(chunk.value, "%u" % chunk.value) 
@@ -172,18 +172,19 @@ class ExifIFD(Filter):
         self.endian = endian
         self.read("id", endian+"H", "IFD identifier")
         entries = []
+        next_chunk_offset = None
         while True:
             next = stream.getFormat("!L", False)[0]
             if next in (0, 0xF0000000):
                 break
             chunk = self.readChild("entry[]", ExifEntry, endian)
             entry = chunk.getFilter()
-            if entry["tag"] == 0x8769:
+            if entry["tag"] in (0x8769, 0x0201):
+                next_chunk_offset = entry["value"]+offset_diff
                 break
             if 4 < entry.size:
                 entries.append(entry)
         self.read("next", endian+"L", "Next IFD offset")
-#        self.read("x", "12s", "")
         entries.sort( sortExifEntry )
         for entry in entries:
             offset = entry["offset"]+offset_diff
@@ -192,6 +193,10 @@ class ExifIFD(Filter):
                 self.read("padding[]", "%us" % padding, "Padding (?)")
             assert offset == stream.tell()
             self.read("entry_value[]", entry.format, "Value of %s" % entry.getId())
+        if next_chunk_offset != None:
+            padding = next_chunk_offset - stream.tell()
+            if 0 < padding:
+                self.read("padding[]", "%us" % padding, "Padding (?)")
 
     def updateParent(self, chunk):
         desc = "Exif IFD (id %s)" % self["id"]
@@ -213,42 +218,19 @@ class ExifFilter(Filter):
            endian = ">"
         self.read("header2", endian+"H", "Header2 (42)")
 
-        if False:
-            # Part #0
-            self.read("nb_entry", endian+"H", "Number of entries")
-            self.read("offset", endian+"L", "Offset")
-            nb_entry = self["nb_entry"]+1
-            entries = []
-            for i in range(0,nb_entry):
-                chunk = self.readChild("entry[]", ExifEntry, endian)
-                entry = chunk.getFilter()
-                if entry["tag"] != 0x8769:
-                    entries.append(entry)
-
-            # TODO: What's this?
-            self.read("next", endian+"L", "Next IFD offset")
-
-            # Read data of part #0
-            for entry in entries:
-                if 4 < entry.size:
-                    self.read("entry_value[]", entry.format, "Value of %s" % entry.getId())
-
-            # Read IFD
-            self.readChild("ifd", ExifIFD, endian)
-        else:
-            self.read("nb_entry", endian+"H", "Number of entries")
-            self.read("whatsthis?", endian+"H", "What's this ??")
-            while True:
-                tag = stream.getN(2, False)
-                if tag == "\xFF\xD8":
-                    size = stream.getSize() - stream.tell()
-                    sub = stream.createLimited(size=size)
-                    from jpeg import JpegFile
-                    self.readStreamChild("thumbnail", sub, JpegFile)
-                    break
-                if tag == "\xFF\xFF":
-                    break
-                self.readChild("ifd[]", ExifIFD, endian, 6)
+        self.read("nb_entry", endian+"H", "Number of entries")
+        self.read("whatsthis?", endian+"H", "What's this ??")
+        while True:
+            tag = stream.getN(2, False)
+            if tag == "\xFF\xD8":
+                size = stream.getSize() - stream.tell()
+                sub = stream.createLimited(size=size)
+                from jpeg import JpegFile
+                self.readStreamChild("thumbnail", sub, JpegFile)
+                break
+            if tag == "\xFF\xFF":
+                break
+            self.readChild("ifd[]", ExifIFD, endian, 6)
         size = stream.getSize() - stream.tell()
         if size != 0:                
             self.read("end", "%us" % size, "End")
