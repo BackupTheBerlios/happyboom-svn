@@ -21,6 +21,7 @@ def usage(defval):
     print ""
     print "Options:"
     print "\t--script file.py  : Load python script"
+    print "\t--no-ui           : Don't load user interface"
     print "\t--version         : Show the program version"
     print "\t--verbose         : Activate verbose mode"
     print "\t--help            : Show this help"
@@ -31,7 +32,7 @@ def parseArgs(val):
     
     try:
         short = ""
-        long = ["verbose", "help", "version", "script="]
+        long = ["verbose", "help", "version", "script=", "no-ui"]
         opts, args = getopt.getopt(sys.argv[1:], short, long)
     except getopt.GetoptError:
         usage(def_val)
@@ -52,6 +53,8 @@ def parseArgs(val):
         if o == "--version":
             print "%s version %s" % (PROGRAM, VERSION)
             sys.exit()
+        if o == "--no-ui":
+            val["load_ui"] = False
         if o == "--script":
             val["script"] = a
         if o == "--verbose":
@@ -78,17 +81,19 @@ def main():
 
         opt = {
             "verbose": False,
-            "script": None
+            "script": None,
+            "load_ui": True            
         }
         opt, filename = parseArgs(opt)
-
+        global hachoir 
         hachoir = Hachoir()
         for key in opt:
             setattr(hachoir, key, opt[key])
-        try:
-            ui.loadInterface(hachoir)
-        except ImportError, err:
-            error("""Error: a Python module is missing:
+        if hachoir.load_ui:
+            try:
+                ui.loadInterface(hachoir)
+            except ImportError, err:
+                error("""Error: a Python module is missing:
 %s
 
 You can find PyGTK at: http://www.pygtk.org/
@@ -97,8 +102,15 @@ and PyGlade at: http://glade.gnome.org/
 Gentoo: emerge pytgtk
 Debian: apt-get install python2.4-gtk python2.4-magic
 Ubuntu: apt-get install python-gtk2 python-glade2""" % (err))
-            sys.exit(1)
-        hachoir.run(filename)
+                sys.exit(1)
+        if True:
+            import profile, pstats
+            profile.run('global hachoir; hachoir.run("%s")' % filename, 'hachoir.loadStream')
+            #pstats.Stats('hachoir.loadStream').sort_stats('time').print_stats()
+            pstats.Stats('hachoir.loadStream').sort_stats('cumulative').print_stats()
+        else:
+            hachoir.run(filename)
+
 
     except SystemExit:
         pass

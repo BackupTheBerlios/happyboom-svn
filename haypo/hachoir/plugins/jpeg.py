@@ -26,7 +26,7 @@ class JpegChunkApp0(Filter):
         self.read("thumb_h", "B", "Thumbnail height")
         thumb = self["thumb_w"] * self["thumb_h"]
         if thumb != 0:
-            self.read("thumb_data", "%us" % size, "Thumbnail data", truncate=True)
+            self.read("thumb_data", "%us" % size, "Thumbnail data")
 
 class JpegChunk(Filter):
     def __init__(self, stream, parent):

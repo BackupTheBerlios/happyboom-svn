@@ -79,7 +79,7 @@ class TarFileEntry(Filter):
 
     def __init__(self, stream, parent):
         Filter.__init__(self, "tar_file_entry","Tar file entry", stream, parent)
-        self.read("name", "!100s", "Name", truncate=False, post=self.stripNul)
+        self.read("name", "!100s", "Name", post=self.stripNul)
         self.name = self["name"].strip("\0")
         self.read("mode", "!8s", "Mode", post=self.convertOctal)
         self.read("uid", "!8s", "User ID", post=self.convertOctal)
@@ -89,7 +89,7 @@ class TarFileEntry(Filter):
         self.read("mtime", "!12s", "Modification time", self.getTime)
         self.read("check_sum", "!8s", "Check sum")
         self.read("type", "!c", "Type")
-        self.read("lname", "!100s", "Link name", post=self.stripNul, truncate=False)
+        self.read("lname", "!100s", "Link name", post=self.stripNul)
         self.read("magic", "!8s", "Magic", post=self.stripNul)
         self.read("uname", "!32s", "User name", post=self.stripNul)
         self.read("gname", "!32s", "Group name", post=self.stripNul)
@@ -109,11 +109,11 @@ class TarFileEntry(Filter):
                 stream.seek(oldpos)
                 chunk = self.readChild("filedata", EmptyFilter)
                 filter = chunk.getFilter()
-                filter.read("filedata", "!%us" % self.size, "File data", truncate=True)
+                filter.read("filedata", "!%us" % self.size, "File data")
 
         if stream.tell() % 512 != 0:
             padding = 512 - stream.tell() % 512
-            self.read("padding", "!%ss" % padding, "Padding (512 align)", truncate=True)
+            self.read("padding", "!%ss" % padding, "Padding (512 align)")
 
     def isEmpty(self):
         return self.name == ""

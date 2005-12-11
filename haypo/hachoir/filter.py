@@ -11,6 +11,9 @@ from error import error
 from tools import getBacktrace
 
 class Filter:
+    regex_chunk_uniq_id = re.compile("^(.*?)([0-9]+)$")
+    regex_array_chunk = re.compile(r"^([^[]+)\[\]$")
+
     def __init__(self, id, description, stream, parent):
         self._id = id
         self._description = description
@@ -24,14 +27,18 @@ class Filter:
         self._chunks = []
         self._chunks_dict = {}
         self._addr = self._stream.tell()
+        self._cache_valid = False
+        self._cache_size = None
 
     def __getitem__(self, chunk_id):
         return self.getChunk(chunk_id).getValue()
 
-    def clone(self):
+    def clone(self, addr=None):
         if self.__class__ == Filter:
             return None
-        self.getStream().seek(self.getAddr())
+        if addr == None:
+            addr = self.getAddr()
+        self.getStream().seek(addr)
         try:
             new = self.__class__(self.getStream(), self.getParent())
         except:
@@ -46,6 +53,7 @@ class Filter:
     def setDescription(self, description): self._description = description
 
     def _deleteChunk(self, pos):
+        self._cache_valid = False
         chunk = self._chunks[pos]
         if chunk.id in self._chunks_dict:
             del self._chunks_dict[chunk.id]
@@ -69,18 +77,21 @@ class Filter:
         return self._chunks
 
     def _getUniqChunkId(self, pattern, root, index):
-        new_id = pattern % (root, index)
-        while new_id in self._chunks_dict:
-            index = index + 1
-            new_id = pattern % (root, index)
-        return new_id 
+        if not hasattr(self, "_chunk_counter"):
+            self._chunk_counter = {}
+        
+        if root in self._chunk_counter:
+            self._chunk_counter[root] = self._chunk_counter[root]+1
+        else:
+            self._chunk_counter[root] = 0
+        return pattern % (root, self._chunk_counter[root])
 
     def getUniqChunkId(self, id):
         if id[-2:] == "[]":
             return self._getUniqChunkId("%s[%u]", id[:-2], 0)
 
         if id in self._chunks_dict:
-            m = re.compile("^(.*?)([0-9]+)$").match(id)
+            m = Filter.regex_chunk_uniq_id.match(id)
             if m != None:
                 return self._getUniqChunkId("%s%u", m.group(1), int(m.group(2))+1)
             else:
@@ -108,7 +119,7 @@ class Filter:
             addr = self.getAddr()
             chunk_pos = len(self._chunks)
         chunk = FormatChunk(id, description, self.getStream(), addr, "!%ss" % size, self)
-        self._appendChunk(chunk, can_truncate=True, position=chunk_pos)
+        self.appendChunk(chunk, position=chunk_pos)
 
     def rescan(self, from_chunk, diff_size, new_id=None, new_description=None, truncate=False):
         if from_chunk != None:
@@ -158,6 +169,7 @@ class Filter:
             self.addRawChunk(prev_chunk, id, size, description)
 
     def _rescanUpdateChunks(self, start, prev_chunk):
+        self._cache_valid = False
         pos = start
         try:
             for chunk in self._chunks[start:]:
@@ -179,6 +191,7 @@ class Filter:
 
     def rescanFromPos(self, start, diff_size, new_id=None, new_description=None, truncate=False):
         assert 0<=start and start <= len(self._chunks)
+        self._cache_valid = False
         if 0<start:
             prev_chunk = self._chunks[start-1]
         else:
@@ -209,10 +222,13 @@ class Filter:
         return last_chunk.addr + last_chunk.size
 
     def getSize(self):
-        size = 0
-        for chunk in self._chunks:
-            size = size + chunk.size
-        return size
+        if not self._cache_valid:
+            self._cache_valid = True
+            size = 0
+            for chunk in self._chunks:
+                size = size + chunk.size
+            self._cache_size = size
+        return self._cache_size
 
     def addString(self, str_type, before_chunk):
         if before_chunk != None:
@@ -225,7 +241,7 @@ class Filter:
         stream.seek(addr)
         id = self.getUniqChunkId("str")
         str_chunk = StringChunk(id, "String", stream, str_type, self)
-        self._appendChunk(str_chunk, can_truncate=True, position=pos)
+        self.appendChunk(str_chunk, position=pos)
         str_chunk.postProcess()
         before_chunk.addr = before_chunk.addr + str_chunk.size
         before_chunk.convertToStringSize(before_chunk.size - str_chunk.size)
@@ -296,31 +312,17 @@ class Filter:
 
     def updateFormatChunk(self, chunk):
         if chunk.id == None: return
+        self._cache_valid = False
         data = chunk.getValue(config.max_string_length)
         setattr(self, chunk.id, data)       
 
-    def _appendChunk(self, chunk, can_truncate=False, position=None):
+    def appendChunk(self, chunk, position=None):
+        self._cache_valid = False
         if position != None:
             self._chunks.insert(position, chunk)
         else:
             self._chunks.append(chunk)
-        id = chunk.id
-        assert id != None
-        m = re.compile(r"^([^[]+)\[\]$").match(id)
-        if m != None:
-            id = m.group(1)
-            if hasattr(self, id):
-                array = getattr(self, id)
-            else:
-                array = []
-                setattr(self, id, array)
-            assert type(array) == types.ListType
-            chunk.id = "%s[%u]" % (id, len(array))
-            array.append(chunk)
-            if id not in self._chunks_dict:
-                self._chunks_dict[id] = array 
-        else:
-            self._chunks_dict[id] = chunk
+        self._chunks_dict[chunk.id] = chunk
 
     def readLimitedChild(self, id, size, filter_class, *args):
         start = self._stream.tell()
@@ -344,9 +346,8 @@ class Filter:
     
     def addFilter(self, id, filter, addr): 
         chunk = FilterChunk(id, filter, self, addr)
-        self._appendChunk(chunk)
+        self.appendChunk(chunk)
         filter.updateParent(chunk)
-#        self._stream.seek(chunk.addr + chunk.size)
         return chunk
 
     def readArray(self, id, entry_class, description, end_func): 
@@ -362,16 +363,16 @@ class Filter:
     def readString(self, id, format, description, post=None):
         """ Returns chunk """
         chunk = StringChunk(id, description, self._stream, format, self)
-        self._appendChunk(chunk)
+        self.appendChunk(chunk)
         self._stream.seek(chunk.addr + chunk.size)
         chunk.post_process = post
         chunk.postProcess()
         return chunk
     
-    def read(self, id, format, description, post=None, truncate=False):
+    def read(self, id, format, description, post=None):
         """ Returns chunk """
         chunk = FormatChunk(id, description, self._stream, self._stream.tell(), format, self)
-        self._appendChunk(chunk, can_truncate=truncate)
+        self.appendChunk(chunk)
         self._stream.seek(chunk.addr + chunk.size)
         chunk.post_process = post
         chunk.postProcess()
@@ -411,7 +412,7 @@ class Filter:
         stream.seek(chunk.addr)
         filter = Filter(chunk.id, chunk.description, stream, self)
         chunk.setParent(filter)
-        filter._appendChunk(chunk, can_truncate=True)
+        filter.appendChunk(chunk)
         
         # Create new chunk and add it into self 
         new_chunk = FilterChunk(chunk.id, filter, self, chunk.addr)
@@ -446,7 +447,7 @@ class ArrayFilter(Filter):
             nb = nb + 1
             chunk = FilterChunk(chunk_id, filter, self, addr)
             self._array.append( chunk )
-            self._appendChunk(chunk)
+            self.appendChunk(chunk)
             last_filter = filter
 
         for chunk in self._array:
@@ -465,6 +466,7 @@ class ArrayFilter(Filter):
             del self._array[pos]
 
     def update(self):
+        self._cache_valid = False
         prev_chunk = None
         pos = 0
         try:
@@ -492,8 +494,10 @@ class ArrayFilter(Filter):
     def __getitem__(self, index):
         return self._array[index]
 
-    def clone(self):
-        self.getStream().seek(self.getAddr())
+    def clone(self, addr=None):
+        if addr == None:
+            addr = self.getAddr()
+        self.getStream().seek(addr)
         new = ArrayFilter( self.getId(), self.getDescription(), \
             self.getStream(), self.getParent(), self._entry_class, self._end_func)
         new.filter_chunk = self.filter_chunk

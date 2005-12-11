@@ -1,11 +1,14 @@
 import re
 
+_regex_format1 = re.compile("^[!<>]?(?:[0-9]+|\{[a-z@_]+\})?[BHLscfd]$")
+_regex_format2 = re.compile("^([!<>]?)((?:[0-9]+|\{[a-z@_]+\})?)([BHLscfd])$")
+
 def checkFormat(format):
-    m = re.compile("^[!<>]?(?:[0-9]+|\{[a-z@_]+\})?[BHLscfd]$").match(format)
+    m = _regex_format1.match(format)
     return m != None
 
 def splitFormat(format):
-    m = re.compile("^([!<>]?)((?:[0-9]+|\{[a-z@_]+\})?)([BHLscfd])$").match(format)
+    m = _regex_format2.match(format)
     if m == None: return None
     endian = m.group(1)
     if endian=="": endian="!"

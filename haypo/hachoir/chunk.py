@@ -15,6 +15,9 @@ class Chunk(object):
         self.post_process = None
         self.display = None
 
+    def clone(self):
+        raise Exception("%s doesn't implement clone() method!" % self)
+
     def postProcess(self):        
         if self.post_process != None:
             self.display = self.post_process(self)
@@ -65,14 +68,14 @@ class Chunk(object):
     def _setAddr(self, addr): self._addr = addr
     def _getAddr(self): return self._addr
     def _getSize(self): return self._size
-    def __getId(self): return self.__id
-    def __setId(self, id):
+    def _getId(self): return self.__id
+    def _setId(self, id):
         if self.__id == id: return
         self._parent.updateChunkId(self, id)
         self.__id = id
     addr = property(_getAddr, _setAddr)        
     size = property(_getSize)        
-    id = property(__getId, __setId)
+    id = property(_getId, _setId)
     value = property(getValue)
     raw = property(getRaw)
     
@@ -85,6 +88,12 @@ class FilterChunk(Chunk):
         Chunk.__init__(self, id, \
             filter.getDescription(), filter.getStream(), filter.getAddr(), \
             filter.getSize(), parent)
+    
+    def clone(self, addr=None):
+        filter_copy = self._filter.clone(addr=addr)
+        # TODO: Is it always alright? (or use parent_addr = self.parent_addr)
+        parent_addr = addr
+        return FilterChunk(self.id, filter_copy, self.getParent(), parent_addr)
     
     def getFormat(self):
         return self._filter.getId()
@@ -118,6 +127,11 @@ class FilterChunk(Chunk):
     def getFilter(self):
         return self._filter
 
+    def _setId(self, id):
+        Chunk._setId(self, id)
+        self._filter.setId(id)
+    id = property(Chunk._getId, _setId)
+
     def _getDescription(self):
         return self._description
     def _setDescription(self, description):
@@ -126,7 +140,7 @@ class FilterChunk(Chunk):
     description = property(_getDescription, _setDescription)
 
 class StringChunk(Chunk):
-    cache_hit = 0
+    regex_eol_nr = re.compile("[\n\r]")
 
     def __init__(self, id, description, stream, str_type, parent):
         assert str_type in ("C", "UnixLine", "WindowsLine", "MacLine", "AutoLine")
@@ -152,7 +166,7 @@ class StringChunk(Chunk):
     def _findSize(self):
         self._stream.seek(self.addr)
         if self._str_type == "AutoLine":
-            self._size = self._stream.searchLength(re.compile("[\n\r]"), True)
+            self._size = self._stream.searchLength(StringChunk.regex_eol_nr, True)
             assert self._size != -1
             self._stream.seek(self.addr + self._size-1)
             self.eol = self._stream.getN(1)
@@ -177,7 +191,6 @@ class StringChunk(Chunk):
         
     def _read(self, max_size):
         if self._cache_addr==self.addr and self._cache_max_size==max_size:
-            StringChunk.cache_hit = StringChunk.cache_hit + 1
             return self._cache_value
         self._cache_addr = self.addr
         self._cache_max_size = max_size
@@ -212,6 +225,7 @@ class FormatChunkCache:
         self._value = {}
         self._addr = None
         self._format = None
+        self._orig_format = None
         self._size = None
         self._chunk = chunk
         
@@ -237,11 +251,11 @@ class FormatChunkCache:
                 return data, True
 
     def update(self):
-        real_format = self._chunk.getRealFormat(self._chunk.getFormat())
-        if self._addr != self._chunk.addr or self._format != real_format:
+        if self._addr != self._chunk.addr or self._orig_format != self._chunk.getFormat():
             # Invalidate the cache
             self._value = {}
-            self._format = real_format
+            self._orig_format = self._chunk.getFormat()
+            self._format = self._chunk.getRealFormat(self._orig_format)
             self._addr = self._chunk.addr
             self._size = struct.calcsize(self._format)
 
@@ -265,12 +279,19 @@ class FormatChunkCache:
         return self._value[max_size]
 
 class FormatChunk(Chunk):
+    regex_sub_format = re.compile(r'\{([^}]+)\}')
+
     def __init__(self, id, description, stream, addr, format, parent):
         Chunk.__init__(self, id, description, stream, addr, 0, parent)
         if not checkFormat(format):
             raise Exception("Invalid FormatChunk format: \"%s\"!" % format)
         self.__format = format
         self._cache = FormatChunkCache(self)
+        
+    def clone(self, addr=None):
+        if addr == None:
+            addr = self._addr
+        return FormatChunk(self.id, self.description, self._stream, addr, self.__format, self._parent)
 
     def getFormat(self):
         return self.__format
@@ -280,7 +301,10 @@ class FormatChunk(Chunk):
     size = property(_getSize)        
 
     def getRealFormat(self, format):
-        return re.sub(r'\{([^}]+)\}', self.__replaceFieldFormat, format)
+        if "{" in format:
+            return FormatChunk.regex_sub_format.sub(self.__replaceFieldFormat, format)
+        else:
+            return format
 
     def isString(self):
         return self.__format[-1] == "s"

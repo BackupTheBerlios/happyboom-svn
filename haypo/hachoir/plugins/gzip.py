@@ -68,7 +68,7 @@ class GzipFile(Filter):
         except Exception, msg:
             error("Error while processing file in gzip: %s\ns%s" % (msg, getBacktrace()))
             stream.seek(oldpos)
-            self.read("data", "!%us" % size, "Compressed data", truncate=True)
+            self.read("data", "!%us" % size, "Compressed data")
         
         self.read("crc32", "<L", "CRC32")
         self.read("size", "<L", "Uncompressed size")

@@ -73,7 +73,7 @@ class ZipFileEntry(Filter):
         self.read("extra_length", "<H", "Extra length")
         self.read("filename", "<{filename_length}s", "Filename")
         self.read("extra", "<{extra_length}s", "Extra")
-        self.read("compressed_data", "<{compressed_size}s", "Compressed data", truncate=True)
+        self.read("compressed_data", "<{compressed_size}s", "Compressed data")
         if (self["flags"] & 4) == 4:
             self.read("file_crc32", "<L", "Checksum (CRC32)")
             self.read("file_compressed_size", "<L", "Compressed size (bytes)")

@@ -19,6 +19,7 @@ class Hachoir:
         self._main_filter = None
         self._filter = None
         self.script = None
+        self.load_ui = True
 
     def getFilter(self):
         return self._filter
@@ -28,11 +29,14 @@ class Hachoir:
         self._filter = filter
         if filter != None:
             self._addPadding()
-            self._filter.display()
-            self.ui.window.info.updateFilter(filter)
+            if self.load_ui:
+                self._filter.display()
+                self.ui.window.info.updateFilter(filter)
         else:
-            self.ui.window.clear_table()
-        self.ui.window.updateToolbar()
+            if self.load_ui:
+                self.ui.window.clear_table()
+        if self.load_ui:
+            self.ui.window.updateToolbar()
 
     def onGoParent(self):
         if self._filter.getParent() == None: return
@@ -69,7 +73,8 @@ class Hachoir:
             chunk.setFilter(self._filter)
             diff_size = self._filter.getSize() - old_size
             chunk.getParent().rescan(chunk, diff_size)
-        self._filter.display()
+        if self.load_ui:
+            self._filter.display()
         self.ui.window.updateToolbar()
     
     def saveUser(self, filename):
@@ -136,4 +141,5 @@ class Hachoir:
             self.loadScript(self.script)
         elif filename != None:
             self.loadFile(filename)
-        self.ui.run()      
+        if self.load_ui:
+            self.ui.run()      
