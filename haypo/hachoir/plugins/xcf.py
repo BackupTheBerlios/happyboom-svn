@@ -11,32 +11,41 @@ Author: Victor Stinner
 from filter import Filter
 from plugin import registerPlugin
 
-def readCompression(filter, stream):
+class XcfCompression(Filter):
     name = {
         0: "None",
         1: "RLE",
         2: "Zlib",
         3: "Fractal"
     }
-    chunk = filter.read("compression", "B", "")
-    type = name.get(chunk.value, "Unknow (%s)" % chunk.value)
-    chunk.description = "Compress type (%s)" % type
 
-def readResolution(filter, stream):
-    filter.read("xres", "f", "X resolution")
-    filter.read("yres", "f", "Y resolution")
+    def __init__(self, stream, parent):
+        Filter.__init__(self, "compression", "Compression", stream, parent)
+        chunk = self.read("compression", "B", "")
+        type = XcfCompression.name.get(chunk.value, "Unknow (%s)" % chunk.value)
+        chunk.description = "Compress type (%s)" % type
 
-def readTattoo(filter, stream):
-    filter.read("tattoo", "!L", "Tattoo")
+class XcfResolution(Filter):
+    def __init__(self, stream, parent):
+        Filter.__init__(self, "resolution", "Resolution", stream, parent)
+        self.read("xres", "f", "X resolution")
+        self.read("yres", "f", "Y resolution")
 
-def readUnit(filter, stream):
-    filter.read("unit", "!L", "Unit")
+class XcfTattoo(Filter):
+    def __init__(self, stream, parent):
+        Filter.__init__(self, "tattoo", "Tattoo", stream, parent)
+        self.read("tattoo", "!L", "Tattoo")
+
+class XcfUnit(Filter):
+    def __init__(self, stream, parent):
+        Filter.__init__(self, "unit", "Unit", stream, parent)
+        self.read("unit", "!L", "Unit")
 
 def readString(filter, stream, name, description):
     chunk = filter.read(name+"_size", "!L", description+" length")
     filter.read(name, "%us" % chunk.value, description)
 
-class XcfParasite(Filter):
+class XcfParasiteEntry(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "xcf_para", "XCF parasite", stream, parent)
         readString(self, stream, "name", "Name")
@@ -92,7 +101,6 @@ class XcfChannel(Filter):
         self.read("height", "!L", "Channel height")
         readString(self, stream, "name", "Channel name")
         readProperties(self, stream)
-        return
         self.read("hierarchie_ofs", "!L", "Hierarchie offset")
         self.readChild("hierarchie", XcfHierarchie)
 
@@ -111,9 +119,11 @@ class XcfLayer(Filter):
         self.readChild("hierarchie", XcfHierarchie)
         # TODO: Read layer mask if needed: self["mask_ofs"] != 0
 
-def readParasites(filter, stream):
-    while not stream.eof():
-        filter.readChild("parasite[]", XcfParasite)
+class XcfParasites(Filter):
+    def __init__(self, stream, parent):
+        Filter.__init__(self, "parasites", "Parasites", stream, parent)
+        while not stream.eof():
+            self.readChild("parasite[]", XcfParasiteEntry)
 
 class XcfProperty(Filter):
     known_types = {
@@ -146,11 +156,11 @@ class XcfProperty(Filter):
         26: "Text layer flags"
     }
     handler = {
-        17: readCompression,
-        19: readResolution,
-        20: readTattoo,
-        21: readParasites,
-        22: readUnit
+        17: XcfCompression,
+        19: XcfResolution,
+        20: XcfTattoo,
+        21: XcfParasites,
+        22: XcfUnit
     }
 
     def __init__(self, stream, parent):
@@ -162,7 +172,7 @@ class XcfProperty(Filter):
         if type in XcfProperty.handler:
             end = stream.tell() + self["size"]
             substream = stream.createSub(size=self["size"])
-            XcfProperty.handler[type] (self, substream)
+            self.readStreamChild("data", substream, XcfProperty.handler[type])
             assert stream.tell() == end
         elif 0 < self["size"]:
             self.read("data", "%us" % self["size"], "Data")
