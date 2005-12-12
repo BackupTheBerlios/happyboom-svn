@@ -312,11 +312,12 @@ class FormatChunk(Chunk):
     def __replaceFieldFormat(self, match):
         id = match.group(1)
         if id == "@end@":
-            size = self._stream.getLastPos() - self.addr
+            size = self._stream.getLastPos() - self.addr + 1
             if size < 0:
                 warning("Size < 0 for chunk %s, will use size=0!" % self.id)
                 size = 0
         else:
+            assert id != self.id
             size = self._parent[id]
         return str(size)
     

@@ -134,8 +134,8 @@ class LimitedStream(Stream):
         self._stream = stream.clone()
         if start<0:
             start = 0
-        if self._stream.getLastPos() < start+size:
-            size = self._stream.getLastPos()-start
+        if self._stream.getLastPos()+1 < start+size:
+            size = self._stream.getLastPos()-start+1
         self._start = start
         self._size = size
         self._end = self._start + self._size

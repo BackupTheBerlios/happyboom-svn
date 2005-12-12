@@ -15,7 +15,6 @@ def warning(message):
 
 def error(message):
     log.error(message)
-    print ui.ui
     if ui.ui.ui != None:
         import gtk
         dlg = gtk.MessageDialog( \
