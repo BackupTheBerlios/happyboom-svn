@@ -54,7 +54,7 @@ class PngText(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "png_text", "PNG text", stream, parent)
         chunk = self.readString("keyword", "C", "Keyword")
-        lg = self._parent.size - chunk.size
+        lg = stream.getSize() - chunk.size
         self.read("text", "!%us" % lg, "Text")
 
     def __str__(self):
@@ -77,23 +77,24 @@ class PngTime(Filter):
              self["hour"], self["minute"], self["second"])
         
 class PngChunk(Filter):
+    handler = {
+        "tIME": PngTime,
+        "pHYs": PngPhysical,
+        "IHDR": PngHeader,
+        "gAMA": PngGamma,
+        "tEXt": PngText
+    }
     def __init__(self, stream, parent):
         Filter.__init__(self, "png_chunk", "PNG chunk", stream, parent)
         self.read("size", "!L", "Chunk size")
         self.read("type", "!4s", "Chunk type")
-        self.chunk_splitter = {
-            "tIME": PngTime,
-            "pHYs": PngPhysical,
-            "IHDR": PngHeader,
-            "gAMA": PngGamma,
-            "tEXt": PngText
-        }
-        if self["type"] in self.chunk_splitter:
+        type = self["type"]
+        if type in PngChunk.handler:
+            size = self["size"]
             oldpos = self._stream.tell()
-            child_filter = self.chunk_splitter[self["type"]]
-            sub = stream.createSub(stream.tell(), self["size"])
-            self.readStreamChild("chunk_data", sub, child_filter)
-            stream.seek(oldpos + self["size"])
+            sub = stream.createSub(size=size)
+            self.readStreamChild("chunk_data", sub, PngChunk.handler[type])
+            assert stream.tell() == (oldpos + size) 
         else:
             self.read("data", "!{size}s", "Chunk data")
         self.read("crc32", "!L", "Chunk CRC32")
