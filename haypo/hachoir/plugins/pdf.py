@@ -9,14 +9,11 @@ from error import warning
 def isEnd(stream, array, last):
     return stream.eof()
 
-def stripLine(chunk):
-    return convertDataToPrintableString(chunk.value.strip())
-
 class PdfObject(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "pdf_obj", "PDF object", stream, parent)
         self.metadata = {}
-        chunk = self.readString("header", "AutoLine", "Object header", post=stripLine)
+        chunk = self.readString("header", "AutoLine", "Object header", strip=True)
         header = chunk.value 
         assert header != ""
         if header == "xref":
@@ -51,7 +48,7 @@ class PdfObject(Filter):
         deflate = False
         while text not in ("endobj", "stream"):
             self.processLine(text)
-            chunk = self.readString("line[]", "AutoLine", "", post=stripLine)
+            chunk = self.readString("line[]", "AutoLine", "", strip=True)
             text = chunk.value
             if re.match(r".*/Filter /FlateDecode.*", chunk.value) != None:
                 deflate = True
@@ -89,22 +86,22 @@ class PdfObject(Filter):
             assert self.getStream().tell() == (start+size)
             
             self.readString("data_end[]", "AutoLine", "Data end")
-            self.readString("endobj", "AutoLine", "Object end", post=stripLine)
+            self.readString("endobj", "AutoLine", "Object end", strip=True)
         ver = self.getParent().version
         eol = self.getStream().read(1, seek=False)
         if eol in ("\n", "\r"):
             self.readString("emptyline", "AutoLine", "")
 
     def readXref(self):
-        chunk = self.readString("xref_header", "AutoLine", "XRef header", post=stripLine)
+        chunk = self.readString("xref_header", "AutoLine", "XRef header", strip=True)
         m = re.match(r"^[0-9]+ ([0-9]+)$", chunk.value)
         assert m != None
         nb_ref = int(m.group(1)) - 1
         n = 0
         while n<nb_ref:
-            chunk = self.readString("ref[]", "AutoLine", "Reference", post=stripLine)
+            chunk = self.readString("ref[]", "AutoLine", "Reference", strip=True)
             n = n + 1
-        self.readString("endobj", "AutoLine", "Object end", post=stripLine)
+        self.readString("endobj", "AutoLine", "Object end", strip=True)
 
     def processLine(self, line):
         tests = {

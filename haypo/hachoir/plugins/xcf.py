@@ -42,6 +42,9 @@ class XcfUnit(Filter):
         self.read("unit", "!L", "Unit")
 
 def readString(filter, stream, name, description):
+    filter.readString(name, "Pascal32", description, strip="\0")
+    return
+    
     chunk = filter.read(name+"_size", "!L", description+" length")
     filter.read(name, "%us" % chunk.value, description)
 
@@ -118,6 +121,11 @@ class XcfLayer(Filter):
         seek(self, stream, self["hierarchie_ofs"])
         self.readChild("hierarchie", XcfHierarchie)
         # TODO: Read layer mask if needed: self["mask_ofs"] != 0
+
+    def updateParent(self, chunk):
+        desc = "Layer \"%s\"" % self["name"]
+        chunk.description = desc
+        self.setDescription(desc)
 
 class XcfParasites(Filter):
     def __init__(self, stream, parent):

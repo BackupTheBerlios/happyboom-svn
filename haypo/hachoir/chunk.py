@@ -141,9 +141,21 @@ class FilterChunk(Chunk):
 
 class StringChunk(Chunk):
     regex_eol_nr = re.compile("[\n\r]")
+    names = {
+        "C": "c-string",
+        "MacLine": "mac line",
+        "UnixLine": "unix line",
+        "AutoLine": "line",
+        "Pascal32": "pascal32",
+        "WindowsLine": "windows line"
+    }
 
-    def __init__(self, id, description, stream, str_type, parent):
-        assert str_type in ("C", "UnixLine", "WindowsLine", "MacLine", "AutoLine")
+    def __init__(self, id, description, stream, str_type, parent, strip=None):
+        """
+        Strip: if strip=None, call read text.strip()
+               if strip is a string, call read text.strip(self.strip)
+        """
+        assert str_type in StringChunk.names
         Chunk.__init__(self, id, description, stream, stream.tell(), 0, parent)
         self._str_type = str_type
         self.eol = None
@@ -151,20 +163,20 @@ class StringChunk(Chunk):
         self._cache_addr = None
         self._cache_max_size = None
         self._cache_value = None
+        self.strip = strip
 
     def getFormat(self):
-        names = {
-            "C": "c-string",
-            "MacLine": "mac line",
-            "UnixLine": "unix line",
-            "AutoLine": "line",
-            "WindowsLine": "windows line"
-        }
-        assert self._str_type in names
-        return names[self._str_type]
+        assert self._str_type in StringChunk.names
+        return StringChunk.names[self._str_type]
 
     def _findSize(self):
         self._stream.seek(self.addr)
+        if self._str_type == "Pascal32":
+            self.length = self._stream.getFormat("!L")[0]
+            self._size = 4 + self.length
+            self.eol = ""
+            return
+            
         if self._str_type == "AutoLine":
             self._size = self._stream.searchLength(StringChunk.regex_eol_nr, True)
             assert self._size != -1
@@ -196,12 +208,21 @@ class StringChunk(Chunk):
         self._cache_max_size = max_size
 
         self._stream.seek(self.addr)
-        size = self._size - len(self.eol)
+        if self._str_type == "Pascal32":
+            self._stream.seek(4,1)
+            size = self.length
+        else:
+            size = self._size - len(self.eol)
         if max_size != None and max_size<size:
             text = self._stream.getN(max_size)+"(...)"
         else:
             text = self._stream.getN(size)
         self._stream.seek(self.addr + self._size)
+        if self.strip != None:
+            if self.strip == True:
+                text = text.strip()
+            else:
+                text = text.strip(self.strip)
         self._cache_value = text
         return text
 

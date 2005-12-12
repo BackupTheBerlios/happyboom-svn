@@ -360,9 +360,9 @@ class Filter:
         chunk.postProcess()
         return chunk
     
-    def readString(self, id, format, description, post=None):
+    def readString(self, id, format, description, post=None, strip=None):
         """ Returns chunk """
-        chunk = StringChunk(id, description, self._stream, format, self)
+        chunk = StringChunk(id, description, self._stream, format, self, strip=strip)
         self.appendChunk(chunk)
         self._stream.seek(chunk.addr + chunk.size)
         chunk.post_process = post
