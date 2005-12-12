@@ -18,16 +18,45 @@ class AVI_ChunkList(Filter):
         if tag in ("hdrl", "INFO"):
             while 8 <= end - stream.tell():
                 chunk = self.readChild("chunk[]", AVI_Chunk)            
-            size = end - stream.tell()
-            if size != 0:
-                self.read("padding", "%us" % size, "Padding")
         elif tag == "strl":
-            while not stream.eof():
-                self.read("stag[]", "4s", "String tag")
+            while 8 <= end - stream.tell():
+                stag = self.read("stag[]", "4s", "String tag").value
                 size = self.read("ssize[]", "<L", "String size").value
-                self.read("svalue[]", "%us" % size, "String value")
+                if stag == "strf" and size == 40:
+                    # Video header
+                    self.read("v_size", "<L", "Video format: Size")                    
+                    self.read("v_width", "<L", "Video format: Width")                    
+                    self.read("v_height", "<L", "Video format: Height")                    
+                    self.read("v_panes", "<H", "Video format: Panes")                    
+                    self.read("v_depth", "<H", "Video format: Depth")                    
+                    self.read("v_tag1", "<L", "Video format: Tag1")                    
+                    self.read("v_img_size", "<L", "Video format: Image size")                    
+                    self.read("v_xpels_meter", "<L", "Video format: XPelsPerMeter")
+                    self.read("v_ypels_meter", "<L", "Video format: YPelsPerMeter")
+                    self.read("v_clr_used", "<L", "Video format: ClrUsed")
+                    self.read("v_clr_importand", "<L", "Video format: ClrImportant")
+                elif stag == "strf" and size == 30:
+                    # Audio (wav) header
+                    aend = stream.tell() + size
+                    self.read("a_id", "<H", "Audio format: ID")                    
+                    self.read("a_channel", "<H", "Audio format: Channels")                    
+                    self.read("a_sample_rate", "<L", "Audio format: Sample rate")                    
+                    self.read("a_bit_rate", "<L", "Audio format: Bit rate")
+                    self.read("a_block_align", "<H", "Audio format: Block align")
+                    # if size == 14: bits_per_sample = 8
+                    self.read("a_bits_per_sample", "<H", "Audio format: Bits per sample")
+                    self.read("a_codec_id", "<H", "Audio format: Codec id")
+                    diff = aend-stream.tell()
+                    if 0 < diff:
+                        self.read("a_extra", "%us" % diff, "Audio format: Extra")
+                    assert stream.tell() == aend
+                else:
+                    self.read("svalue[]", "%us" % size, "String value")
         else:
             self.read("raw", "%us" % size, "Raw data")
+        padding = end - stream.tell()
+        if padding != 0:
+            self.read("padding", "%us" % padding, "Padding")
         assert stream.tell() == end
 
 class AVI_ChunkString(Filter):
