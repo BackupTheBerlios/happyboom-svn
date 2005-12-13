@@ -393,7 +393,7 @@ class FormatChunk(Chunk):
     def getDisplayData(self):
         if self.display != None:
             return self.display
-        data = self.getValue(20)
+        data = self.getValue(config.max_string_length)
         if type(data)==types.StringType:
             return convertDataToPrintableString(data)
         else:

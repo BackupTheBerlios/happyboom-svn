@@ -88,6 +88,18 @@ def regexMaxLength(pattern):
         raise "Can't parse regular expression: %s" % pattern 
     return size 
 
+def humanDuration(ms):
+    if ms < 1000:
+        return "%u ms" % ms
+    sec = ms/1000
+    ms = ms%1000
+    if sec < 60:
+        return  "%u sec" % sec
+    min = sec/60
+    sec = sec%60
+    text = "%u min %u sec" % (min, sec)
+    return text
+
 def humanFilesize(size):
     if size < 1000:
         return "%u bytes" % size
