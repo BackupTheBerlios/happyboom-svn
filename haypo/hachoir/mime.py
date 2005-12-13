@@ -74,7 +74,7 @@ def getAnotherBufferMime(buffer):
     if buffer[:14] == "gimp xcf file\0":
         return "image/x-xcf"
     if 512<=len(buffer) \
-    and buffer[0]=="\xEB" \
+    and buffer[0] in "\xEB\xFA" \
     and buffer[510:512] == "\x55\xAA" \
     and buffer[446] in "\x00\x80" \
     and buffer[446+16*1] in "\x00\x80" \

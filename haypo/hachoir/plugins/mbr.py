@@ -30,12 +30,14 @@ class PartitionEntry(Filter):
         self.read("end_head", "B", "Ending head number of the partition")
         self.read("end_sector", "B", "Ending sector number of the partition")
         self.read("end_low_cylinder", "B", "Lower 8 bits of ending cylinder number of the partition")
-        self.read("sector_before", "<L", "Number of sectors before this partition")
-        self.read("sector_after", "<L", "Number of sectors in this partition")
-        assert self.getSize() == 16
+        self.read("LBA", "<L", "LBA (number of sectors before this partition)")
+        self.read("size", "<L", "Size")
 
     def updateParent(self, parent):
-        desc = "Partition entry (%s)" % self.type
+        block_size = self.getParent().block_size
+        size_mb = self["size"] / ((1 << 20) / block_size)
+
+        desc = "Partition entry (type %s, %u MB)" % (self.type, size_mb)
         parent.description = desc
         self.setDescription(desc)        
 
@@ -47,10 +49,11 @@ class PartitionEntry(Filter):
 class MasterBootRecordFilter(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "default", "Default filter", stream, parent)
+        # TODO: Get right block size!
+        self.block_size = 512
         assert 512<=stream.getSize()
-        jmp = self.read("jmp", "!1B", "Long jump (x86 assembler: EA)").value
-        assert jmp == 0xEB
-        self.read("to", "<H", "(Jump to) address")
+        jmp = self.read("jmp", "B", "Jump instruction").value
+        assert jmp in (0xEB, 0xFA)
         size = 446 - stream.tell()
         self.read("data", "%us" % size, "Raw data")
         self.readChild("partition[]", PartitionEntry)
