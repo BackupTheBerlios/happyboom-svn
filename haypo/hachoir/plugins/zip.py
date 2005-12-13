@@ -33,6 +33,11 @@ class ZipCentralDirectory(Filter):
         self.read("extra", "<{extra_length}s", "Extra fields")
         self.read("file_comment", "<{file_comment_length}s", "File comment")
 
+    def updateParent(self, chunk):
+        desc = "Central directory: %s" % self["filename"]
+        chunk.description = desc
+        self.setDescription(desc)
+
 class ZipEndCentralDirectory(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "zip_end_dir", "ZIP end central directory", stream, parent)
@@ -78,6 +83,11 @@ class ZipFileEntry(Filter):
             self.read("file_crc32", "<L", "Checksum (CRC32)")
             self.read("file_compressed_size", "<L", "Compressed size (bytes)")
             self.read("file_uncompressed_size", "<L", "Uncompressed size (bytes)")
+
+    def updateParent(self, chunk):
+        desc = "File entry: %s" % self["filename"]
+        chunk.description = desc
+        self.setDescription(desc)
         
 class ZipFile(Filter):
     def __init__(self, stream, parent):

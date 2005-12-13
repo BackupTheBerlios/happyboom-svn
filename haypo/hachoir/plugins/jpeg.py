@@ -78,6 +78,7 @@ class JpegFile(Filter):
             chunk = self.readChild("chunk[]", JpegChunk)
             if chunk.getFilter()["type"] == 0xDA:
                 break
-        self.read("data", "!{@end@}s", "JPEG data")
+        size = stream.getSize() - self.getSize()
+        self.read("data", "%us" % size, "JPEG data")
         
 registerPlugin(JpegFile, "image/jpeg")

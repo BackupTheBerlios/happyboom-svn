@@ -232,6 +232,6 @@ class ExifFilter(Filter):
                 break
             self.readChild("ifd[]", ExifIFD, endian, 6)
         size = stream.getSize() - stream.tell()
-        if size != 0:                
+        if 0 < size:
             self.read("end", "%us" % size, "End")
         assert self.getSize() == stream.getSize()
