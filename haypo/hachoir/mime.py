@@ -73,6 +73,14 @@ def getAnotherBufferMime(buffer):
         return "application/pdf"
     if buffer[:14] == "gimp xcf file\0":
         return "image/x-xcf"
+    if 512<=len(buffer) \
+    and buffer[0]=="\xEB" \
+    and buffer[510:512] == "\x55\xAA" \
+    and buffer[446] in "\x00\x80" \
+    and buffer[446+16*1] in "\x00\x80" \
+    and buffer[446+16*2] in "\x00\x80" \
+    and buffer[446+16*3] in "\x00\x80":
+        return "hachoir/master-boot-record"
     return None        
 
 def splitMimes(mimes):
@@ -86,9 +94,6 @@ def splitMimes(mimes):
     - "application/x-archive application/x-debian-package"
     """
 
-
-    #mimes = map(string.strip, mimes.split(","))
-    
     regex = re.compile("[^/]+/[^; ]+(?:;[^;]+)*")
     mimes = regex.findall(mimes)    
     
