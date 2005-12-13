@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='UTF-8'?>
-<user_filter hachoir_version='2005-10-27' id='raw' description='raw'>
-  <chunk format='!4s' id='header' description='Header'/>
-  <chunk format='>L' id='size' description='Size'/>
-  <chunk format='>H' id='flags' description='Flags'/>
-  <chunk format='!{size}s' id='data' description='Data'/>
-</user_filter>
