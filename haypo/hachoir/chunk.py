@@ -278,7 +278,12 @@ class FormatChunkCache:
             self._orig_format = self._chunk.getFormat()
             self._format = self._chunk.getRealFormat(self._orig_format)
             self._addr = self._chunk.addr
-            self._size = struct.calcsize(self._format)
+            endian, count, type = splitFormat(self._format)
+            if count != "":
+                count = int(count)
+            else:
+                count = 1
+            self._size = count * struct.calcsize(type)
 
     def getSize(self):
         self.update()

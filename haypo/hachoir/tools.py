@@ -99,7 +99,7 @@ def humanDuration(ms):
     if sec < 60:
         return  "%u sec" % sec
 
-    # Minutes
+    # Minutes
     min = sec/60
     sec = sec%60
     if min<60:
@@ -166,3 +166,16 @@ def getBacktrace():
         return "".join(bt)
     except:
         return "Error while trying to get backtrace"
+
+def getUnixRWX(mode):
+#-- TODO --
+#EXT2_S_ISUID  0x0800  SUID
+#EXT2_S_ISGID  0x0400  SGID
+#EXT2_S_ISVTX  0x0200  sticky bit
+    rwx = ("---", "rwx")
+    text = ""
+    for i in range(0,3):
+        for j in range(0,3):
+            mask = 1 << (3*(2-i)) << (2-j)
+            text = text + rwx[int(mode & mask == mask)][j]
+    return text

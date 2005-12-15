@@ -141,6 +141,8 @@ class MainWindow:
         return self.table_store.append(parent, (addr, format, size, None, id, description, None,))
        
     def add_table(self, parent, addr, size, format, id, description, value):
+        addr = str(addr)
+        size = str(size)
         self.table_store.append(parent, (addr, format, size, id, value, description, ))
 
     def onKeyUp(self, widget, key, data=None):
@@ -165,7 +167,7 @@ class MainWindow:
         self.info.updateChunk(chunk)
 
     def build_table(self):
-        self.table_store = gtk.TreeStore(int, str, int, str, str, str)
+        self.table_store = gtk.TreeStore(str, str, str, str, str, str)
         self.table.set_model(self.table_store)
         self.table.connect("button_release_event", self.onTableClick)
         self.table.connect("row-activated", self.onTableRowActivate)
@@ -289,10 +291,12 @@ class MainWindow:
         # TODO: Use better str=>hexa function ...
         content = ""
         wrap = 16
+        addr = 0
         while len(raw) != 0:
             if len(content) != 0:
                 content = content + "\n"
-            content = content + " ".join([ "%02X" % ord(i) for i in raw[:wrap] ])
+            content = content + "% 4s: " % addr + " ".join([ "%02X" % ord(i) for i in raw[:wrap] ])
+            addr = addr + wrap
             raw = raw[wrap:]
         if config.max_hexa_length < chunk.size:
             if len(content) != 0:
