@@ -83,7 +83,7 @@ class Filter:
         if root in self._chunk_counter:
             self._chunk_counter[root] = self._chunk_counter[root]+1
         else:
-            self._chunk_counter[root] = 0
+            self._chunk_counter[root] = index
         return pattern % (root, self._chunk_counter[root])
 
     def getUniqChunkId(self, id):

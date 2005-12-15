@@ -10,6 +10,18 @@ from filter import Filter
 from plugin import registerPlugin
 from tools import humanDuration
 
+class EXT2_Group(Filter):
+    def __init__(self, stream, parent):
+        Filter.__init__(self, "group", "EXT2 group", stream, parent)
+        self.read("block_bitmap", "<L", "Points to the blocks bitmap block")
+        self.read("inode_bitmap", "<L", "Points to the inodes bitmap block")
+        self.read("inode_table", "<L", "Points to the inodes table first block")
+        self.read("free_blocks_count", "<H", "Number of free blocks")
+        self.read("free_inodes_count", "<H", "Number of free inodes")
+        self.read("used_dirs_count", "<H", "Number of inodes allocated to directories")
+        self.read("padding", "<H", "Padding")
+        self.read("reserved", "12s", "Reserved")
+
 class EXT2_SuperBlock(Filter):
     error_handling = {
         1: "Continue"
@@ -22,9 +34,13 @@ class EXT2_SuperBlock(Filter):
         4: "Lites",
         5: "WinNT"
     }
+    state = {
+        1: "Valid",
+        2: "Error"
+    }
     
     def __init__(self, stream, parent):
-        Filter.__init__(self, "ext2", "EXT2 file system", stream, parent)
+        Filter.__init__(self, "super_block", "EXT2 super block", stream, parent)
         self.read("inodes_count", "<L", "Inodes count")
         self.read("blocks_count", "<L", "Blocks count")
         self.read("r_blocks_count", "<L", "Reserved blocks count")
@@ -43,7 +59,10 @@ class EXT2_SuperBlock(Filter):
         id = self.read("magic", ">H", "Magic number (0x53EF)").value
         assert id == 0x53EF
 
-        self.read("state", "<H", "File system state")
+        # Read state
+        chunk = self.read("state", "<H", "File system state")
+        chunk.description = "Behaviour when detecting errors: %s" % \
+            EXT2_SuperBlock.state.get(chunk.value, "Unknow (%s)" % chunk.value)
 
         # Read error handling
         chunk = self.read("errors", "<H", "")
@@ -110,5 +129,9 @@ class EXT2_FS(Filter):
         Filter.__init__(self, "ext2", "EXT2 file system", stream, parent)
         self.read("raw[]", "1024s", "Raw data")
         self.readChild("superblock", EXT2_SuperBlock)
+        size = 4096 - stream.tell()
+        self.read("raw[]", "%us" % size, "Raw data")
+        for i in range(0,71):
+            self.readChild("group[]", EXT2_Group)
 
 registerPlugin(EXT2_FS, "hachoir/fs-ext2")
