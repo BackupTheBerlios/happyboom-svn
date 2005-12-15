@@ -25,7 +25,7 @@ class DirectoryEntry(Filter):
         8: "Max"
     }
     def __init__(self, stream, parent):
-        Filter.__init__(self, "dir", "EXT2 directory", stream, parent)
+        Filter.__init__(self, "dir", "EXT2 directory entry", stream, parent)
         self.read("inode", "<L", "Inode")
         self.read("rec_len", "<H", "Record length")
         name_length = self.read("name_len", "B", "Name length").value
@@ -80,7 +80,7 @@ class Inode(Filter):
         self.read("file_acl", "<L", "File ACL")
         self.read("dir_acl", "<L", "Directory ACL")
         self.read("faddr", "<L", "Block where the fragment of the file resides")
-        os = parent.superblock["creator_os"]
+        os = parent.getParent().superblock["creator_os"]
         if os == SuperBlock.OS_LINUX:
             self.read("frag", "B", "Number of fragments in the block")
             self.read("fsize", "B", "Fragment size")
@@ -291,6 +291,33 @@ class SuperBlock(Filter):
     def getTime(self, chunk):
         return datetime.fromtimestamp(chunk.value)
 
+class Groups(Filter):
+    def __init__(self, stream, parent, count):
+        Filter.__init__(self, "groups", "EXT2 groups", stream, parent)
+        self.items = []
+        for i in range(0, count):
+            group = self.readChild("group[]", EXT2_Group).getFilter()
+            self.items.append(group)
+
+    def __getitem__(self, index):
+        return self.items[index]
+
+class InodeTable(Filter):
+    def __init__(self, stream, parent, start, count):
+        Filter.__init__(self, "ino_table", "EXT2 inode table", stream, parent)
+        self.inodes = {}
+        for index in range(start,start+count):
+            inode = self.readChild("inode[]", Inode, index).getFilter()
+            self.inodes[index] = inode
+
+    def __getitem__(self, index):
+        return self.inodes[index]
+
+#class Directory(Filter):
+#    def __init__(self, stream, parent):
+#        Filter.__init__(self, "dir", "EXT2 directory", stream, parent)
+#        self.read("inode", "<L", "Inode")
+
 class EXT2_FS(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "ext2", "EXT2 file system", stream, parent)
@@ -302,10 +329,7 @@ class EXT2_FS(Filter):
 
         # Read groups
         self.seek(4096) 
-        groups = []
-        for i in range(0,self.superblock.group_count):
-            group = self.readChild("group[]", EXT2_Group).getFilter()
-            groups.append(group)
+        groups = self.readChild("groups", Groups, self.superblock.group_count).getFilter()
         group = groups[0]
         
         # Read block bitmap
@@ -318,17 +342,14 @@ class EXT2_FS(Filter):
         count = 32768
         self.readChild("inode_bitmap[]", InodeBitmap, count / 8, 1)
 
-        root_inode = 2
-        for index in range(1,20):
-            inode = self.readChild("inode[]", Inode, index).getFilter()
-            if index == root_inode:
-                root = inode
+        inode_table0 = self.readChild("inode_table[]", InodeTable, 1, 20).getFilter()
+
+        root = inode_table0[2]
 
         self.readDirectory(root)
 
     def seek(self, to):
         size = to - self.getStream().tell()
-        print "Seek to %s => %s" % (to, size)
         assert 0 <= size
         if 0 < size:
             self.read("raw[]", "%us" % size, "Raw")
@@ -336,26 +357,20 @@ class EXT2_FS(Filter):
     def readDirectory(self, inode):
         stream = self.getStream()
         block_index = 0
-        print "Read Dir."
         while True:
             assert block_index < 12
             block = inode["block[%u]" % block_index]
             if block == 0:
                 return
-            print "Seek to block %s" % block_index
             self.seek(block * self.block_size)
 
             total = 0
-            for i in range(0, 100):
+            while total < self.block_size:
                 entry = self.readChild("directory[]", DirectoryEntry).getFilter()
                 if entry["inode"] == 0:
-                    print "End."            
                     return
                 total = total + entry.getSize()
-                if self.block_size <= total:
-                    assert total == self.block_size
-                    print "End of block"
-                    break
+            assert total == self.block_size
             block_index = block_index + 1
 
 registerPlugin(EXT2_FS, "hachoir/fs-ext2")
