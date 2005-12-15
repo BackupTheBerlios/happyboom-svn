@@ -73,6 +73,10 @@ def getAnotherBufferMime(buffer):
         return "application/pdf"
     if buffer[:14] == "gimp xcf file\0":
         return "image/x-xcf"
+    if 4096<=len(buffer) \
+    and buffer[1080:1082]=="\x53\xEF" \
+    and buffer[1116:1120]=="\x04\x00\x00\x00":
+        return "hachoir/fs-ext2"
     if 512<=len(buffer) \
     and buffer[0] in "\xEB\xFA" \
     and buffer[510:512] == "\x55\xAA" \

@@ -89,15 +89,35 @@ def regexMaxLength(pattern):
     return size 
 
 def humanDuration(ms):
+    # Milliseconds
     if ms < 1000:
         return "%u ms" % ms
+        
+    # Seconds
     sec = ms/1000
     ms = ms%1000
     if sec < 60:
         return  "%u sec" % sec
+
+    # Minutes
     min = sec/60
     sec = sec%60
-    text = "%u min %u sec" % (min, sec)
+    if min<60:
+        text = "%u min %u sec" % (min, sec)
+
+    # Hours
+    hour = min/60
+    min = min/60
+    if hour < 24:
+        text = "%u hour(s) %u min" % (hour, min)
+
+    # Days
+    day = hour/24
+    hour = hour%24
+    if hour != 0:
+        text = "%u day(s) %u hour(s)" % (day, hour)    
+    else:
+        text = "%u day(s)" % (day)
     return text
 
 def humanFilesize(size):
