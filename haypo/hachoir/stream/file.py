@@ -6,14 +6,22 @@ class FileCacheEntry:
     def __init__(self, index, data):
         self.index = index
         self.data = data
+        self.used = 0
+
+    def __cmp__(self, to):
+        return cmp(self.used, to.used)
 
 class FileCache:
-    def __init__(self, file, file_size):
+    def __init__(self, file, file_size, block_size=4096, block_count=100):
         self.file = file
         self.file_size = file_size
-        self.block_size = 4096
-        self.max_block = 100
+        self.block_size = block_size
+        self.max_block = block_count
         self.blocks = {}
+
+    def removeOldestBlock(self):
+        entry = min(self.blocks.values())
+        del self.blocks[entry.index]
 
     def read(self, position, length):
         block_position = position % self.block_size
@@ -21,19 +29,18 @@ class FileCache:
         length_copy = length
         assert position+length <= self.file_size
         
-        # TODO: Be able to read two or more blocks
         data = ""
         while 0 < length:
             if block_index not in self.blocks:
                 if self.max_block <= len(self.blocks):
-                    # TODO: Remove oldest block
-                    pass
+                    self.removeOldestBlock()
                 self.file.seek(block_index * self.block_size)
                 block_data = self.file.read(self.block_size)
                 assert (len(block_data) == self.block_size) or self.file.tell() == self.file_size
-                self.blocks[block_index] = block_data
+                self.blocks[block_index] = FileCacheEntry(block_index, block_data)
             else:
-                block_data = self.blocks[block_index]
+                block_data = self.blocks[block_index].data
+            self.blocks[block_index].used = self.blocks[block_index].used + 1
             if block_position != 0 or length != self.block_size:
                 end = block_position+length
                 if self.block_size < end:
@@ -47,7 +54,7 @@ class FileCache:
         return data
 
 class FileStream(Stream):
-    def __init__(self, file, filename=None, copy=None):
+    def __init__(self, file, filename=None, copy=None, use_cache=True):
         """
         Endian: See setEndian function. 
         """
@@ -68,18 +75,22 @@ class FileStream(Stream):
                 self._end = self._size-1
             else:
                 self._end = 0
-            self._cache = FileCache(self._file, self._size)
+            if use_cache:
+                self._cache = FileCache(self._file, self._size, 4096, 10)
+            else:
+                self._cache = None
 
     def getType(self):
         return "%s (%s)" % \
             (self.__class__.__name__, self.filename)
         
     def read(self, size, seek=True):
-        data = self._cache.read(self._seed, size)
-#        self._file.seek(self._seed) ; data = self._file.read(size)
+        if self._cache != None:
+            data = self._cache.read(self._seed, size)
+        else:
+            self._file.seek(self._seed) ; data = self._file.read(size)
         if seek:
             self._seed = self._seed + len(data)
-#            assert self._seed == self._file.tell()
         return data            
 
     def clone(self):
@@ -87,27 +98,28 @@ class FileStream(Stream):
 
     def seek(self, pos, where=0):
         """ Read file seek document to understand where. """
-        # TODO: Don't really seek
         if where==0:
             self._seed = pos
         elif where==1:
             self._seed = self._seed + pos
         else:
             self._seed = self._size - pos
-        if self._size < self._seed:
+        if self._seed < 0 or self._size < self._seed:
             raise StreamError("Error when seek to (%s,%s) in a stream." % (pos, where))
 
     def tell(self):
         return self._seed
 
     def getN(self, size, seek=True):
-        data = self._cache.read(self._seed, size)
-#        self._file.seek(self._seed) ; data = self._file.read(size)
-#        if len(data) != size:
-#            raise StreamError("Can't read %u bytes in a stream (get %u bytes)." % (size, len(data)))
+        if self._cache != None:
+            data = self._cache.read(self._seed, size)
+        else:
+            self._file.seek(self._seed)
+            data = self._file.read(size)
+        if len(data) != size:
+            raise StreamError("Can't read %u bytes in a stream (get %u bytes)." % (size, len(data)))
         if seek:
             self._seed = self._seed + size
-#            assert self._seed == self._file.tell()
         return data
 
     def getSize(self):
