@@ -17,7 +17,8 @@ class BasicFilter:
         self._stream = stream
         self._parent = parent
         self._addr = addr 
-
+        self._chunks_counter = {}
+        self._chunks_dict = {}
 
     def getId(self): return self._id
     def setId(self, id): self._id = id
@@ -41,6 +42,34 @@ class BasicFilter:
             current = current.getParent()
         return "/"+text
 
+    def _getUniqChunkId(self, root, index):
+        if root in self._chunks_counter:
+            self._chunks_counter[root] = self._chunks_counter[root] + 1
+        else:
+            self._chunks_counter[root] = index
+        return self._chunks_counter[root]
+
+    def getUniqChunkId(self, id):
+        # Pattern like "block[]"
+        if id[-2:] == "[]":
+            root = id[:-2]
+            index = self._getUniqChunkId(root, 0)
+            return root+"["+str(index)+"]" 
+
+        # No collision
+        if id not in self._chunks_dict:
+            return id
+
+        # Manage id collision
+        m = Filter.regex_chunk_uniq_id.match(id)
+        if m != None:
+            root = m.group(1)
+            index = self._getUniqChunkId(root, int(m.group(2))+1)
+        else:
+            root = id
+            index = self._getUniqChunkId(root, 2)
+        return root+str(index)
+
     # --- Pure virtual methods -----------
     def getSize(self): assert False
     def __getitem__(self, chunk_id): assert False
@@ -51,19 +80,19 @@ class OnlyFormatFilter(BasicFilter):
     def __init__(self, id, description, stream, parent):
         BasicFilter.__init__(self, id, description, stream, parent, stream.tell())
         self._chunks = []
-        self._chunks_counter = {}
+        self._chunks_dict = {}
+        self._chunks_cache = {}
         self._size = 0
 
+    def purgeCache(self):
+        self._chunks_cache = {}
+
     def read(self, id, format, description, post=None):
-        if id[-2:] == "[]":
-            root = id[:-2]
-            if root in self._chunks_counter:
-                self._chunks_counter[root] += 1
-            else:
-                self._chunks_counter[root] = 0
-            id = root+"["+str(self._chunks_counter[root])+"]"
+        id = self.getUniqChunkId(id)
         size = getFormatSize(format)
-        self._chunks.append( (id, description, self._stream.tell(), format, size, post) )
+        chunk_info = (id, description, self._stream.tell(), format, size, post)
+        self._chunks_dict[id] = chunk_info
+        self._chunks.append( chunk_info )
         self._stream.seek(size, 1)
         self._size = self._size + size
 
@@ -81,21 +110,17 @@ class OnlyFormatFilter(BasicFilter):
  
     def getSize(self): return self._size
 
-    def getChunk(self, chunk_id):
-        print "getChunk: %s" % chunk_id
-        for chunk in self._chunks:
-            if chunk[0] == chunk_id:
-                return FormatChunk(chunk[0], chunk[1], self._stream, chunk[2], chunk[3], self)
-        return None                
-        assert False
+    def getChunk(self, id):
+        if id not in self._chunks_dict:
+            return None
+        if id not in self._chunks_cache:
+            chunk = self._chunks_dict[id]
+            self._chunks_cache[id] = FormatChunk(chunk[0], chunk[1], self._stream, chunk[2], chunk[3], self)
+        return self._chunks_cache[id]
 
-    def __getitem__(self, chunk_id):
-        for chunk in self._chunks:
-            if chunk[0] == chunk_id:
-                self._stream.seek(chunk[2])
-                return self._stream.getFormat(chunk[3])[0]
-                return FormatChunk(chunk[0], chunk[1], self._stream, chunk[2], chunk[3], self)
-        assert False
+    def __getitem__(self, id):
+        assert id in self._chunks_dict
+        return self.getChunk(id).value
 
 class Filter(BasicFilter):
     regex_chunk_uniq_id = re.compile("^(.*?)([0-9]+)$")
@@ -107,7 +132,6 @@ class Filter(BasicFilter):
         self._chunks_dict = {}
         self._cache_valid = False
         self._cache_size = None
-        self._chunk_counter = {}
 
     def __getitem__(self, chunk_id):
         return self.getChunk(chunk_id).getValue()
@@ -149,34 +173,6 @@ class Filter(BasicFilter):
 
     def getChunks(self):
         return self._chunks
-
-    def _getUniqChunkId(self, root, index):
-        if root in self._chunk_counter:
-            self._chunk_counter[root] = self._chunk_counter[root] + 1
-        else:
-            self._chunk_counter[root] = index
-        return self._chunk_counter[root]
-
-    def getUniqChunkId(self, id):
-        # Pattern like "block[]"
-        if id[-2:] == "[]":
-            root = id[:-2]
-            index = self._getUniqChunkId(root, 0)
-            return root+"["+str(index)+"]" 
-
-        # No collision
-        if id not in self._chunks_dict:
-            return id
-
-        # Manage id collision
-        m = Filter.regex_chunk_uniq_id.match(id)
-        if m != None:
-            root = m.group(1)
-            index = self._getUniqChunkId(root, int(m.group(2))+1)
-        else:
-            root = id
-            index = self._getUniqChunkId(root, 2)
-        return root+str(index)
 
     def updateChunkId(self, chunk, new_id):
         if chunk.id == new_id: return

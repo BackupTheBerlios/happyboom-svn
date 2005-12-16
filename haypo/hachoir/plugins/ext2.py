@@ -304,6 +304,7 @@ class InodeTable(Filter):
         for index in range(start,start+count):
             inode = self.readChild("inode[]", Inode, index).getFilter()
             self.inodes[index] = inode
+            inode.purgeCache()
 
     def __getitem__(self, index):
         return self.inodes[index]
