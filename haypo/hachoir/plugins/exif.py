@@ -9,6 +9,7 @@ Author: Victor Stinner
 """
 
 from filter import Filter
+from format import getFormatSize
 import struct
 
 class ExifEntry(Filter):
@@ -140,7 +141,7 @@ class ExifEntry(Filter):
         self.format = "%s%u%s" % (self.endian, format[0]*self["count"], format[1])
 
         # Get size
-        self.size = struct.calcsize(self.format)
+        self.size = getFormatSize(self.format)
 
         # Get offset/value
         if 4 < self.size:

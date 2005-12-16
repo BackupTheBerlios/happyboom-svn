@@ -1,6 +1,6 @@
 import struct, re, types
 import config
-from format import checkFormat, splitFormat
+from format import checkFormat, splitFormat, getFormatSize 
 from error import warning, error
 from tools import convertDataToPrintableString
 
@@ -269,24 +269,21 @@ class FormatChunkCache:
         oldpos = stream.tell()
         stream.seek(self._addr)
         if (max_size == None or self._size<=max_size) or not self._chunk.isString():
-            data = stream.getN(self._size)
+            data = stream.getN(self._size, False)
             stream.seek(oldpos)
             return data, False
         else:
-            data = stream.getN(max_size)
+            data = stream.getN(max_size, False)
             stream.seek(oldpos)
             if add_comment:
                 return data+"(...)", True
             else:
                 return data, True
 
-    def _calcsize(self):
-        endian, count, type = splitFormat(self._format)
-        if count != "":
-            count = int(count)
-        else:
-            count = 1
-        self._size = count * struct.calcsize(type)
+    def setFormat(self, format):
+        self._value = {}
+        self._format = format
+        self._size = getFormatSize(self._format)
 
     def update(self):
         format_changed = (self._format != self._chunk.getFormat())
@@ -296,10 +293,10 @@ class FormatChunkCache:
             self._format = self._chunk.getFormat()
             self._addr = self._chunk.addr
         if format_changed:
-            self._calcsize()
+            self._size = getFormatSize(self._format)
 
     def getSize(self):
-        self.update()
+#        self.update()
         return self._size
 
     def getRaw(self, max_size=None):
@@ -322,8 +319,6 @@ class FormatChunk(Chunk):
 
     def __init__(self, id, description, stream, addr, format, parent):
         Chunk.__init__(self, id, description, stream, addr, 0, parent)
-        if not checkFormat(format):
-            raise Exception("Invalid FormatChunk format: \"%s\"!" % format)
         self.__format = format
         self._cache = FormatChunkCache(self)
         
@@ -355,9 +350,10 @@ class FormatChunk(Chunk):
             raise Exception("Invalid FormatChunk format: \"%s\"!" % format)
         
         # Check new size
-        size = struct.calcsize(format)
+        size = getFormatSize(format)
         if self._stream.getLastPos() < (self.addr + size - 1):
             raise Exception("Can't set chunk %s to format \"%s\": size too big!" % (self.id, format))
+        self._cache.setFormat(format)
 
         # Update format
         old_size = self.size

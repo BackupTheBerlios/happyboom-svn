@@ -1,6 +1,7 @@
 import struct
 from error import StreamError
 from tools import regexMaxLength
+from format import getFormatSize
 
 class Stream:
     def __init__(self, filename):
@@ -58,7 +59,7 @@ class Stream:
         """
         Read data using struct format. Eg. getFormat("BB") returns (10, 14).
         """
-        size = struct.calcsize(format)
+        size = getFormatSize(format)
         data = self.getN(size, seek)
         return struct.unpack(format, data)
 
