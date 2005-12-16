@@ -1,10 +1,11 @@
-from filter import Filter
+from filter import Filter, DeflateFilter
 from plugin import registerPlugin
 import re
 from stream.error import StreamError
+from stream.deflate import DeflateStream
 from tools import convertDataToPrintableString, getBacktrace
-from stream.deflate import DeflateFilter
 from error import warning
+from default import DefaultFilter
 
 def isEnd(stream, array, last):
     return stream.eof()
@@ -76,7 +77,8 @@ class PdfObject(Filter):
             if what=="deflate":
                 try:
                     old = self.getStream().tell()
-                    self.readChild("deflate", DeflateFilter, start, size)
+                    new_stream = DeflateStream( self.getStream().getN(size,False) )
+                    self.readChild("deflate", DeflateFilter, new_stream, size, DefaultFilter)
                 except:
                     warning("Error while decompressing data of an objet.")
                     self.getStream().seek(start)

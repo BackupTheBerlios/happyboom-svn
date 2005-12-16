@@ -141,12 +141,9 @@ class Filter:
         if prev_chunk != None and issubclass(prev_chunk.__class__, FormatChunk):
             # If last chunk is a FormatChunk, update it's size
             format = splitFormat(prev_chunk.getFormat())
-            if self.getParent() == None:
-                if format[1] != "{@end@}":
-                    prev_chunk.convertToStringSize("{@end@}")
-            else:
-                size = prev_chunk.size - diff_size
-                prev_chunk.convertToStringSize(size)
+            size = prev_chunk.size - diff_size
+            prev_chunk.convertToStringSize(size)
+            self._cache_valid = False
         else:
             # Get id
             if new_id != None:
@@ -163,7 +160,7 @@ class Filter:
 
             # Get size
             if self.getParent() == None:
-                size = "{@end@}"
+                size = self._stream.getSize() - self.getSize() 
             else:
                 size = -diff_size
             self.addRawChunk(prev_chunk, id, size, description)
@@ -362,6 +359,7 @@ class Filter:
     
     def readString(self, id, format, description, post=None, strip=None):
         """ Returns chunk """
+        id = self.getUniqChunkId(id)
         chunk = StringChunk(id, description, self._stream, format, self, strip=strip)
         self.appendChunk(chunk)
         self._stream.seek(chunk.addr + chunk.size)

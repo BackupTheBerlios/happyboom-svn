@@ -56,8 +56,8 @@ class GifColorMap(Filter):
 class GifExtensionChunk(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "gif_ext_data", "GIF extension data", stream, parent)
-        self.read("size", "<B", "Size (in bytes)")
-        self.read("content", "<{size}s", "Content")
+        self.read("size", "B", "Size (in bytes)")
+        self.read("content", "%us" % self["size"], "Content")
 
 class GifExtension(Filter):
     def __init__(self, stream, parent):
@@ -114,9 +114,8 @@ class GifFile(Filter):
                 self.readChild("extensions[]", GifExtension)
             elif code == ",":
                 self.readChild("images[]", GifImage)
-                # TODO: Write GifImage code :-)
-                self.readImage(stream)
-                warning("GIF FILTER CAN NOT READ IMAGE CONTENT YET, SO ABORT READING!")
+                # TODO: Write Huffman parser code :-)
+#                self.readImage(stream)
                 return
             elif code == ";":
                 # GIF Terminator

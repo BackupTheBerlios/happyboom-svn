@@ -22,6 +22,7 @@ def usage(defval):
     print "Options:"
     print "\t--script file.py  : Load python script"
     print "\t--no-ui           : Don't load user interface"
+    print "\t--use-profiler    : Use profiler"
     print "\t--version         : Show the program version"
     print "\t--verbose         : Activate verbose mode"
     print "\t--help            : Show this help"
@@ -32,7 +33,7 @@ def parseArgs(val):
     
     try:
         short = ""
-        long = ["verbose", "help", "version", "script=", "no-ui"]
+        long = ["verbose", "help", "version", "script=", "no-ui", "use-profiler"]
         opts, args = getopt.getopt(sys.argv[1:], short, long)
     except getopt.GetoptError:
         usage(def_val)
@@ -50,15 +51,17 @@ def parseArgs(val):
         if o == "--help":
             usage(def_val)
             sys.exit()
-        if o == "--version":
+        elif o == "--version":
             print "%s version %s" % (PROGRAM, VERSION)
             sys.exit()
-        if o == "--no-ui":
+        elif o == "--no-ui":
             val["load_ui"] = False
-        if o == "--script":
+        elif o == "--script":
             val["script"] = a
-        if o == "--verbose":
+        elif o == "--verbose":
             val["verbose"] = True
+        elif o == "--use-profiler":
+            val["use_profiler"] = True
     return (val, filename,)
 
 def main():
@@ -82,7 +85,8 @@ def main():
         opt = {
             "verbose": False,
             "script": None,
-            "load_ui": True            
+            "load_ui": True,
+            "use_profiler": False
         }
         opt, filename = parseArgs(opt)
         global hachoir 
@@ -103,11 +107,17 @@ Gentoo: emerge pytgtk
 Debian: apt-get install python2.4-gtk python2.4-magic
 Ubuntu: apt-get install python-gtk2 python-glade2""" % (err))
                 sys.exit(1)
-        if False:
+        if opt["use_profiler"]:
             import profile, pstats
-            profile.run('global hachoir; hachoir.run("%s")' % filename, 'hachoir.loadStream')
-            #pstats.Stats('hachoir.loadStream').sort_stats('time').print_stats()
-            pstats.Stats('hachoir.loadStream').sort_stats('cumulative').print_stats()
+            stat_filename = 'hachoir.pystat'
+            if filename != None:
+                str_filename = "\"%s\"" % filename
+            else:
+                str_filename = "None"
+            profile.run('global hachoir; hachoir.run(%s)' % str_filename, stat_filename)
+            # .sort_stats('time')
+            pstats.Stats(stat_filename).sort_stats('cumulative').print_stats()
+            os.unlink(stat_filename)
         else:
             hachoir.run(filename)
 

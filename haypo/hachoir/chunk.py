@@ -146,6 +146,7 @@ class StringChunk(Chunk):
         "MacLine": "mac line",
         "UnixLine": "unix line",
         "AutoLine": "line",
+        "Pascal16": "pascal16",
         "Pascal32": "pascal32",
         "WindowsLine": "windows line"
     }
@@ -171,6 +172,11 @@ class StringChunk(Chunk):
 
     def _findSize(self):
         self._stream.seek(self.addr)
+        if self._str_type == "Pascal16":
+            self.length = self._stream.getFormat("!H")[0]
+            self._size = 2 + self.length
+            self.eol = ""
+            return
         if self._str_type == "Pascal32":
             self.length = self._stream.getFormat("!L")[0]
             self._size = 4 + self.length
@@ -211,6 +217,9 @@ class StringChunk(Chunk):
         if self._str_type == "Pascal32":
             self._stream.seek(4,1)
             size = self.length
+        elif self._str_type == "Pascal16":
+            self._stream.seek(2,1)
+            size = self.length
         else:
             size = self._size - len(self.eol)
         if max_size != None and max_size<size:
@@ -243,12 +252,12 @@ class StringChunk(Chunk):
         
 class FormatChunkCache:
     def __init__(self, chunk):
+        self._chunk = chunk
         self._value = {}
         self._addr = None
         self._format = None
-        self._orig_format = None
         self._size = None
-        self._chunk = chunk
+        self.update()
         
     def _isArray(self, format):
         if self._chunk.isString(): return False
@@ -271,19 +280,23 @@ class FormatChunkCache:
             else:
                 return data, True
 
+    def _calcsize(self):
+        endian, count, type = splitFormat(self._format)
+        if count != "":
+            count = int(count)
+        else:
+            count = 1
+        self._size = count * struct.calcsize(type)
+
     def update(self):
-        if self._addr != self._chunk.addr or self._orig_format != self._chunk.getFormat():
+        format_changed = (self._format != self._chunk.getFormat())
+        if self._addr != self._chunk.addr or format_changed:
             # Invalidate the cache
             self._value = {}
-            self._orig_format = self._chunk.getFormat()
-            self._format = self._chunk.getRealFormat(self._orig_format)
+            self._format = self._chunk.getFormat()
             self._addr = self._chunk.addr
-            endian, count, type = splitFormat(self._format)
-            if count != "":
-                count = int(count)
-            else:
-                count = 1
-            self._size = count * struct.calcsize(type)
+        if format_changed:
+            self._calcsize()
 
     def getSize(self):
         self.update()
@@ -326,27 +339,9 @@ class FormatChunk(Chunk):
         return self._cache.getSize()
     size = property(_getSize)        
 
-    def getRealFormat(self, format):
-        if "{" in format:
-            return FormatChunk.regex_sub_format.sub(self.__replaceFieldFormat, format)
-        else:
-            return format
-
     def isString(self):
         return self.__format[-1] == "s"
 
-    def __replaceFieldFormat(self, match):
-        id = match.group(1)
-        if id == "@end@":
-            size = self._stream.getLastPos() - self.addr + 1
-            if size < 0:
-                warning("Size < 0 for chunk %s, will use size=0!" % self.id)
-                size = 0
-        else:
-            assert id != self.id
-            size = self._parent[id]
-        return str(size)
-    
     def convertToStringSize(self, size):
         self.__format = "!%ss" % size
 
@@ -360,7 +355,7 @@ class FormatChunk(Chunk):
             raise Exception("Invalid FormatChunk format: \"%s\"!" % format)
         
         # Check new size
-        size = struct.calcsize(self.getRealFormat(format))
+        size = struct.calcsize(format)
         if self._stream.getLastPos() < (self.addr + size - 1):
             raise Exception("Can't set chunk %s to format \"%s\": size too big!" % (self.id, format))
 

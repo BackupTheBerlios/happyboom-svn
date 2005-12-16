@@ -29,9 +29,9 @@ class ZipCentralDirectory(Filter):
         self.read("internal_attr", "<H", "Internal file attributes")
         self.read("external_attr", "<L", "External file attributes")
         self.read("offset_header", "<L", "Relative offset of local header")
-        self.read("filename", "<{filename_length}s", "Filename")
-        self.read("extra", "<{extra_length}s", "Extra fields")
-        self.read("file_comment", "<{file_comment_length}s", "File comment")
+        self.read("filename", "%us" % self["filename_length"], "Filename")
+        self.read("extra", "%us" % self["extra_length"], "Extra fields")
+        self.read("file_comment", "%us" % self["file_comment_length"], "File comment")
 
     def updateParent(self, chunk):
         desc = "Central directory: %s" % self["filename"]
@@ -47,8 +47,7 @@ class ZipEndCentralDirectory(Filter):
         self.read("total_number_disk2", "<H", "Total number of entries2")
         self.read("size", "<L", "Size of the central directory")
         self.read("offset", "<L", "Offset of start of central directory")
-        self.read("comment_length", "<H", "ZIP comment length")
-        self.read("comment", "<{comment_length}s", "ZIP comment")
+        self.readString("comment", "Pascal16", "ZIP comment")
 
 #class ZipZip64(Filter):
 #    def __init__(self, stream, parent):
@@ -76,9 +75,9 @@ class ZipFileEntry(Filter):
         self.read("uncompressed_size", "<L", "Uncompressed size (bytes)")
         self.read("filename_length", "<H", "Filename length")
         self.read("extra_length", "<H", "Extra length")
-        self.read("filename", "<{filename_length}s", "Filename")
-        self.read("extra", "<{extra_length}s", "Extra")
-        self.read("compressed_data", "<{compressed_size}s", "Compressed data")
+        self.read("filename", "%us" % self["filename_length"], "Filename")
+        self.read("extra", "%us" % self["extra_length"], "Extra")
+        self.read("compressed_data", "%us" % self["compressed_size"], "Compressed data")
         if (self["flags"] & 4) == 4:
             self.read("file_crc32", "<L", "Checksum (CRC32)")
             self.read("file_compressed_size", "<L", "Compressed size (bytes)")
@@ -106,10 +105,10 @@ class ZipFile(Filter):
             elif header == 0x06054b50:
                 self.readChild("end_central_directory", ZipEndCentralDirectory)
             elif header == 0x05054b50:
-                self.read("signature_length", "!H", "Signature length")
-                self.read("signature", "!{signature_length}s", "Signature")
+                self.readString("signature", "Pascal16", "Signature")
             else:
                 error("Error, unknow ZIP header (0x%08X)." % header)
-                self.read("raw", "{@end@}s", "Raw")
+                size = stream.getSize() - stream.tell()
+                self.read("raw", "%us" % size, "Raw")
         
 registerPlugin(ZipFile, "application/x-zip")

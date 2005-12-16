@@ -7,4 +7,4 @@ class EmptyFilter(Filter):
 class DefaultFilter(Filter):
     def __init__(self, stream, parent=None):
         Filter.__init__(self, "default", "Default filter", stream, parent)
-        self.read("data", "!{@end@}s", "Data")
+        self.read("data", "%us" % stream.getSize(), "Data")

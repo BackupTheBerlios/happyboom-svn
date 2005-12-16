@@ -129,7 +129,8 @@ def sortSection(a, b):
 class Section(Filter):
     def __init__(self, stream, parent):
         Filter.__init__(self, "elf_section", "Elf section", stream, parent)
-        self.read("raw", "{@end@}s", "Raw data")
+        # TODO ...
+        self.read("raw", "%us" % stream.getSize(), "Raw data")
         
 class Sections(Filter):
     def __init__(self, stream, parent, sections):

@@ -96,7 +96,7 @@ class PngChunk(Filter):
             self.readStreamChild("chunk_data", sub, PngChunk.handler[type])
             assert stream.tell() == (oldpos + size) 
         else:
-            self.read("data", "!{size}s", "Chunk data")
+            self.read("data", "%us" % self["size"], "Chunk data")
         self.read("crc32", "!L", "Chunk CRC32")
 
     def updateParent(self, chunk):

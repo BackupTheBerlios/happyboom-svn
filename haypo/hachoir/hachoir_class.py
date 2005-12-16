@@ -88,14 +88,14 @@ class Hachoir:
     def _addPadding(self):
         filter_size = self._filter.getSize()
         stream_size = self._filter.getStream().getSize()
-        diff_size = filter_size - stream_size + 1
+        diff_size = filter_size - stream_size
         if diff_size < 0:
             chunks = self._filter.getChunks()
             if len(chunks) != 0:
                 last_chunk = chunks[-1]
             else:
                 last_chunk = None
-            self._filter.addRawChunk(last_chunk, "end", "{@end@}", "")
+            self._filter.addRawChunk(last_chunk, "end", "%u" % (-diff_size), "")
 
     def loadFile(self, filename):
         try:

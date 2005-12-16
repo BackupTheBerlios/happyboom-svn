@@ -88,4 +88,5 @@ class PCX_File(Filter):
     def postCompression(self, chunk):
         mode = chunk.value
         return PCX_File.compression_name.get(mode, "Unknow (%s)" % mode)
+
 registerPlugin(PCX_File, "image/x-pcx")

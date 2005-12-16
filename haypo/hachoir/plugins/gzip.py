@@ -27,7 +27,7 @@ class GzipFile(Filter):
 
         if self["extra"] & 4 == 4:
             self.read("extra_length", "<2H", "Extra length")
-            self.read("extra", "!{extra_length}s", "Extra")
+            self.read("extra", "%us" % self["extra_length"], "Extra")
         if self["flags"] & 8 == 8:
             self.readString("filename", "C", "Filename")
         if self["flags"] & 16 == 16:

@@ -342,11 +342,14 @@ class EXT2_FS(Filter):
         count = 32768
         self.readChild("inode_bitmap[]", InodeBitmap, count / 8, 1)
 
-        inode_table0 = self.readChild("inode_table[]", InodeTable, 1, 20).getFilter()
+        inode_table0 = self.readChild("inode_table[]", InodeTable, 1, 200).getFilter()
 
         root = inode_table0[2]
 
         self.readDirectory(root)
+
+        size = stream.getSize() - stream.tell()
+        self.read("end", "%us" % size, "End (raw)")
 
     def seek(self, to):
         size = to - self.getStream().tell()
