@@ -20,6 +20,7 @@ class BasicFilter:
         self._chunks_counter = {}
         self._chunks_dict = {}
 
+    def updateParent(self, chunk): pass
     def getId(self): return self._id
     def setId(self, id): self._id = id
     def getDescription(self): return self._description
@@ -28,6 +29,9 @@ class BasicFilter:
     def setAddr(self, addr): self._addr = addr
     def getParent(self): return self._parent
     def getStream(self): return self._stream
+    def setChunkCounter(self, root, start):
+        assert root not in self._chunks_counter
+        self._chunks_counter[root] = start
 
     def getPath(self):
         """
@@ -76,7 +80,7 @@ class BasicFilter:
     def getChunk(self, chunk_id): assert False
     def display(self): assert False
 
-class OnlyFormatFilter(BasicFilter):
+class OnlyFormatChunksFilter(BasicFilter):
     def __init__(self, id, description, stream, parent):
         BasicFilter.__init__(self, id, description, stream, parent, stream.tell())
         self._chunks = []
@@ -116,6 +120,57 @@ class OnlyFormatFilter(BasicFilter):
         if id not in self._chunks_cache:
             chunk = self._chunks_dict[id]
             self._chunks_cache[id] = FormatChunk(chunk[0], chunk[1], self._stream, chunk[2], chunk[3], self)
+        return self._chunks_cache[id]
+
+    def __getitem__(self, id):
+        assert id in self._chunks_dict
+        return self.getChunk(id).value
+
+class OnlyFiltersFilter(BasicFilter):
+    def __init__(self, id, description, stream, parent):
+        BasicFilter.__init__(self, id, description, stream, parent, stream.tell())
+        self._chunks = []
+        self._chunks_dict = {}
+        self._chunks_cache = {}
+        self._size = 0
+
+    def purgeCache(self):
+        self._chunks_cache = {}
+
+    def readSizedChild(self, id, size, filter_class, *args): 
+        id = self.getUniqChunkId(id)
+        filter_info = (id, size, self._stream.tell(), filter_class, args)
+        self._chunks_dict[id] = filter_info
+        self._chunks.append( filter_info )
+        self._stream.seek(size, 1)
+        self._size = self._size + size
+
+    def display(self):
+        ui.window.enableParentButton(self.getParent() != None)
+        ui.window.clear_table()
+        for chunk in self._chunks:
+            format = chunk[3].__name__
+            desc = "xxx"
+            ui.window.add_table(None, chunk[2], chunk[1], format, chunk[0], desc, "(...)")
+ 
+    def getSize(self): return self._size
+
+    def getChunk(self, id):
+        if id not in self._chunks_dict:
+            return None
+        if id not in self._chunks_cache:
+            info = self._chunks_dict[id]
+
+            addr = info[2]
+            self._stream.seek(addr)
+            filter = info[3] (self._stream, self, *info[4])
+            filter.setId(info[0])
+            chunk = FilterChunk(info[0], filter, self, addr)
+#            filter.updateParent(chunk)
+#            chunk.postProcess()
+            self._stream.seek(addr + info[1])
+            
+            self._chunks_cache[id] = chunk 
         return self._chunks_cache[id]
 
     def __getitem__(self, id):

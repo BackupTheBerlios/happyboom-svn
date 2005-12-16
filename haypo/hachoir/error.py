@@ -7,6 +7,7 @@ def warning(message):
     if ui.ui.ui != None:
         import gtk
         dlg = gtk.MessageDialog( \
+            parent=ui.ui.ui.window,
             type=gtk.MESSAGE_WARNING,
             buttons=gtk.BUTTONS_OK,
             message_format=message)
@@ -18,6 +19,7 @@ def error(message):
     if ui.ui.ui != None:
         import gtk
         dlg = gtk.MessageDialog( \
+            parent=ui.ui.ui.window,
             type=gtk.MESSAGE_ERROR,
             buttons=gtk.BUTTONS_OK,
             message_format=message)

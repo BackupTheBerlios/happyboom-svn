@@ -9,7 +9,7 @@ Sources:
 """
 
 from datetime import datetime
-from filter import Filter, OnlyFormatFilter
+from filter import Filter, OnlyFormatChunksFilter, OnlyFiltersFilter
 from plugin import registerPlugin
 from tools import humanDuration, getUnixRWX 
 
@@ -48,7 +48,7 @@ class DirectoryEntry(Filter):
         type = chunk.value
         return DirectoryEntry.file_type.get(type, "Unknow (%02X)" % type)
 
-class Inode(OnlyFormatFilter):
+class Inode(OnlyFormatChunksFilter):
     name = {
         1: "list of bad blocks",
         2: "Root directory",
@@ -60,7 +60,7 @@ class Inode(OnlyFormatFilter):
     }
     
     def __init__(self, stream, parent, index):
-        OnlyFormatFilter.__init__(self, "inode", "EXT2 inode", stream, parent)
+        OnlyFormatChunksFilter.__init__(self, "inode", "EXT2 inode", stream, parent)
         self.index = index
         self.read("mode", "<H", "Mode", post=self.postMode)
         self.read("uid", "<H", "User ID")
@@ -297,17 +297,20 @@ class Groups(Filter):
     def __getitem__(self, index):
         return self.items[index]
 
-class InodeTable(Filter):
+class InodeTable(OnlyFiltersFilter):
     def __init__(self, stream, parent, start, count):
-        Filter.__init__(self, "ino_table", "EXT2 inode table", stream, parent)
+        OnlyFiltersFilter.__init__(self, "ino_table", "EXT2 inode table", stream, parent)
         self.inodes = {}
-        for index in range(start,start+count):
-            inode = self.readChild("inode[]", Inode, index).getFilter()
-            self.inodes[index] = inode
-            inode.purgeCache()
+        self.start = start
+        chunk_size = parent.superblock["inode_size"]
+        for index in range(0,count):
+            self.readSizedChild("inode[]", chunk_size, Inode, index)
 
     def __getitem__(self, index):
-        return self.inodes[index]
+        print "Read inode %s" % index
+        index = index - self.start - 1
+        print ">Read inode %s" % index
+        return self.getChunk("inode[%u]" % index).getFilter()
 
 #class Directory(Filter):
 #    def __init__(self, stream, parent):
@@ -338,7 +341,7 @@ class EXT2_FS(Filter):
         count = 32768
         self.readChild("inode_bitmap[]", InodeBitmap, count / 8, 1)
 
-        inode_table0 = self.readChild("inode_table[]", InodeTable, 1, 1000).getFilter()
+        inode_table0 = self.readChild("inode_table[]", InodeTable, 0, 1000).getFilter()
 
         root = inode_table0[2]
 
@@ -354,6 +357,7 @@ class EXT2_FS(Filter):
             self.read("raw[]", "%us" % size, "Raw")
 
     def readDirectory(self, inode):
+        print "Read."
         stream = self.getStream()
         block_index = 0
         while True:

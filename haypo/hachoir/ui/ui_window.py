@@ -82,6 +82,7 @@ class MainWindow:
 
         chooser = gtk.FileChooserDialog( \
             title="Write chunk data to ...",
+            parent=self.window,
             action=gtk.FILE_CHOOSER_ACTION_SAVE,
             buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_SAVE,gtk.RESPONSE_OK))
         if chooser.run() == gtk.RESPONSE_OK:
@@ -199,6 +200,7 @@ class MainWindow:
     def on_toolbutton_close(self, widget):
         dlg = gtk.MessageDialog( \
             type=gtk.MESSAGE_QUESTION,
+            parent=self.window,
             buttons=gtk.BUTTONS_YES_NO,
             message_format="Are you sure that you want to close the file?")
         dlg.set_default_response(gtk.RESPONSE_NO)            
@@ -216,6 +218,7 @@ class MainWindow:
     def on_open_activate(self, widget):
         chooser = gtk.FileChooserDialog( \
             title="Choose file to split",
+            parent=self.window,
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
         if chooser.run() == gtk.RESPONSE_OK:
@@ -226,6 +229,7 @@ class MainWindow:
     def on_toolbutton_open(self, widget):
         chooser = gtk.FileChooserDialog( \
             title="Choose filter",
+            parent=self.window,
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
         if chooser.run() == gtk.RESPONSE_OK:
@@ -236,6 +240,7 @@ class MainWindow:
     def on_toolbutton_export(self, widget):
         chooser = gtk.FileChooserDialog( \
             title="Export current filter to python script ...",
+            parent=self.window,
             action=gtk.FILE_CHOOSER_ACTION_SAVE,
             buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_SAVE,gtk.RESPONSE_OK))
         if chooser.run() == gtk.RESPONSE_OK:
@@ -246,6 +251,7 @@ class MainWindow:
     def on_toolbutton_save(self, widget):
         chooser = gtk.FileChooserDialog( \
             title="Save XML filter into ...",
+            parent=self.window,
             action=gtk.FILE_CHOOSER_ACTION_SAVE,
             buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_SAVE,gtk.RESPONSE_OK))
         if chooser.run() == gtk.RESPONSE_OK:
