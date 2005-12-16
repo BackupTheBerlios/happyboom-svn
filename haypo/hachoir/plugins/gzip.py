@@ -14,26 +14,6 @@ from error import error
 from default import DefaultFilter
 from tools import getBacktrace
    
-class GunzipFilter(Filter):
-    def __init__(self, stream, parent, start, size, filter_class):
-        # Read data
-        self._parent_stream = stream
-        
-        # Create a new stream
-        stream = GunzipStream(self._parent_stream)
-        self._compressed_size = size 
-        self._decompressed_size = stream.getSize()
-
-        # Create filter
-        self._parent_stream.seek(start)
-        Filter.__init__(self, "deflate", "Deflate", stream, parent)
-        self._addr = self._parent_stream.tell()
-
-        self.readChild("data", filter_class)
-
-    def getSize(self):
-        return self._compressed_size
-
 class GzipFile(Filter):
     def __init__(self, stream, parent=None):
         Filter.__init__(self, "gzip_file", "GZIP archive file", stream, parent)

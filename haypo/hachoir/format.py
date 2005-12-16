@@ -1,7 +1,7 @@
 import re
 
-_regex_format1 = re.compile("^[!<>]?(?:[0-9]+|\{[a-z@_]+\})?[BHLhscfd]$")
-_regex_format2 = re.compile("^([!<>]?)((?:[0-9]+|\{[a-z@_]+\})?)([BHLhscfd])$")
+_regex_format1 = re.compile("^[!<>]?(?:[0-9]+|\{[a-z@_]+\})?[BHLbhscfd]$")
+_regex_format2 = re.compile("^([!<>]?)((?:[0-9]+|\{[a-z@_]+\})?)([BHLbhscfd])$")
 
 def checkFormat(format):
     m = _regex_format1.match(format)
