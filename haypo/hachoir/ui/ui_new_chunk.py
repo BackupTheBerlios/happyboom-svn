@@ -48,7 +48,7 @@ class NewChunkDialog:
         format = chunk.getFormat()
         split = splitFormat(format)
         if split != None:
-            self.size_widget.set_text(split[1])
+            self.size_widget.set_text("%u" % split[1])
             self.endian_widget.child.set_text(split[0])
             self.format_widget.child.set_text(split[2])
         self.id_widget.set_text(chunk.id)

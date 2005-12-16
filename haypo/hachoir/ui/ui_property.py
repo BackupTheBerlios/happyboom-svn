@@ -1,7 +1,6 @@
 import pygtk
 import gtk
 import gtk.glade
-from format import splitFormat
 
 class PropertyDialog:
     def __init__(self, ui):

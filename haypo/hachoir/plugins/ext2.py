@@ -9,7 +9,7 @@ Sources:
 """
 
 from datetime import datetime
-from filter import Filter
+from filter import Filter, OnlyFormatFilter
 from plugin import registerPlugin
 from tools import humanDuration, getUnixRWX 
 
@@ -48,7 +48,7 @@ class DirectoryEntry(Filter):
         type = chunk.value
         return DirectoryEntry.file_type.get(type, "Unknow (%02X)" % type)
 
-class Inode(Filter):
+class Inode(OnlyFormatFilter):
     name = {
         1: "list of bad blocks",
         2: "Root directory",
@@ -60,7 +60,7 @@ class Inode(Filter):
     }
     
     def __init__(self, stream, parent, index):
-        Filter.__init__(self, "inode", "EXT2 inode", stream, parent)
+        OnlyFormatFilter.__init__(self, "inode", "EXT2 inode", stream, parent)
         self.index = index
         self.read("mode", "<H", "Mode", post=self.postMode)
         self.read("uid", "<H", "User ID")
@@ -204,84 +204,79 @@ class SuperBlock(Filter):
         self.read("free_blocks_count", "<L", "Free blocks count")
         self.read("free_inodes_count", "<L", "Free inodes count")
         first = self.read("first_data_block", "<L", "First data block").value
-        self.is_superblock = (first == 0)
-        if self.is_superblock:
-            self.read("log_block_size", "<L", "Block size")
-            self.read("log_frag_size", "<L", "Fragment size")
-            self.read("blocks_per_group", "<L", "Blocks per group")
-            self.read("frags_per_group", "<L", "Fragments per group")
-            self.read("inodes_per_group", "<L", "Inodes per group")
-            self.read("mtime", "<L", "Mount time", post=self.getTime)
-            self.read("wtime", "<L", "Write time", post=self.getTime)
-            self.read("mnt_count", "<H", "Mount count")
-            self.read("max_mnt_count", "<h", "Max mount count")
-            id = self.read("magic", ">H", "Magic number (0x53EF)").value
-            assert id == 0x53EF
+        assert (first == 0)
+        self.read("log_block_size", "<L", "Block size")
+        self.read("log_frag_size", "<L", "Fragment size")
+        self.read("blocks_per_group", "<L", "Blocks per group")
+        self.read("frags_per_group", "<L", "Fragments per group")
+        self.read("inodes_per_group", "<L", "Inodes per group")
+        self.read("mtime", "<L", "Mount time", post=self.getTime)
+        self.read("wtime", "<L", "Write time", post=self.getTime)
+        self.read("mnt_count", "<H", "Mount count")
+        self.read("max_mnt_count", "<h", "Max mount count")
+        id = self.read("magic", ">H", "Magic number (0x53EF)").value
+        assert id == 0x53EF
 
-            # Read state
-            chunk = self.read("state", "<H", "File system state")
-            chunk.description = "Behaviour when detecting errors: %s" % \
-                SuperBlock.state.get(chunk.value, "Unknow (%s)" % chunk.value)
+        # Read state
+        chunk = self.read("state", "<H", "File system state")
+        chunk.description = "Behaviour when detecting errors: %s" % \
+            SuperBlock.state.get(chunk.value, "Unknow (%s)" % chunk.value)
 
-            # Read error handling
-            chunk = self.read("errors", "<H", "")
-            desc = "Behaviour when detecting errors"
-            if chunk.value in SuperBlock.error_handling:
-                desc = "%s: %s" % (desc, SuperBlock.error_handling[chunk.value])
-            chunk.description = desc
-            
-            self.read("minor_rev_level", "<H", "Minor revision level")
-            self.read("last_check", "<L", "Time of last check", post=self.getTime)
-            self.read("check_interval", "<L", "Maximum time between checks", post=self.postMaxTime)
-            
-            chunk = self.read("creator_os", "<L", "")
-            desc = "Creator OS"
-            if chunk.value in SuperBlock.os_name:
-                desc = "%s: %s" % (desc, SuperBlock.os_name[chunk.value])
-            chunk.description = desc
-            
-            self.read("rev_level", "<L", "Revision level")
-            self.read("def_resuid", "<H", "Default uid for reserved blocks")
-            self.read("def_resgid", "<H", "Default guid for reserverd blocks")
+        # Read error handling
+        chunk = self.read("errors", "<H", "")
+        desc = "Behaviour when detecting errors"
+        if chunk.value in SuperBlock.error_handling:
+            desc = "%s: %s" % (desc, SuperBlock.error_handling[chunk.value])
+        chunk.description = desc
+        
+        self.read("minor_rev_level", "<H", "Minor revision level")
+        self.read("last_check", "<L", "Time of last check", post=self.getTime)
+        self.read("check_interval", "<L", "Maximum time between checks", post=self.postMaxTime)
+        
+        chunk = self.read("creator_os", "<L", "")
+        desc = "Creator OS"
+        if chunk.value in SuperBlock.os_name:
+            desc = "%s: %s" % (desc, SuperBlock.os_name[chunk.value])
+        chunk.description = desc
+        
+        self.read("rev_level", "<L", "Revision level")
+        self.read("def_resuid", "<H", "Default uid for reserved blocks")
+        self.read("def_resgid", "<H", "Default guid for reserverd blocks")
 
-            # ---------
+        # ---------
 
-            self.read("first_ino", "<L", "First non-reserved inode")
-            inode_size = self.read("inode_size", "<H", "Size of inode structure").value
-            assert inode_size == (68 + 15*4)
-            self.read("block_group_nr", "<H", "Block group # of this superblock")
-            self.read("feature_compat", "<L", "Compatible feature set")
-            self.read("feature_incompat", "<L", "Incompatible feature set")
-            self.read("feature_ro_compat", "<L", "Read-only compatible feature set")
-            self.read("uuid", "16s", "128-bit uuid for volume")
-            self.read("volume_name", "16s", "Volume name")
-            self.read("last_mounted", "64s", "Directory where last mounted")
-            self.read("compression", "<L", "For compression (algorithm usage bitmap)")
-            
-            self.read("prealloc_blocks", "B", "Number of blocks to try to preallocate")
-            self.read("prealloc_dir_blocks", "B", "Number to preallocate for directories")
-            self.read("padding", "H", "Padding")
-            
-            self.read("journal_uuid", "16s", "uuid of journal superblock")
-            self.read("journal_inum", "<L", "inode number of journal file")
-            self.read("journal_dev", "<L", "device number of journal file")
-            self.read("last_orphan", "<L", "start of list of inodes to delete")
-            
-            self.read("reserved", "197s", "Padding to the end of the block")
-        else:        
-            self.read("padding", "197s", "Padding to the end of the block")
+        self.read("first_ino", "<L", "First non-reserved inode")
+        inode_size = self.read("inode_size", "<H", "Size of inode structure").value
+        assert inode_size == (68 + 15*4)
+        self.read("block_group_nr", "<H", "Block group # of this superblock")
+        self.read("feature_compat", "<L", "Compatible feature set")
+        self.read("feature_incompat", "<L", "Incompatible feature set")
+        self.read("feature_ro_compat", "<L", "Read-only compatible feature set")
+        self.read("uuid", "16s", "128-bit uuid for volume")
+        self.read("volume_name", "16s", "Volume name")
+        self.read("last_mounted", "64s", "Directory where last mounted")
+        self.read("compression", "<L", "For compression (algorithm usage bitmap)")
+        
+        self.read("prealloc_blocks", "B", "Number of blocks to try to preallocate")
+        self.read("prealloc_dir_blocks", "B", "Number to preallocate for directories")
+        self.read("padding", "H", "Padding")
+        
+        self.read("journal_uuid", "16s", "uuid of journal superblock")
+        self.read("journal_inum", "<L", "inode number of journal file")
+        self.read("journal_dev", "<L", "device number of journal file")
+        self.read("last_orphan", "<L", "start of list of inodes to delete")
+        
+        self.read("reserved", "197s", "Padding to the end of the block")
+
+        blocks_per_group = self["blocks_per_group"]
+        self.group_count = (self["blocks_count"] - self["first_data_block"] + blocks_per_group - 1) / blocks_per_group
 
     def updateParent(self, chunk):
-        if self.is_superblock:
-            blocks_per_group = self["blocks_per_group"]
-            self.group_count = (self["blocks_count"] - self["first_data_block"] + blocks_per_group - 1) / blocks_per_group
-            if self["feature_compat"] & 4 == 4:
-                type = "ext3"
-            else:
-                type = "ext2"
-            desc = "EXT2 Superblock: %s file system" % type
+        if self["feature_compat"] & 4 == 4:
+            type = "ext3"
         else:
-            desc = "EXT2 block #%s" % self["first_data_block"]
+            type = "ext2"
+        desc = "EXT2 Superblock: %s file system" % type
         self.setDescription(desc)
         chunk.description = desc
 
@@ -342,7 +337,7 @@ class EXT2_FS(Filter):
         count = 32768
         self.readChild("inode_bitmap[]", InodeBitmap, count / 8, 1)
 
-        inode_table0 = self.readChild("inode_table[]", InodeTable, 1, 200).getFilter()
+        inode_table0 = self.readChild("inode_table[]", InodeTable, 1, 1000).getFilter()
 
         root = inode_table0[2]
 

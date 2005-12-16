@@ -6,29 +6,108 @@ import struct, re, sys, string, types
 import config
 import ui.ui as ui
 from chunk import Chunk, FormatChunk, FilterChunk, StringChunk
-from format import splitFormat    
 from error import error
 from tools import getBacktrace
+from format import getFormatSize
 
-class Filter:
-    regex_chunk_uniq_id = re.compile("^(.*?)([0-9]+)$")
-    regex_array_chunk = re.compile(r"^([^[]+)\[\]$")
-
-    def __init__(self, id, description, stream, parent):
+class BasicFilter:
+    def __init__(self, id, description, stream, parent, addr):
         self._id = id
         self._description = description
         self._stream = stream
         self._parent = parent
-        if self._parent:
-            self.depth = self._parent.depth + 1
-        else:
-            self.depth = 1
+        self._addr = addr 
+
+
+    def getId(self): return self._id
+    def setId(self, id): self._id = id
+    def getDescription(self): return self._description
+    def setDescription(self, description): self._description = description
+    def getAddr(self): return self._addr
+    def setAddr(self, addr): self._addr = addr
+    def getParent(self): return self._parent
+    def getStream(self): return self._stream
+
+    def getPath(self):
+        """
+        Get path to the filter.
+        Example: "grandparent > parent > item"
+        """
+        text = ""
+        current = self
+        while current != None:
+            if text != "": text = "/" + text
+            text = current.getId() + text
+            current = current.getParent()
+        return "/"+text
+
+    # --- Pure virtual methods -----------
+    def getSize(self): assert False
+    def __getitem__(self, chunk_id): assert False
+    def getChunk(self, chunk_id): assert False
+    def display(self): assert False
+
+class OnlyFormatFilter(BasicFilter):
+    def __init__(self, id, description, stream, parent):
+        BasicFilter.__init__(self, id, description, stream, parent, stream.tell())
+        self._chunks = []
+        self._chunks_counter = {}
+        self._size = 0
+
+    def read(self, id, format, description, post=None):
+        if id[-2:] == "[]":
+            root = id[:-2]
+            if root in self._chunks_counter:
+                self._chunks_counter[root] += 1
+            else:
+                self._chunks_counter[root] = 0
+            id = root+"["+str(self._chunks_counter[root])+"]"
+        size = getFormatSize(format)
+        self._chunks.append( (id, description, self._stream.tell(), format, size, post) )
+        self._stream.seek(size, 1)
+        self._size = self._size + size
+
+    def display(self):
+        ui.window.enableParentButton(self.getParent() != None)
+        ui.window.clear_table()
+        for chunk in self._chunks:
+            data = FormatChunk(chunk[0], chunk[1], self._stream, chunk[2], chunk[3], self)
+            post = chunk[5]
+            if post != None:
+                display = post(data)
+            else:
+                display = data.value 
+            ui.window.add_table(None, chunk[2], chunk[4], chunk[3], chunk[0], chunk[1], display)
+ 
+    def getSize(self): return self._size
+
+    def getChunk(self, chunk_id):
+        print "getChunk: %s" % chunk_id
+        for chunk in self._chunks:
+            if chunk[0] == chunk_id:
+                return FormatChunk(chunk[0], chunk[1], self._stream, chunk[2], chunk[3], self)
+        return None                
+        assert False
+
+    def __getitem__(self, chunk_id):
+        for chunk in self._chunks:
+            if chunk[0] == chunk_id:
+                self._stream.seek(chunk[2])
+                return self._stream.getFormat(chunk[3])[0]
+                return FormatChunk(chunk[0], chunk[1], self._stream, chunk[2], chunk[3], self)
+        assert False
+
+class Filter(BasicFilter):
+    regex_chunk_uniq_id = re.compile("^(.*?)([0-9]+)$")
+
+    def __init__(self, id, description, stream, parent):
+        BasicFilter.__init__(self, id, description, stream, parent, stream.tell())
         self.filter_chunk = None 
         self._chunks = []
         self._chunks_dict = {}
-        self._addr = self._stream.tell()
         self._cache_valid = False
         self._cache_size = None
+        self._chunk_counter = {}
 
     def __getitem__(self, chunk_id):
         return self.getChunk(chunk_id).getValue()
@@ -46,11 +125,6 @@ class Filter:
             raise
         new.filter_chunk = self.filter_chunk
         return new
-
-    def getId(self): return self._id
-    def setId(self, id): self._id = id
-    def getDescription(self): return self._description
-    def setDescription(self, description): self._description = description
 
     def _deleteChunk(self, pos):
         self._cache_valid = False
@@ -76,28 +150,33 @@ class Filter:
     def getChunks(self):
         return self._chunks
 
-    def _getUniqChunkId(self, pattern, root, index):
-        if not hasattr(self, "_chunk_counter"):
-            self._chunk_counter = {}
-        
+    def _getUniqChunkId(self, root, index):
         if root in self._chunk_counter:
-            self._chunk_counter[root] = self._chunk_counter[root]+1
+            self._chunk_counter[root] = self._chunk_counter[root] + 1
         else:
             self._chunk_counter[root] = index
-        return pattern % (root, self._chunk_counter[root])
+        return self._chunk_counter[root]
 
     def getUniqChunkId(self, id):
+        # Pattern like "block[]"
         if id[-2:] == "[]":
-            return self._getUniqChunkId("%s[%u]", id[:-2], 0)
+            root = id[:-2]
+            index = self._getUniqChunkId(root, 0)
+            return root+"["+str(index)+"]" 
 
-        if id in self._chunks_dict:
-            m = Filter.regex_chunk_uniq_id.match(id)
-            if m != None:
-                return self._getUniqChunkId("%s%u", m.group(1), int(m.group(2))+1)
-            else:
-                return self._getUniqChunkId("%s%u", id, 2)
-        else:
+        # No collision
+        if id not in self._chunks_dict:
             return id
+
+        # Manage id collision
+        m = Filter.regex_chunk_uniq_id.match(id)
+        if m != None:
+            root = m.group(1)
+            index = self._getUniqChunkId(root, int(m.group(2))+1)
+        else:
+            root = id
+            index = self._getUniqChunkId(root, 2)
+        return root+str(index)
 
     def updateChunkId(self, chunk, new_id):
         if chunk.id == new_id: return
@@ -140,7 +219,6 @@ class Filter:
         
         if prev_chunk != None and issubclass(prev_chunk.__class__, FormatChunk):
             # If last chunk is a FormatChunk, update it's size
-            format = splitFormat(prev_chunk.getFormat())
             size = prev_chunk.size - diff_size
             prev_chunk.convertToStringSize(size)
             self._cache_valid = False
@@ -207,12 +285,6 @@ class Filter:
         if self.getParent() != None:
             self.getParent().rescan(self.filter_chunk, diff_size)
 
-    def getAddr(self):
-        return self._addr
-
-    def setAddr(self, addr):
-        self._addr = addr
-
     def getLastPos(self):
         if len(self._array) == 0: return self.getAddr()
         last_chunk = self._array[-1]
@@ -266,19 +338,6 @@ class Filter:
     def redisplay(self):  
         self.display()
     
-    def getPath(self):
-        """
-        Get path to the filter.
-        Example: "grandparent > parent > item"
-        """
-        text = ""
-        current = self
-        while current != None:
-            if text != "": text = "/" + text
-            text = current.getId() + text
-            current = current.getParent()
-        return "/"+text
-
     def display(self):  
         ui.window.enableParentButton(self.getParent() != None)
             
@@ -315,10 +374,10 @@ class Filter:
 
     def appendChunk(self, chunk, position=None):
         self._cache_valid = False
-        if position != None:
-            self._chunks.insert(position, chunk)
-        else:
+        if position == None:
             self._chunks.append(chunk)
+        else:
+            self._chunks.insert(position, chunk)
         self._chunks_dict[chunk.id] = chunk
 
     def readLimitedChild(self, id, size, filter_class, *args):
@@ -382,7 +441,7 @@ class Filter:
             (self.__class__, self.getId(), self.getDescription())
 
     def addNewFilter(self, chunk, id, size, desc):
-        chunk.setFormat("!%ss" % size, "split", id, desc)
+        chunk.setFormat("%us" % size, "split", id, desc)
         self.convertChunkToFilter(chunk)
 
     def convertFilterToChunk(self, chunk):
@@ -420,12 +479,6 @@ class Filter:
         self._chunks_dict[chunk.id] = new_chunk
         self.redisplay()
         return filter
-
-    def getParent(self):
-        return self._parent
-
-    def getStream(self):
-        return self._stream
 
 class ArrayFilter(Filter):
     def __init__(self, id, description, stream, parent, entry_class, end_func):
