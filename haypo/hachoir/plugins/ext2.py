@@ -303,13 +303,11 @@ class InodeTable(OnlyFiltersFilter):
         self.inodes = {}
         self.start = start
         chunk_size = parent.superblock["inode_size"]
-        for index in range(0,count):
-            self.readSizedChild("inode[]", chunk_size, Inode, index)
+        for index in range(self.start+1, self.start+1+count):
+            self.readSizedChild("inode[]", chunk_size, "Inode %s" % index, Inode, index)
 
     def __getitem__(self, index):
-        print "Read inode %s" % index
         index = index - self.start - 1
-        print ">Read inode %s" % index
         return self.getChunk("inode[%u]" % index).getFilter()
 
 #class Directory(Filter):
@@ -357,7 +355,6 @@ class EXT2_FS(Filter):
             self.read("raw[]", "%us" % size, "Raw")
 
     def readDirectory(self, inode):
-        print "Read."
         stream = self.getStream()
         block_index = 0
         while True:

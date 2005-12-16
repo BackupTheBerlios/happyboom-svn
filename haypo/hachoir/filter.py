@@ -29,9 +29,6 @@ class BasicFilter:
     def setAddr(self, addr): self._addr = addr
     def getParent(self): return self._parent
     def getStream(self): return self._stream
-    def setChunkCounter(self, root, start):
-        assert root not in self._chunks_counter
-        self._chunks_counter[root] = start
 
     def getPath(self):
         """
@@ -118,8 +115,9 @@ class OnlyFormatChunksFilter(BasicFilter):
         if id not in self._chunks_dict:
             return None
         if id not in self._chunks_cache:
-            chunk = self._chunks_dict[id]
-            self._chunks_cache[id] = FormatChunk(chunk[0], chunk[1], self._stream, chunk[2], chunk[3], self)
+            info = self._chunks_dict[id]
+            chunk = FormatChunk(info[0], info[1], self._stream, info[2], info[3], self)
+            self._chunks_cache[id] = chunk 
         return self._chunks_cache[id]
 
     def __getitem__(self, id):
@@ -137,9 +135,9 @@ class OnlyFiltersFilter(BasicFilter):
     def purgeCache(self):
         self._chunks_cache = {}
 
-    def readSizedChild(self, id, size, filter_class, *args): 
+    def readSizedChild(self, id, size, description, filter_class, *args): 
         id = self.getUniqChunkId(id)
-        filter_info = (id, size, self._stream.tell(), filter_class, args)
+        filter_info = (id, size, self._stream.tell(), description, filter_class, args)
         self._chunks_dict[id] = filter_info
         self._chunks.append( filter_info )
         self._stream.seek(size, 1)
@@ -148,10 +146,14 @@ class OnlyFiltersFilter(BasicFilter):
     def display(self):
         ui.window.enableParentButton(self.getParent() != None)
         ui.window.clear_table()
-        for chunk in self._chunks:
-            format = chunk[3].__name__
-            desc = "xxx"
-            ui.window.add_table(None, chunk[2], chunk[1], format, chunk[0], desc, "(...)")
+        for info in self._chunks:
+            format = info[4].__name__
+            if info[0] in self._chunks_cache:
+                c = self._chunks_cache[info[0]]
+                desc = c.description
+            else:
+                desc = info[3] 
+            ui.window.add_table(None, info[2], info[1], format, info[0], desc, "(...)")
  
     def getSize(self): return self._size
 
@@ -163,11 +165,10 @@ class OnlyFiltersFilter(BasicFilter):
 
             addr = info[2]
             self._stream.seek(addr)
-            filter = info[3] (self._stream, self, *info[4])
+            filter = info[4] (self._stream, self, *info[5])
             filter.setId(info[0])
             chunk = FilterChunk(info[0], filter, self, addr)
-#            filter.updateParent(chunk)
-#            chunk.postProcess()
+            filter.updateParent(chunk)
             self._stream.seek(addr + info[1])
             
             self._chunks_cache[id] = chunk 
