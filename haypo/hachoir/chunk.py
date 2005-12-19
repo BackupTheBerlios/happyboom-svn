@@ -6,7 +6,7 @@ from tools import convertDataToPrintableString
 
 class Chunk(object):
     def __init__(self, id, description, stream, addr, size, parent):
-        self.__id = id
+        self._id = id
         self.description = description
         self._size = size
         self._addr = addr
@@ -29,10 +29,6 @@ class Chunk(object):
         self.display = None
         self.postProcess()
 
-    def __str__(self):
-        return "Chunk(%s) <addr=%s, size=%s, id=%s, description=%s>" % \
-            (self.__class__, self._addr, self._size, self.id, self.description)
-        
     def getStream(self):
         return self._stream
 
@@ -68,11 +64,11 @@ class Chunk(object):
     def _setAddr(self, addr): self._addr = addr
     def _getAddr(self): return self._addr
     def _getSize(self): return self._size
-    def _getId(self): return self.__id
+    def _getId(self): return self._id
     def _setId(self, id):
-        if self.__id == id: return
+        if self._id == id: return
         self._parent.updateChunkId(self, id)
-        self.__id = id
+        self._id = id
     addr = property(_getAddr, _setAddr)        
     size = property(_getSize)        
     id = property(_getId, _setId)
@@ -81,13 +77,15 @@ class Chunk(object):
     
 class FilterChunk(Chunk):
     def __init__(self, id, filter, parent, parent_addr):
-        self._description = filter.getDescription()
+        self._description = None
         self.parent_addr = parent_addr
         self._filter = filter
         self._filter.filter_chunk = self
+        self._parent = None
         Chunk.__init__(self, id, \
             filter.getDescription(), filter.getStream(), filter.getAddr(), \
             filter.getSize(), parent)
+        self._description = filter.getDescription()
     
     def clone(self, addr=None):
         filter_copy = self._filter.clone(addr=addr)
@@ -135,8 +133,10 @@ class FilterChunk(Chunk):
     def _getDescription(self):
         return self._description
     def _setDescription(self, description):
-        self._description = description
-        self._filter.setDescription(description)
+        if self._description != None:
+            self._description = description
+            self._filter.setDescription(description)
+            self._parent.updateChunkDescription(self._id, description)
     description = property(_getDescription, _setDescription)
 
 class StringChunk(Chunk):

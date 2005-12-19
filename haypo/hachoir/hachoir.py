@@ -8,6 +8,7 @@ Author: Victor Stinner
 """
 
 import sys, os, re, traceback
+import config
 from program import PROGRAM, VERSION, WEBSITE
 from log import log
 from error import error
@@ -26,6 +27,7 @@ def usage(defval):
     print "\t--version         : Show the program version"
     print "\t--verbose         : Activate verbose mode"
     print "\t--help            : Show this help"
+    print "\t--debug           : Enable debug mode (eg. display backtrace)"
 
 def parseArgs(val):
     import getopt
@@ -33,7 +35,7 @@ def parseArgs(val):
     
     try:
         short = ""
-        long = ["verbose", "help", "version", "script=", "no-ui", "use-profiler"]
+        long = ["verbose", "help", "version", "script=", "no-ui", "debug", "use-profiler"]
         opts, args = getopt.getopt(sys.argv[1:], short, long)
     except getopt.GetoptError:
         usage(def_val)
@@ -59,7 +61,9 @@ def parseArgs(val):
         elif o == "--script":
             val["script"] = a
         elif o == "--verbose":
-            val["verbose"] = True
+            config.verbose = True
+        elif o == "--debug":
+            config.debug = True
         elif o == "--use-profiler":
             val["use_profiler"] = True
     return (val, filename,)

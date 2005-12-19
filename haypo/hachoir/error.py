@@ -1,25 +1,31 @@
 import os
+import config
 from log import log
 import ui.ui
+from tools import getBacktrace
 
 def warning(message):
+    if config.debug:
+        message = message + "\n\n" + getBacktrace()
     log.warning(message)   
     if ui.ui.ui != None:
         import gtk
         dlg = gtk.MessageDialog( \
-            parent=ui.ui.ui.window,
+            parent=ui.ui.ui.window.window,
             type=gtk.MESSAGE_WARNING,
             buttons=gtk.BUTTONS_OK,
             message_format=message)
         dlg.run()
         dlg.destroy()
 
-def error(message):
+def error(message, backtrace=None):
+    if config.debug:
+        message = message + "\n\n" + getBacktrace()
     log.error(message)
     if ui.ui.ui != None:
         import gtk
         dlg = gtk.MessageDialog( \
-            parent=ui.ui.ui.window,
+            parent=ui.ui.ui.window.window,
             type=gtk.MESSAGE_ERROR,
             buttons=gtk.BUTTONS_OK,
             message_format=message)

@@ -4,7 +4,6 @@ from chunk import FilterChunk
 from default import DefaultFilter
 from user_filter import UserFilterDescriptor, loadUserFilter
 from error import error, warning
-from tools import getBacktrace
 from mime import getStreamMime
 
 class Hachoir:
@@ -12,7 +11,6 @@ class Hachoir:
     
     def __init__(self):
         Hachoir.instance = self
-        self.verbose = False
         self.display = True
         self.depth = 5
         self.ui = None 
@@ -25,10 +23,12 @@ class Hachoir:
         return self._filter
 
     def setFilter(self, filter):
+#        if self._filter != None:
+#            self._filter.purgeCache()
         self._main_filter = filter
         self._filter = filter
         if filter != None:
-            self._addPadding()
+#            self._addPadding()
             if self.load_ui:
                 self._filter.display()
                 self.ui.window.info.updateFilter(filter)
@@ -48,9 +48,8 @@ class Hachoir:
         if chunk_id == None: return
         chunk = self._filter.getChunk(chunk_id)
         if issubclass(chunk.__class__, FilterChunk):
-            self._filter = chunk.getFilter()
-            self._filter.display()
-            self.ui.window.info.updateFilter(self._filter)
+            filter = chunk.getFilter()
+            self.setFilter (filter)
 
     def loadUser(self, filename):
         try:
@@ -119,8 +118,8 @@ class Hachoir:
             stream.seek(0)
             filter = split_class(stream, None)
         except Exception, msg:
-            error("Exception while processing file %s:\n%s\n%s" \
-                % (filename, msg, getBacktrace()))
+            error("Exception while processing file %s:\n%s" \
+                % (filename, msg))
             stream.seek(0)
             filter = DefaultFilter(stream)
         self.setFilter(filter)
@@ -134,7 +133,7 @@ class Hachoir:
             exec compiled
         except Exception, msg:
             error("Exception while loading script \"%s\":\n%s\n%s" \
-                % (filename, msg, getBacktrace()))
+                % (filename, msg))
 
     def run(self, filename):
         if self.script:

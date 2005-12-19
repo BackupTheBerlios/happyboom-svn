@@ -141,6 +141,13 @@ class MainWindow:
     def add_table_child(self, parent, addr, size, format, id, description):
         return self.table_store.append(parent, (addr, format, size, None, id, description, None,))
        
+    def update_table(self, filter, ROW, parent, addr, size, format, id, description, value):
+        if filter != self.ui.hachoir.getFilter():
+            return
+        addr = str(addr)
+        size = str(size)
+        self.table_store[ROW] = (addr, format, size, id, value, description)
+
     def add_table(self, parent, addr, size, format, id, description, value):
         addr = str(addr)
         size = str(size)

@@ -132,14 +132,18 @@ class Stream:
 class LimitedStream(Stream):
     def __init__(self, stream, start=0, size=0, filename=None):
         Stream.__init__(self, filename)
+        assert 1<size            
+        assert 0 <= start
+        assert not(stream.getLastPos()+1 < start+size)
         self._stream = stream.clone()
-        if start<0:
-            start = 0
-        if self._stream.getLastPos()+1 < start+size:
-            size = self._stream.getLastPos()-start+1
+#        if start<0:
+#            start = 0
+#        if self._stream.getLastPos()+1 < start+size:
+#            size = self._stream.getLastPos()-start+1
         self._start = start
         self._size = size
         self._end = self._start + self._size
+        self._last_pos = self._end - 1
         self._stream.seek(self._start)
 
     def getType(self):
@@ -170,13 +174,20 @@ class LimitedStream(Stream):
         return self._stream.tell()
 
     def seek(self, pos, where=0):
-        self._stream.seek(pos, where)
+        if where == 2:
+            pos = self.getLastPos() - pos
+        elif where == 0:
+            pos = pos
+        elif where == 1:
+            pos = self._stream.tell() + pos
+        assert self._start <= pos and pos <= self._end
+        self._stream.seek(pos, 0)
         
     def getSize(self):
         return self._size
     
     def getLastPos(self):
-        return self._end
+        return self._last_pos
 
     def clone(self):
         return LimitedStream(self._stream, self._start, self._size, self.filename)
@@ -198,11 +209,14 @@ class SubStream(LimitedStream):
         return self._stream.read(size, seek)
  
     def seek(self, pos, where=0):
-        if where==2:
-            pos = pos - self._start
-        else:
-            pos = pos + self._start
-        self._stream.seek(pos, where)
+        if where == 2:
+            pos = self.getLastPos() - pos
+        elif where == 0:
+            pos = self._start + pos
+        elif where == 1:
+            pos = self._stream.tell() + pos
+        assert self._start <= pos and pos <= self._end
+        self._stream.seek(pos, 0)
 
     def tell(self):
         return self._stream.tell() - self._start

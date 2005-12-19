@@ -13,7 +13,7 @@ from filter import Filter, OnlyFormatChunksFilter, OnlyFiltersFilter
 from plugin import registerPlugin
 from tools import humanDuration, getUnixRWX 
 
-class DirectoryEntry(Filter):
+class DirectoryEntry(OnlyFormatChunksFilter):
     file_type = {
         1: "Regular",
         2: "Directory",
@@ -25,13 +25,13 @@ class DirectoryEntry(Filter):
         8: "Max"
     }
     def __init__(self, stream, parent):
-        Filter.__init__(self, "dir", "EXT2 directory entry", stream, parent)
+        OnlyFormatChunksFilter.__init__(self, "dir", "EXT2 directory entry", stream, parent)
         self.read("inode", "<L", "Inode")
         self.read("rec_len", "<H", "Record length")
-        name_length = self.read("name_len", "B", "Name length").value
+        name_length = self.doRead("name_len", "B", "Name length").value
         self.read("file_type", "B", "File type", post=self.postFileType)
         self.read("name", "%us" % name_length, "Name")
-        size = self["rec_len"]-8-name_length
+        size = self["rec_len"]-8-name_length 
         if size != 0:
             self.read("padding", "%us" % size, "Padding")
 
@@ -144,9 +144,9 @@ class Inode(OnlyFormatChunksFilter):
         else:
             return "(empty)"
 
-class Bitmap(Filter):
+class Bitmap(OnlyFormatChunksFilter):
     def __init__(self, stream, parent, size, start):
-        Filter.__init__(self, "group", "EXT2 group", stream, parent)
+        OnlyFormatChunksFilter.__init__(self, "group", "EXT2 group", stream, parent)
         self.start = start
         self.read("block_bitmap", "%us" % size, "Bitmap")
 
@@ -165,9 +165,9 @@ class Bitmap(Filter):
 BlockBitmap = Bitmap
 InodeBitmap = Bitmap
 
-class EXT2_Group(Filter):
+class EXT2_Group(OnlyFormatChunksFilter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, "group", "EXT2 group", stream, parent)
+        OnlyFormatChunksFilter.__init__(self, "group", "EXT2 group", stream, parent)
         self.read("block_bitmap", "<L", "Points to the blocks bitmap block")
         self.read("inode_bitmap", "<L", "Points to the inodes bitmap block")
         self.read("inode_table", "<L", "Points to the inodes table first block")
@@ -177,7 +177,7 @@ class EXT2_Group(Filter):
         self.read("padding", "<H", "Padding")
         self.read("reserved", "12s", "Reserved")
 
-class SuperBlock(Filter):
+class SuperBlock(OnlyFormatChunksFilter):
     error_handling = {
         1: "Continue"
     }
@@ -197,13 +197,13 @@ class SuperBlock(Filter):
     }
     
     def __init__(self, stream, parent):
-        Filter.__init__(self, "super_block", "EXT2 super block", stream, parent)
+        OnlyFormatChunksFilter.__init__(self, "super_block", "EXT2 super block", stream, parent)
         self.read("inodes_count", "<L", "Inodes count")
         self.read("blocks_count", "<L", "Blocks count")
         self.read("r_blocks_count", "<L", "Reserved blocks count")
         self.read("free_blocks_count", "<L", "Free blocks count")
         self.read("free_inodes_count", "<L", "Free inodes count")
-        first = self.read("first_data_block", "<L", "First data block").value
+        first = self.doRead("first_data_block", "<L", "First data block").value
         assert (first == 0)
         self.read("log_block_size", "<L", "Block size")
         self.read("log_frag_size", "<L", "Fragment size")
@@ -214,16 +214,16 @@ class SuperBlock(Filter):
         self.read("wtime", "<L", "Write time", post=self.getTime)
         self.read("mnt_count", "<H", "Mount count")
         self.read("max_mnt_count", "<h", "Max mount count")
-        id = self.read("magic", ">H", "Magic number (0x53EF)").value
+        id = self.doRead("magic", ">H", "Magic number (0x53EF)").value
         assert id == 0x53EF
 
         # Read state
-        chunk = self.read("state", "<H", "File system state")
+        chunk = self.doRead("state", "<H", "File system state")
         chunk.description = "Behaviour when detecting errors: %s" % \
             SuperBlock.state.get(chunk.value, "Unknow (%s)" % chunk.value)
 
         # Read error handling
-        chunk = self.read("errors", "<H", "")
+        chunk = self.doRead("errors", "<H", "")
         desc = "Behaviour when detecting errors"
         if chunk.value in SuperBlock.error_handling:
             desc = "%s: %s" % (desc, SuperBlock.error_handling[chunk.value])
@@ -233,7 +233,7 @@ class SuperBlock(Filter):
         self.read("last_check", "<L", "Time of last check", post=self.getTime)
         self.read("check_interval", "<L", "Maximum time between checks", post=self.postMaxTime)
         
-        chunk = self.read("creator_os", "<L", "")
+        chunk = self.doRead("creator_os", "<L", "")
         desc = "Creator OS"
         if chunk.value in SuperBlock.os_name:
             desc = "%s: %s" % (desc, SuperBlock.os_name[chunk.value])
@@ -246,7 +246,7 @@ class SuperBlock(Filter):
         # ---------
 
         self.read("first_ino", "<L", "First non-reserved inode")
-        inode_size = self.read("inode_size", "<H", "Size of inode structure").value
+        inode_size = self.doRead("inode_size", "<H", "Size of inode structure").value
         assert inode_size == (68 + 15*4)
         self.read("block_group_nr", "<H", "Block group # of this superblock")
         self.read("feature_compat", "<L", "Compatible feature set")
@@ -286,25 +286,25 @@ class SuperBlock(Filter):
     def getTime(self, chunk):
         return datetime.fromtimestamp(chunk.value)
 
-class Groups(Filter):
+class Groups(OnlyFormatChunksFilter):
     def __init__(self, stream, parent, count):
-        Filter.__init__(self, "groups", "EXT2 groups", stream, parent)
+        OnlyFormatChunksFilter.__init__(self, "groups", "EXT2 groups", stream, parent)
         self.items = []
         for i in range(0, count):
-            group = self.readChild("group[]", EXT2_Group).getFilter()
+            group = self.doReadChild("group[]", "Group", EXT2_Group).getFilter()
             self.items.append(group)
 
     def __getitem__(self, index):
         return self.items[index]
 
-class InodeTable(OnlyFiltersFilter):
+class InodeTable(OnlyFormatChunksFilter):
     def __init__(self, stream, parent, start, count):
-        OnlyFiltersFilter.__init__(self, "ino_table", "EXT2 inode table", stream, parent)
+        OnlyFormatChunksFilter.__init__(self, "ino_table", "EXT2 inode table", stream, parent)
         self.inodes = {}
         self.start = start
         chunk_size = parent.superblock["inode_size"]
-        for index in range(self.start+1, self.start+1+count):
-            self.readSizedChild("inode[]", chunk_size, "Inode %s" % index, Inode, index)
+        for index in range(self.start, self.start+count):
+            self.readSizedChild("inode[]", "Inode %s" % index, chunk_size, Inode, index)
 
     def __getitem__(self, index):
         index = index - self.start - 1
@@ -315,35 +315,43 @@ class InodeTable(OnlyFiltersFilter):
 #        Filter.__init__(self, "dir", "EXT2 directory", stream, parent)
 #        self.read("inode", "<L", "Inode")
 
-class EXT2_FS(Filter):
+class EXT2_FS(OnlyFormatChunksFilter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, "ext2", "EXT2 file system", stream, parent)
+        OnlyFormatChunksFilter.__init__(self, "ext2", "EXT2 file system", stream, parent)
         
         # Read superblock
         self.seek(1024) 
-        self.superblock = self.readChild("superblock", SuperBlock).getFilter()
+        self.superblock = self.doReadChild("superblock", "Super block", SuperBlock).getFilter()
         self.block_size = 1024 << self.superblock["log_block_size"]
 
         # Read groups
         self.seek(4096) 
-        groups = self.readChild("groups", Groups, self.superblock.group_count).getFilter()
-        group = groups[0]
+        groups = self.doReadChild("groups", "Groups", Groups, self.superblock.group_count).getFilter()
+        inode_index = 1
+        for i in range(0,2):
+            group = groups[i]
         
-        # Read block bitmap
-        self.seek(group["block_bitmap"] * self.block_size)
-        count = 32768
-        self.readChild("block_bitmap[]", BlockBitmap, count / 8, 0)
+            # Read block bitmap
+            self.seek(group["block_bitmap"] * self.block_size)
+            count = self.superblock["blocks_per_group"]
+            self.readSizedChild("block_bitmap[]", "Block bitmap", count / 8, BlockBitmap, count / 8, 0)
 
-        # Read inode bitmap
-        assert (group["inode_bitmap"] * self.block_size) == stream.tell()
-        count = 32768
-        self.readChild("inode_bitmap[]", InodeBitmap, count / 8, 1)
-
-        inode_table0 = self.readChild("inode_table[]", InodeTable, 0, 1000).getFilter()
-
-        root = inode_table0[2]
-
-        self.readDirectory(root)
+            # Read inode bitmap
+            assert (group["inode_bitmap"] * self.block_size) == stream.tell()
+            count = self.superblock["inodes_per_group"]
+            self.readSizedChild("inode_bitmap[]", "Inode bitmap", count / 8, InodeBitmap, count / 8, 1)
+            addr = stream.tell() % 4096
+            if addr != 0:
+                addr = stream.tell() + (4096 - addr % 4096)
+                self.seek(addr)
+                 
+            count = self.superblock["inodes_per_group"]
+            inode_table = self.readChild("inode_table[]", "Inode table", InodeTable, inode_index, count)
+            inode_index += count
+            return
+            if i == 0:
+                root = self[inode_table][2]
+                self.readDirectory(root)
 
         size = stream.getSize() - stream.tell()
         self.read("end", "%us" % size, "End (raw)")
@@ -366,7 +374,7 @@ class EXT2_FS(Filter):
 
             total = 0
             while total < self.block_size:
-                entry = self.readChild("directory[]", DirectoryEntry).getFilter()
+                entry = self.doReadChild("directory[]", "Directory entry", DirectoryEntry).getFilter()
                 if entry["inode"] == 0:
                     return
                 total = total + entry.getSize()
