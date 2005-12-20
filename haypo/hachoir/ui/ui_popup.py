@@ -44,11 +44,13 @@ class TablePopup:
         self.convert.set_sensitive(is_format_chunk or is_filter_chunk)
         self.set_format.set_sensitive(is_format_chunk)
 
-        chunks = self.chunk.getParent().getChunks()
+        chunk_parent = self.chunk.getParent()
         if self.chunk.getParent().getParent() != None:
-            can_delete = (1 < len(chunks)) or not is_format_chunk
+            can_delete = (1 < len(chunk_parent)) or not is_format_chunk
         else:
-            can_delete = chunks.index(self.chunk) < (len(chunks)-1) or not is_format_chunk
+            # TODO: Re-enable this
+            #can_delete = chunks.index(self.chunk) < (len(chunk_parent)-1) or not is_format_chunk
+            can_delete = not is_format_chunk
 
         self.delete_chunk.set_sensitive(can_delete)
         can_copy = (self.chunk.size < MAX_CHUNK_SIZE) and not is_filter_chunk

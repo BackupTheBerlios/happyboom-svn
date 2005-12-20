@@ -84,6 +84,9 @@ def getAnotherBufferMime(buffer):
     and buffer[1116:1120]=="\x04\x00\x00\x00":
         return "hachoir/fs-ext2"
         
+    if buffer[0:3] == "DIR":
+        return "hachoir/worms2"
+        
     if 512<=len(buffer) \
     and buffer[0] in "\xEB\xFA" \
     and buffer[510:512] == "\x55\xAA" \
@@ -129,9 +132,9 @@ def getBufferMime(buffer, filename):
     mimes = instance.guess(buffer)
     mimes = splitMimes(mimes)
     if len(mimes) == 0 or mimes[0][0] in ('application/octet-stream', 'image/tiff'):
-        ext = os.path.splitext(filename)[1]
         new_mime = getAnotherBufferMime(buffer)
-        if new_mime == None:
+        if new_mime == None and filename != None:
+            ext = os.path.splitext(filename)[1]
             new_mime = getMimeByExt(ext)
         if new_mime != None:
             mimes = ((new_mime,),)

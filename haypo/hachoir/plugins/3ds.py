@@ -3,10 +3,10 @@
 Author: Victor Stinner
 """
 
-from filter import Filter
+from filter import Filter, OnlyFormatChunksFilter
 from plugin import registerPlugin
 
-def readTextureFilename(filter, stream):
+def readTextureFilename(filter, stream, last_pos):
     filter.readString("filename", "C", "Texture filename")
 
 def readVersion(filter, stream, last_pos):
@@ -14,13 +14,11 @@ def readVersion(filter, stream, last_pos):
 
 def readMaterialName(filter, stream, last_pos):
     filter.readString("name", "C", "Material name")
-#    while not stream.eof():
-#        filter.readChild("chunk[]", Filter_3DS_Chunk)
 
 def readObject(filter, stream, last_pos):
     chunk = filter.readString("name", "C", "Object name")
     while stream.tell() < last_pos:
-        filter.readChild("chunk[]", Filter_3DS_Chunk)
+        filter.readChild("chunk[]", "Chunk", Filter_3DS_Chunk)
 
 class Filter_3DS_MapUV(Filter):
     def __init__(self, stream, parent):
@@ -46,7 +44,7 @@ class Filter_3DS_Polygon(Filter):
 def readMapList(filter, stream, last_pos):
     filter.read("count", "<H", "Map count")
     for i in range(0, filter["count"]):
-        filter.readChild("map[]", Filter_3DS_MapUV)
+        filter.readSizedChild("map[]", "Map UV", 2*4, Filter_3DS_MapUV)
 
 def readColor(filter, stream, last_pos):
     filter.read("red", "B", "Red componant")
@@ -56,14 +54,16 @@ def readColor(filter, stream, last_pos):
 def readVertexList(filter, stream, last_pos):
     filter.read("count", "<H", "Vertex count")
     for i in range(0, filter["count"]):
-        filter.readChild("vertex[]", Filter_3DS_Vertex)
+        filter.readSizedChild("vertex[]", "Vertex", 3*4, Filter_3DS_Vertex)
     
 def readPolygonList(filter, stream, last_pos):
     filter.read("count", "<H", "Vertex count")
     for i in range(0, filter["count"]):
-        filter.readChild("polygon[]", Filter_3DS_Polygon)
+        filter.readSizedChild("polygon[]", "Polygon", 4*2, Filter_3DS_Polygon)
+    while stream.tell() < last_pos:
+        filter.readChild("chunk[]", "Chunk", Filter_3DS_Chunk)
 
-class Filter_3DS_Chunk(Filter):
+class Filter_3DS_Chunk(OnlyFormatChunksFilter):
     # List of chunk type name
     type_name = {
         0x0011: "Color",
@@ -119,14 +119,14 @@ class Filter_3DS_Chunk(Filter):
         0x0011: readColor,
         0x0002: readVersion,
 # TODO: Uncomment these functions, it's too slow yet            
-#         0x4110: readVertexList,
-#         0x4120: readPolygonList,
-#         0x4140: readMapList
+         0x4110: readVertexList,
+         0x4120: readPolygonList,
+         0x4140: readMapList
     }
     
     def __init__(self, stream, parent):
-        Filter.__init__(self, "3ds_chunk", "3DS chunk", stream, parent)
-        chunk = self.read("type", "<H", "Chunk type", post=self.toHex)
+        OnlyFormatChunksFilter.__init__(self, "3ds_chunk", "3DS chunk", stream, parent)
+        chunk = self.doRead("type", "<H", "Chunk type", post=self.toHex)
         chunk.description = "Chunk type (%s)" % self.getType()
         self.read("size", "<L", "Chunk size")
         size = self["size"] - 6
@@ -134,7 +134,7 @@ class Filter_3DS_Chunk(Filter):
         end = stream.tell() + size
         if type in Filter_3DS_Chunk.sub_chunks:
             while stream.tell() < end:
-                self.readChild("chunk[]", Filter_3DS_Chunk)
+                self.readChild("chunk[]", "Chunk", Filter_3DS_Chunk)
             assert stream.tell() == end 
         else:
             if type in Filter_3DS_Chunk.handlers: 
@@ -153,11 +153,11 @@ class Filter_3DS_Chunk(Filter):
         self.setDescription("Chunk type (%s)" % type)
         if self["type"] in Filter_3DS_Chunk.chunk_id_by_type:
             id = Filter_3DS_Chunk.chunk_id_by_type[self["type"]]
+# TODO: Re-enable that            
 #            chunk.id = id
             self.setId(id) 
         else:
             self.setId("chunk_%04x" % self["type"])
-
 
     def toHex(self, chunk):
         return "%04X" % chunk.value

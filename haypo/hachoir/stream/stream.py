@@ -132,7 +132,7 @@ class Stream:
 class LimitedStream(Stream):
     def __init__(self, stream, start=0, size=0, filename=None):
         Stream.__init__(self, filename)
-        assert 1<size            
+        assert 1 <= size            
         assert 0 <= start
         assert not(stream.getLastPos()+1 < start+size)
         self._stream = stream.clone()

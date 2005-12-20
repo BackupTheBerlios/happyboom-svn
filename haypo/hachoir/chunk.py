@@ -23,7 +23,10 @@ class Chunk(object):
             self.display = self.post_process(self)
 
     def getFormat(self):
-        return self.__class__
+        return self.__class__.__name__
+
+    def getSmallFormat(self):
+        return self.__class__.__name__
 
     def update(self):
         self.display = None
@@ -94,7 +97,10 @@ class FilterChunk(Chunk):
         return FilterChunk(self.id, filter_copy, self.getParent(), parent_addr)
     
     def getFormat(self):
-        return self._filter.getId()
+        return self.__class__.__name__ + " (%s)" % self._filter.__class__.__name__
+
+    def getSmallFormat(self):
+        return self._filter.__class__.__name__
 
     def update(self):
         new = self._filter.clone()
@@ -167,7 +173,9 @@ class StringChunk(Chunk):
         self.strip = strip
 
     def getFormat(self):
-        assert self._str_type in StringChunk.names
+        return StringChunk.names[self._str_type]
+
+    def getSmallFormat(self):
         return StringChunk.names[self._str_type]
 
     def _findSize(self):
@@ -282,6 +290,9 @@ class FormatChunk(Chunk):
     addr = property(Chunk._getAddr, _setAddr)
 
     def getFormat(self):
+        return self.__class__.__name__ + " (%s)" % self._format
+
+    def getSmallFormat(self):
         return self._format
 
     def isString(self):
@@ -303,7 +314,6 @@ class FormatChunk(Chunk):
         size = getFormatSize(format)
         if self._stream.getLastPos() < (self.addr + size - 1):
             raise Exception("Can't set chunk %s to format \"%s\": size too big!" % (self.id, format))
-        self._cache.setFormat(format)
 
         # Update format
         old_size = self._size

@@ -27,7 +27,7 @@ class InfoNotebook:
             self.chunk_description.set_text(chunk.description)
             self.chunk_address.set_text(str(chunk.addr))
             self.chunk_size.set_text(str(chunk.size))
-            self.chunk_type.set_text(chunk.__class__.__name__)
+            self.chunk_type.set_text(chunk.getFormat())
         chunk_present = (chunk != None)
         self.info_chunk_save = chunk_present
         self.info_chunk_delete = chunk_present
@@ -177,7 +177,7 @@ class MainWindow:
     def build_table(self):
         self.table_store = gtk.TreeStore(str, str, str, str, str, str)
         self.table.set_model(self.table_store)
-        self.table.connect("button_release_event", self.onTableClick)
+        self.table.connect("cursor-changed", self.onTableClick)
         self.table.connect("row-activated", self.onTableRowActivate)
         self.treeview_add_column(self.table, "Address", 0)
         self.treeview_add_column(self.table, "Format", 1)

@@ -31,6 +31,7 @@ class BasicFilter:
     def getStream(self): return self._stream
     def purgeCache(self): pass
     def updateChunkDescription(self, id, desc): pass
+    def __len__(self): return len(self._chunks_dict)
 
     def getPath(self):
         """
@@ -53,25 +54,30 @@ class BasicFilter:
         return self._chunks_counter[root]
 
     def getUniqChunkId(self, id):
+        # No collision
+        if id not in self._chunks_dict and id[-2:] != "[]":
+            return id
+
         # Pattern like "block[]"
         if id[-2:] == "[]":
             root = id[:-2]
-            index = self._getUniqChunkId(root, 0)
-            return root+"["+str(index)+"]" 
-
-        # No collision
-        if id not in self._chunks_dict:
-            return id
-
-        # Manage id collision
-        m = Filter.regex_chunk_uniq_id.match(id)
-        if m != None:
-            root = m.group(1)
-            index = self._getUniqChunkId(root, int(m.group(2))+1)
+            start = 0
+            pattern = "%s[%u]"
         else:
-            root = id
-            index = self._getUniqChunkId(root, 2)
-        return root+str(index)
+            # Manage id collision
+            m = Filter.regex_chunk_uniq_id.match(id)
+            if m != None:
+                root = m.group(1)
+                start = int(m.group(2)) + 1
+            else:
+                root = id
+                start = 2
+            pattern = "%s%u"
+        if root in self._chunks_counter:
+            self._chunks_counter[root] = self._chunks_counter[root] + 1
+        else:
+            self._chunks_counter[root] = start 
+        return pattern % (root, self._chunks_counter[root])
 
     # --- Pure virtual methods -----------
     def getSize(self): assert False
@@ -92,18 +98,8 @@ class OnlyFormatChunksFilter(BasicFilter):
         assert pos != -1
         self._chunks_dict[id][1] = desc
 
-        info = self._chunks_dict[id]
-        chunk_class = info[4][0]
-        if issubclass(chunk_class, BasicFilter):
-            display = "(...)"
-            format = chunk_class.__name__ 
-        else:
-            chunk = self.getChunk(id)
-            display = chunk.getDisplayData()
-            format = chunk.getFormat()
-        addr = info[2]
-        size = info[3]
-        ui.window.update_table(self, pos, None, addr, size, format, info[0], info[1], display)
+        info = self.displayChunkInfo(id)
+        ui.window.update_table(self, pos, *info)
 
     def purgeCache(self):
         if len(self._chunks_cache) != 0:
@@ -130,6 +126,8 @@ class OnlyFormatChunksFilter(BasicFilter):
         
         if size == None:
             filter = filter_class(filter_stream, self, *args)
+            description = filter.getDescription()
+            filter.setId(id)
             chunk = FilterChunk(id, filter, self, addr)
             size = filter.getSize()
             if config.verbose:
@@ -138,13 +136,12 @@ class OnlyFormatChunksFilter(BasicFilter):
             chunk = None
 
         chunk_info = [id, description, addr, size, \
-                (filter_class, filter_stream, filter_addr, args), None]
+                (filter_class, filter_stream, filter_addr, args), None, {}]
         self._chunks_dict[id] = chunk_info
         self._chunks.append(id)
         if chunk != None:
             filter.updateParent(chunk)
             self._chunks_cache[id] = chunk
-
         self._size = self._size + size
         self._stream.seek(addr + size)
         return id
@@ -158,29 +155,49 @@ class OnlyFormatChunksFilter(BasicFilter):
         size = getFormatSize(format)
         addr = self._stream.tell()
         chunk_info = [id, description, addr, size, \
-                (FormatChunk, id, description, self._stream, addr, format, self,), post]
+                (FormatChunk, id, description, self._stream, addr, format, self,), post, {}]
         self._chunks_dict[id] = chunk_info
         self._chunks.append(id)
         self._stream.seek(size, 1)
         self._size = self._size + size
         return id
 
+    def readString(self, id, format, description, post=None, strip=None):
+        id = self.getUniqChunkId(id)
+        addr = self._stream.tell()
+
+        chunk = StringChunk(id, description, self._stream, format, self, strip=strip)
+        size = chunk.size
+
+        chunk_info = [id, description, addr, size, \
+                (StringChunk, id, description, self._stream, format, self,), post, {"strip": strip}]
+        self._chunks_dict[id] = chunk_info
+        self._chunks.append(id)
+        self._chunks_cache[id] = chunk
+#        self._stream.seek(size, 1)
+        self._size = self._size + size
+        return id
+
+    def displayChunkInfo(self, id):
+        info = self._chunks_dict[id]
+        chunk_class = info[4][0]
+        if issubclass(chunk_class, BasicFilter):
+            display = "(...)"
+            format = chunk_class.__name__
+        else:
+            chunk = self.getChunk(id)
+            display = chunk.getDisplayData()
+            format = chunk.getSmallFormat()
+        addr = info[2]
+        size = info[3]
+        return (None, addr, size, format, info[0], info[1], display)
+
     def display(self):
         ui.window.enableParentButton(self.getParent() != None)
         ui.window.clear_table()
         for id in self._chunks:
-            info = self._chunks_dict[id]
-            chunk_class = info[4][0]
-            if issubclass(chunk_class, BasicFilter):
-                display = "(...)"
-                format = chunk_class.__name__ 
-            else:
-                chunk = self.getChunk(id)
-                display = chunk.getDisplayData()
-                format = chunk.getFormat()
-            addr = info[2]
-            size = info[3]
-            ui.window.add_table(None, addr, size, format, info[0], info[1], display)
+            info = self.displayChunkInfo(id)
+            ui.window.add_table(*info)
  
     def getSize(self): return self._size
 
@@ -188,6 +205,7 @@ class OnlyFormatChunksFilter(BasicFilter):
         addr = self._chunks_dict[id][2]
         desc = self._chunks_dict[id][4]
         post = self._chunks_dict[id][5]
+        chunks_kw = self._chunks_dict[id][6]
         oldpos = self._stream.tell()
         self._stream.seek(addr)
         if config.verbose:
@@ -195,7 +213,7 @@ class OnlyFormatChunksFilter(BasicFilter):
         if not issubclass(desc[0], BasicFilter):
             chunk_class = desc[0]
             chunk_args = desc[1:]
-            chunk = chunk_class(*chunk_args)
+            chunk = chunk_class(*chunk_args, **chunks_kw)
             if post != None:
                 chunk.display = post(chunk)
         else:
@@ -203,7 +221,10 @@ class OnlyFormatChunksFilter(BasicFilter):
             if filter_stream != self._stream:
                 filter_stream.seek(desc[2])
             filter = desc[0] (filter_stream, self, *desc[3])
+            filter.setId(id)
             chunk = FilterChunk(id, filter, self, addr)
+            if filter.getDescription() != desc[1]:
+                self.updateChunkDescription(id, filter.getDescription())
             filter.updateParent(chunk)
         self._stream.seek(oldpos)
         return chunk
@@ -479,7 +500,7 @@ class Filter(BasicFilter):
         return chunk
 
     def displayChunk(self, chunk):
-        type = chunk.getFormat()
+        type = chunk.getSmallFormat()
         if isinstance(chunk, FilterChunk):
             addr = chunk.parent_addr
         else:
