@@ -28,7 +28,6 @@ class Hachoir:
         self._main_filter = filter
         self._filter = filter
         if filter != None:
-#            self._addPadding()
             if self.load_ui:
                 self._filter.display()
                 self.ui.window.info.updateFilter(filter)
@@ -85,19 +84,15 @@ class Hachoir:
         my.exportPython(filename)
         
     def _addPadding(self):
-        filter_size = self._filter.getSize()
-        stream_size = self._filter.getStream().getSize()
+        filter_size = self._main_filter.getSize()
+        stream_size = self._main_filter.getStream().getSize()
         diff_size = filter_size - stream_size
         if diff_size < 0:
-            chunks = self._filter.getChunks()
-            if len(chunks) != 0:
-                last_chunk = chunks[-1]
-            else:
-                last_chunk = None
-            self._filter.addRawChunk(last_chunk, "end", "%u" % (-diff_size), "")
+            self._main_filter.read("end", "%us" % (-diff_size), "Raw data")
 
     def loadFile(self, filename):
         try:
+            print "Load file %s" % filename
             file = open(filename, 'r')
             stream = FileStream(file, filename)
         except IOError, err:
@@ -122,6 +117,8 @@ class Hachoir:
                 % (filename, msg))
             stream.seek(0)
             filter = DefaultFilter(stream)
+        self._main_filter = filter
+        self._addPadding()
         self.setFilter(filter)
 
     def loadScript(self, filename):
@@ -141,4 +138,5 @@ class Hachoir:
         elif filename != None:
             self.loadFile(filename)
         if self.load_ui:
+            print "Run user interface ..."
             self.ui.run()      

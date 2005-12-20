@@ -99,6 +99,7 @@ def main():
             setattr(hachoir, key, opt[key])
         if hachoir.load_ui:
             try:
+                print "Load user interface"
                 ui.loadInterface(hachoir)
             except ImportError, err:
                 error("""Error: a Python module is missing:
@@ -119,12 +120,11 @@ Ubuntu: apt-get install python-gtk2 python-glade2""" % (err))
             else:
                 str_filename = "None"
             profile.run('global hachoir; hachoir.run(%s)' % str_filename, stat_filename)
-            # .sort_stats('time')
-            pstats.Stats(stat_filename).sort_stats('cumulative').print_stats()
+            #pstats.Stats(stat_filename).sort_stats('cumulative').print_stats()
+            pstats.Stats(stat_filename).sort_stats('time').print_stats()
             os.unlink(stat_filename)
         else:
             hachoir.run(filename)
-
 
     except SystemExit:
         pass
