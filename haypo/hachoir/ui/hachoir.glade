@@ -1459,7 +1459,8 @@
   <property name="wrap_license">False</property>
   <property name="website">http://www.haypocalc.com/wiki/Hachoir</property>
   <property name="website_label" translatable="yes">Website</property>
-  <property name="authors">Victor Stinner &lt;victor.stinner AT haypocalc.com&gt;</property>
+  <property name="authors">Aurélien Jacobs - &lt;aurel AT gnuage.org&gt;
+Victor Stinner &lt;victor.stinner AT haypocalc.com&gt;</property>
   <property name="translator_credits" translatable="yes" comments="TRANSLATORS: Replace this string with your names, one name per line.">translator-credits</property>
 </widget>
 

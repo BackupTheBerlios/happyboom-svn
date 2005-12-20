@@ -115,6 +115,7 @@ magic = [
   [0L, 'string', '=', 'SBI', 'audio/x-sbi'],
   [0L, 'string', '=', 'Creative Voice File', 'audio/x-voc'],
   [0L, 'belong', '=', 1314148939L, 'audio/x-multitrack'],
+  [8L, 'string', '=', 'AVI ', 'video/x-msvideo'],
   [0L, 'string', '=', 'RIFF', 'audio/x-wav'],
   [0L, 'string', '=', 'EMOD', 'audio/x-emod'],
   [0L, 'belong', '=', 779248125L, 'audio/x-pn-realaudio'],

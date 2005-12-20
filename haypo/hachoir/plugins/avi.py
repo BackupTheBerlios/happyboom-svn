@@ -19,10 +19,35 @@ class AVI_ChunkList(Filter):
             while 8 <= end - stream.tell():
                 chunk = self.readChild("chunk[]", AVI_Chunk)            
         elif tag == "strl":
+            stype = None
             while 8 <= end - stream.tell():
                 stag = self.read("stag[]", "4s", "String tag").value
                 size = self.read("ssize[]", "<L", "String size").value
-                if stag == "strf" and size == 40:
+                if stag == "strh" and size >= 56:
+                    # Stream header
+                    hend = stream.tell() + size
+                    stype = self.read("type_fourcc", "4s", "Stream type four character code").value
+                    self.read("fourcc", "4s", "Stream four character code")
+                    self.read("flags", "<L", "Stream flags")
+                    self.read("priority", "<H", "Stream priority")
+                    self.read("langage", "2s", "Stream language")
+                    self.read("init_frames", "<L", "InitialFrames")
+                    self.read("scale", "<L", "Time scale")
+                    self.read("rate", "<L", "Divide by scale to give frame rate")
+                    self.read("start", "<L", "Stream start time (unit: rate/scale)")
+                    self.read("length", "<L", "Stream length (unit: rate/scale)")
+                    self.read("buf_size", "<L", "Suggested buffer size")
+                    self.read("quality", "<L", "Stream quality")
+                    self.read("sample_size", "<L", "Size of samples")
+                    self.read("left", "<H", "Destination rectangle (left)")
+                    self.read("top", "<H", "Destination rectangle (top)")
+                    self.read("right", "<H", "Destination rectangle (right)")
+                    self.read("bottom", "<H", "Destination rectangle (bottom)")
+                    diff = hend-stream.tell()
+                    if 0 < diff:
+                        self.read("h_extra", "%us" % diff, "Extra junk")
+                    assert stream.tell() == hend
+                elif stag == "strf" and stype == "vids" and size == 40:
                     # Video header
                     self.read("v_size", "<L", "Video format: Size")                    
                     self.read("v_width", "<L", "Video format: Width")                    
@@ -35,21 +60,29 @@ class AVI_ChunkList(Filter):
                     self.read("v_ypels_meter", "<L", "Video format: YPelsPerMeter")
                     self.read("v_clr_used", "<L", "Video format: ClrUsed")
                     self.read("v_clr_importand", "<L", "Video format: ClrImportant")
-                elif stag == "strf" and size == 30:
+                elif stag == "strf" and stype == "auds":
                     # Audio (wav) header
                     aend = stream.tell() + size
-                    self.read("a_id", "<H", "Audio format: ID")                    
-                    self.read("a_channel", "<H", "Audio format: Channels")                    
+                    self.read("a_id", "<H", "Audio format: Codec id")                    
+                    a_chan = self.read("a_channel", "<H", "Audio format: Channels").value
                     self.read("a_sample_rate", "<L", "Audio format: Sample rate")                    
                     self.read("a_bit_rate", "<L", "Audio format: Bit rate")
                     self.read("a_block_align", "<H", "Audio format: Block align")
-                    # if size == 14: bits_per_sample = 8
-                    self.read("a_bits_per_sample", "<H", "Audio format: Bits per sample")
-                    self.read("a_codec_id", "<H", "Audio format: Codec id")
+                    if size >= 16:
+                        self.read("a_bits_per_sample", "<H", "Audio format: Bits per sample")
+                    if size >= 18:
+                        self.read("ext_size", "<H", "Audio format: Size of extra information")
+                    if a_chan > 2 and size >= 28:
+                        self.read("reserved", "<H", "Audio format: ")
+                        self.read("channel_mask", "<L", "Audio format: channels placement bitmask")
+                        self.read("subformat", "<L", "Audio format: Subformat id")
                     diff = aend-stream.tell()
                     if 0 < diff:
                         self.read("a_extra", "%us" % diff, "Audio format: Extra")
                     assert stream.tell() == aend
+                elif stag == "strn":
+                    # Stream description
+                    self.read("desc", "%us" % size, "Stream description")
                 else:
                     self.read("svalue[]", "%us" % size, "String value")
         else:
