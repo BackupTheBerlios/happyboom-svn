@@ -9,10 +9,12 @@ from cStringIO import StringIO
 
 class RGB(Filter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, "rgb_color", "RGB color (8 bits/component)", stream, parent)
+        Filter.__init__(self, "rgb_color", "RGB color", stream, parent)
         self.read("red", "B", "Red")
         self.read("green", "B", "Green")
         self.read("blue", "B", "Blue")
+    def updateParent(self, chunk):
+        chunk.description = "RGB color: #%02X%02X%02X" % (self["red"], self["green"], self["blue"])
 
 class Palette(Filter):
     def __init__(self, stream, parent, count):

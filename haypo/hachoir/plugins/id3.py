@@ -81,8 +81,9 @@ class ID3_Chunk(Filter):
         size = self["size"]
         if tag in ID3_Chunk.handler:
             end = stream.tell() + size
-            substream = stream.createLimited(size=size)
-            self.readStreamChild("content", substream, ID3_Chunk.handler[tag])
+            if size != 0:
+                substream = stream.createLimited(size=size)
+                self.readStreamChild("content", substream, ID3_Chunk.handler[tag])
             assert stream.tell() == end
         else:
             self.read("data", "%us" % size, "Raw data")
