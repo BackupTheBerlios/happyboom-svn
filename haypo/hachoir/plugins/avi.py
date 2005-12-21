@@ -16,8 +16,11 @@ class AVI_ChunkList(Filter):
         size = stream.getSize()-4
         end = stream.tell() + size
         if tag in ("hdrl", "INFO"):
-            while 8 <= end - stream.tell():
+            while 8 < end - stream.tell():
                 chunk = self.readChild("chunk[]", AVI_Chunk)            
+                padding = chunk.size % 2
+                if padding != 0:
+                    self.read("padding[]", "%us" % padding, "Padding")
         elif tag == "strl":
             stype = None
             while 8 <= end - stream.tell():
@@ -89,7 +92,7 @@ class AVI_ChunkList(Filter):
             self.read("raw", "%us" % size, "Raw data")
         padding = end - stream.tell()
         if padding != 0:
-            self.read("padding", "%us" % padding, "Padding")
+            self.read("padding[]", "%us" % padding, "Padding")
         assert stream.tell() == end
 
 class AVI_ChunkString(Filter):
@@ -110,7 +113,7 @@ class AVI_Chunk(Filter):
             self.readStreamChild("data", sub, AVI_Chunk.handler[tag])
             assert stream.tell() == end
         else:
-            self.read("raw", "%us" % size, "Raw data")
+            self.read("content", "%us" % size, "Raw data content")
 
     def updateParent(self, parent):
         type = self["tag"]
