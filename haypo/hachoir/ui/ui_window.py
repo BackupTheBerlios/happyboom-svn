@@ -132,6 +132,7 @@ class MainWindow:
 
     def clear_table(self):
         self.table_store.clear()
+        self.table_store.set_sort_column_id(-1, gtk.SORT_ASCENDING)
         self.table.columns_autosize()
 
     def set_table_value(self, iter, column, value):
@@ -180,14 +181,26 @@ class MainWindow:
         self.table.connect("cursor-changed", self.onTableClick)
         self.table.connect("row-activated", self.onTableRowActivate)
         self.treeview_add_column(self.table, "Address", 0)
+        self.table_store.set_sort_func(0, self.cmpColumnsLong, 0)
         self.treeview_add_column(self.table, "Format", 1)
         self.treeview_add_column(self.table, "Size", 2)
+        self.table_store.set_sort_func(2, self.cmpColumnsLong, 2)
         self.treeview_add_column(self.table, "Name", 3)
         self.treeview_add_column(self.table, "Value", 4)
         self.treeview_add_column(self.table, "Description", 5)
-        self.table.set_reorderable(True)
-        self.treeselection = self.table.get_selection()
+        self.table_store.set_default_sort_func(self.cmpDefault)
         self.table.columns_autosize()
+
+    def cmpDefault(self, model, a, b):
+        return 0
+
+    def cmpColumnsLong(self, model, a, b, row_id):
+        a = model[a][row_id]
+        b = model[b][row_id]
+        if a != None and b != None:
+            return cmp( long(a) , long(b) )
+        else:
+            return 0
 
     def treeview_add_column(self, treeview, name, num):
         col = gtk.TreeViewColumn(name)

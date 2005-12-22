@@ -9,13 +9,68 @@ Author: Victor Stinner
 from filter import Filter
 from plugin import registerPlugin
 
+class AVI_ChunkFrame(Filter):
+    def __init__(self, stream, parent):
+        Filter.__init__(self, "avi_chunk", "Video frame", stream, parent)
+        size = stream.getSize()
+        self.read("raw", "%us" % size, "Video frame")
+
+class AVI_ChunkAudio(Filter):
+    def __init__(self, stream, parent):
+        Filter.__init__(self, "avi_chunk", "Audio data", stream, parent)
+        size = stream.getSize()
+        self.read("raw", "%us" % size, "Audio data")
+
+class AVI_ChunkPalette(Filter):
+    def __init__(self, stream, parent):
+        Filter.__init__(self, "avi_chunk", "Palette change", stream, parent)
+        size = stream.getSize()
+        self.read("raw", "%us" % size, "Palette change")
+
+class AVI_ChunkMovi(Filter):
+    handler = {
+        "db": AVI_ChunkFrame, # Uncompressed
+        "dc": AVI_ChunkFrame, # Compressed
+        "wb": AVI_ChunkAudio,
+        "pc": AVI_ChunkPalette,
+    }
+    def __init__(self, stream, parent):
+        Filter.__init__(self, "avi_chunk", "AVI movi chunk", stream, parent)
+        size = stream.getSize()
+        end = stream.tell() + size
+
+        while 8 <= end - stream.tell():
+            tag = self.read("fourcc[]", "4s", "Stream chunk four character code").value
+            size = self.read("ssize[]", "<L", "String size").value
+            if size == 0:
+                continue
+            twocc = tag[2:4]
+            if tag == "JUNK":
+                self.read("data[]", "%us" % size, "Junk data")
+            elif twocc in AVI_ChunkMovi.handler:
+                sub = stream.createSub(size=size)
+                self.readStreamChild("data[]", sub, AVI_ChunkMovi.handler[twocc])
+            else:
+                self.read("data[]", "%us" % size, "data")
+            if size & 1:
+                self.read("padding[]", "%us" % 1, "Padding")
+        size = end - stream.tell()
+        if size > 0:
+            self.read("raw", "%us" % size, "Raw data")
+
 class AVI_ChunkList(Filter):
+    handler = {
+        "movi": AVI_ChunkMovi,
+    }
     def __init__(self, stream, parent):
         Filter.__init__(self, "avi_chunk", "AVI chunk", stream, parent)
         tag = self.read("tag", "4s", "Tag").value
         size = stream.getSize()-4
         end = stream.tell() + size
-        if tag in ("hdrl", "INFO"):
+        if tag in AVI_ChunkList.handler:
+            sub = stream.createSub(size=size)
+            self.readStreamChild("data", sub, AVI_ChunkList.handler[tag])
+        elif tag in ("hdrl", "INFO"):
             while 8 < end - stream.tell():
                 chunk = self.readChild("chunk[]", AVI_Chunk)            
                 padding = chunk.size % 2
