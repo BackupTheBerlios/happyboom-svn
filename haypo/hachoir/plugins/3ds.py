@@ -3,7 +3,7 @@
 Author: Victor Stinner
 """
 
-from filter import Filter, OnlyFormatChunksFilter
+from filter import Filter, OnDemandFilter
 from plugin import registerPlugin
 
 def readTextureFilename(filter, stream, last_pos):
@@ -63,7 +63,7 @@ def readPolygonList(filter, stream, last_pos):
     while stream.tell() < last_pos:
         filter.readChild("chunk[]", "Chunk", Filter_3DS_Chunk)
 
-class Filter_3DS_Chunk(OnlyFormatChunksFilter):
+class Filter_3DS_Chunk(OnDemandFilter):
     # List of chunk type name
     type_name = {
         0x0011: "Color",
@@ -125,7 +125,7 @@ class Filter_3DS_Chunk(OnlyFormatChunksFilter):
     }
     
     def __init__(self, stream, parent):
-        OnlyFormatChunksFilter.__init__(self, "3ds_chunk", "3DS chunk", stream, parent)
+        OnDemandFilter.__init__(self, "3ds_chunk", "3DS chunk", stream, parent)
         chunk = self.doRead("type", "<H", "Chunk type", post=self.toHex)
         chunk.description = "Chunk type (%s)" % self.getType()
         self.read("size", "<L", "Chunk size")

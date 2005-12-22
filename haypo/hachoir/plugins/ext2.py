@@ -9,11 +9,11 @@ Sources:
 """
 
 from datetime import datetime
-from filter import Filter, OnlyFormatChunksFilter, OnlyFiltersFilter
+from filter import Filter, OnDemandFilter
 from plugin import registerPlugin
 from tools import humanDuration, getUnixRWX, humanFilesize
 
-class DirectoryEntry(OnlyFormatChunksFilter):
+class DirectoryEntry(OnDemandFilter):
     file_type = {
         1: "Regular",
         2: "Directory",
@@ -25,7 +25,7 @@ class DirectoryEntry(OnlyFormatChunksFilter):
         8: "Max"
     }
     def __init__(self, stream, parent):
-        OnlyFormatChunksFilter.__init__(self, "dir", "EXT2 directory entry", stream, parent)
+        OnDemandFilter.__init__(self, "dir", "EXT2 directory entry", stream, parent)
         self.read("inode", "<L", "Inode")
         self.read("rec_len", "<H", "Record length")
         name_length = self.doRead("name_len", "B", "Name length").value
@@ -48,7 +48,7 @@ class DirectoryEntry(OnlyFormatChunksFilter):
         type = chunk.value
         return DirectoryEntry.file_type.get(type, "Unknow (%02X)" % type)
 
-class Inode(OnlyFormatChunksFilter):
+class Inode(OnDemandFilter):
     name = {
         1: "list of bad blocks",
         2: "Root directory",
@@ -60,7 +60,7 @@ class Inode(OnlyFormatChunksFilter):
     }
     
     def __init__(self, stream, parent, index):
-        OnlyFormatChunksFilter.__init__(self, "inode", "EXT2 inode", stream, parent)
+        OnDemandFilter.__init__(self, "inode", "EXT2 inode", stream, parent)
         self.index = index
         self.read("mode", "<H", "Mode", post=self.postMode)
         self.read("uid", "<H", "User ID")
@@ -144,9 +144,9 @@ class Inode(OnlyFormatChunksFilter):
         else:
             return "(empty)"
 
-class Bitmap(OnlyFormatChunksFilter):
+class Bitmap(OnDemandFilter):
     def __init__(self, stream, parent, description, count, start):
-        OnlyFormatChunksFilter.__init__(self, "bitmap", "%s: %s items" % (description, count), stream, parent)
+        OnDemandFilter.__init__(self, "bitmap", "%s: %s items" % (description, count), stream, parent)
         self.start = start
         size = count / 8
         self.read("block_bitmap", "%us" % size, "Bitmap")
@@ -166,9 +166,9 @@ class Bitmap(OnlyFormatChunksFilter):
 BlockBitmap = Bitmap
 InodeBitmap = Bitmap
 
-class GroupDescriptor(OnlyFormatChunksFilter):
+class GroupDescriptor(OnDemandFilter):
     def __init__(self, stream, parent, index):
-        OnlyFormatChunksFilter.__init__(self, "group", "Group descriptor", stream, parent)
+        OnDemandFilter.__init__(self, "group", "Group descriptor", stream, parent)
         self.index = index
         self.read("block_bitmap", "<L", "Points to the blocks bitmap block")
         self.read("inode_bitmap", "<L", "Points to the inodes bitmap block")
@@ -187,7 +187,7 @@ class GroupDescriptor(OnlyFormatChunksFilter):
         chunk.description = "Group descriptor: blocks %s-%s" % (start, end)
     
 
-class SuperBlock(OnlyFormatChunksFilter):
+class SuperBlock(OnDemandFilter):
     error_handling = {
         1: "Continue"
     }
@@ -207,7 +207,7 @@ class SuperBlock(OnlyFormatChunksFilter):
     }
     
     def __init__(self, stream, parent):
-        OnlyFormatChunksFilter.__init__(self, "super_block", "Super block", stream, parent)
+        OnDemandFilter.__init__(self, "super_block", "Super block", stream, parent)
         self.read("inodes_count", "<L", "Inodes count")
         self.read("blocks_count", "<L", "Blocks count")
         self.read("r_blocks_count", "<L", "Reserved blocks count")
@@ -296,9 +296,9 @@ class SuperBlock(OnlyFormatChunksFilter):
     def getTime(self, chunk):
         return datetime.fromtimestamp(chunk.value)
 
-class GroupDescriptors(OnlyFormatChunksFilter):
+class GroupDescriptors(OnDemandFilter):
     def __init__(self, stream, parent, count, start):
-        OnlyFormatChunksFilter.__init__(self, "groups", "Group descriptors: %s items" % count, stream, parent)
+        OnDemandFilter.__init__(self, "groups", "Group descriptors: %s items" % count, stream, parent)
         self.start = start
         for i in range(0, count):
             self.readSizedChild("group[]", "Group", 32, GroupDescriptor, i)
@@ -306,9 +306,9 @@ class GroupDescriptors(OnlyFormatChunksFilter):
     def getGroup(self, index):
         return self["group[%s]" % (self.start + index)]
 
-class InodeTable(OnlyFormatChunksFilter):
+class InodeTable(OnDemandFilter):
     def __init__(self, stream, parent, start, count):
-        OnlyFormatChunksFilter.__init__(self, "ino_table", "Inode table: %s inodes" % count, stream, parent)
+        OnDemandFilter.__init__(self, "ino_table", "Inode table: %s inodes" % count, stream, parent)
         self.start = start
         chunk_size = parent.getParent().superblock["inode_size"]
         for index in range(self.start, self.start+count):
@@ -325,9 +325,9 @@ def testSuperblock(stream):
     stream.seek(oldpos)
     return is_super
 
-class Group(OnlyFormatChunksFilter):
+class Group(OnDemandFilter):
     def __init__(self, stream, parent, index):
-        OnlyFormatChunksFilter.__init__(self, "group", "Group %u" % index, stream, parent)
+        OnDemandFilter.__init__(self, "group", "Group %u" % index, stream, parent)
         self.index = index
         group = parent["group_desc"].getGroup(index)
         superblock = parent.superblock
@@ -376,9 +376,9 @@ class Group(OnlyFormatChunksFilter):
             self.read("raw[]", "%us" % size, "Raw")
 
 
-class EXT2_FS(OnlyFormatChunksFilter):
+class EXT2_FS(OnDemandFilter):
     def __init__(self, stream, parent):
-        OnlyFormatChunksFilter.__init__(self, "ext2", "EXT2 file system", stream, parent)
+        OnDemandFilter.__init__(self, "ext2", "EXT2 file system", stream, parent)
         
         # Read superblock
         self.seek(1024) 

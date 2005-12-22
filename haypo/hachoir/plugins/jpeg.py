@@ -5,13 +5,13 @@ Description:
 Default filter
 """
 
-from filter import Filter, OnlyFormatChunksFilter
+from filter import Filter, OnDemandFilter
 from plugin import registerPlugin
 from exif import ExifFilter
 
-class JpegChunkApp0(OnlyFormatChunksFilter):
+class JpegChunkApp0(OnDemandFilter):
     def __init__(self, stream, parent):
-        OnlyFormatChunksFilter.__init__(self, "jpeg_chunk", "JPEG chunk App0", stream, parent)
+        OnDemandFilter.__init__(self, "jpeg_chunk", "JPEG chunk App0", stream, parent)
         self.read("jfif", "5s", "JFIF string")
         self.read("ver_maj", "B", "Major version")
         self.read("ver_min", "B", "Minor version")
@@ -28,7 +28,7 @@ class JpegChunkApp0(OnlyFormatChunksFilter):
         if thumb != 0:
             self.read("thumb_data", "%us" % size, "Thumbnail data")
 
-class JpegChunk(OnlyFormatChunksFilter):
+class JpegChunk(OnDemandFilter):
     type_name = {
         0xC0: "Start Of Frame 0 (SOF0)",
         0xC3: "Define Huffman Table (DHT)",
@@ -48,7 +48,7 @@ class JpegChunk(OnlyFormatChunksFilter):
     }
 
     def __init__(self, stream, parent):
-        OnlyFormatChunksFilter.__init__(self, "jpeg_chunk", "JPEG chunk", stream, parent)
+        OnDemandFilter.__init__(self, "jpeg_chunk", "JPEG chunk", stream, parent)
         self.read("header", "B", "Header")
         assert self["header"] == 0xFF
         self.read("type", "B", "Type", post=self.postType)
@@ -72,9 +72,9 @@ class JpegChunk(OnlyFormatChunksFilter):
         type = chunk.value
         return JpegChunk.type_name.get(type, "Unknow type (%02X)" % type)
 
-class JpegFile(OnlyFormatChunksFilter):
+class JpegFile(OnDemandFilter):
     def __init__(self, stream, parent=None):
-        OnlyFormatChunksFilter.__init__(self, "jpeg_file", "JPEG file", stream, parent)
+        OnDemandFilter.__init__(self, "jpeg_file", "JPEG file", stream, parent)
         self.read("header", "2s", "Header \"start of image\" (0xFF xD8)")
         assert self["header"] == "\xFF\xD8"
         while not stream.eof():
