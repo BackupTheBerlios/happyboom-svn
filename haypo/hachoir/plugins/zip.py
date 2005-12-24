@@ -9,6 +9,7 @@ import sys
 from filter import Filter
 from plugin import registerPlugin
 from error import error
+from text_handler import humanFilesize, hexadecimal
 
 class ZipCentralDirectory(Filter):
     def __init__(self, stream, parent):
@@ -71,8 +72,8 @@ class ZipFileEntry(Filter):
         self.read("last_mod_time", "<H", "Last modification time")
         self.read("last_mod_date", "<H", "Last modification date")
         self.read("crc32", "<L", "Checksum (CRC32)")
-        self.read("compressed_size", "<L", "Compressed size (bytes)")
-        self.read("uncompressed_size", "<L", "Uncompressed size (bytes)")
+        self.read("compressed_size", "<L", "Compressed size (bytes)", post=humanFilesize)
+        self.read("uncompressed_size", "<L", "Uncompressed size (bytes)", post=humanFilesize)
         self.read("filename_length", "<H", "Filename length")
         self.read("extra_length", "<H", "Extra length")
         self.read("filename", "%us" % self["filename_length"], "Filename")
@@ -84,7 +85,8 @@ class ZipFileEntry(Filter):
             self.read("file_uncompressed_size", "<L", "Uncompressed size (bytes)")
 
     def updateParent(self, chunk):
-        desc = "File entry: %s" % self["filename"]
+        size = self.getChunk("compressed_size").display
+        desc = "File entry: %s (%s)" % (self["filename"], size)
         chunk.description = desc
         self.setDescription(desc)
         
@@ -96,8 +98,7 @@ class ZipFile(Filter):
         self.central_directory = []
         self.files = []
         while not stream.eof():
-            header = self.read("header[]", "<L", "Header")
-            header = header.getValue()
+            header = self.read("header[]", "<L", "Header", post=hexadecimal).value
             if header == 0x04034B50:
                 self.readChild("files[]", ZipFileEntry)
             elif header == 0x02014b50:

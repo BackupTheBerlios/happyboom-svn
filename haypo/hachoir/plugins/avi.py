@@ -68,6 +68,7 @@ class MovieStream(OnDemandFilter):
         size = end - stream.tell()
         if size > 0:
             self.read("end", "%us" % size, "Raw data")
+        print " ********* END OF STREAM PARSING ************"
 
     def updateParent(self, chunk):
         chunk.description = "Movie stream: %u chunks" % self.chunk_count

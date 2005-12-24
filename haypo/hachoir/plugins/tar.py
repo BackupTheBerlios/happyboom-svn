@@ -96,7 +96,7 @@ class TarFileEntry(Filter):
         self.read("devmajor", "!8s", "Dev major")
         self.read("devminor", "!8s", "Dev minor")
         self.read("header_padding", "!167s", "Padding (zero)")
-        if self["type"] in ("\0", "0"):
+        if self["type"] in ("\0", "0") and self.size != 0:
             substream = stream.createSub(stream.tell(), self.size)
             plugin = guessPlugin(substream, self.name)
 

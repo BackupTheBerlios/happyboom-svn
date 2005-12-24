@@ -168,4 +168,4 @@ class ElfFile(Filter):
             chunk = self.readChild("section_header[]", SectionHeader32)
             assert chunk.size == 40
 
-registerPlugin(ElfFile, ["application/x-executable", "application/x-sharedlib"])
+registerPlugin(ElfFile, ["application/x-executable", "application/x-object", "application/x-sharedlib"])
