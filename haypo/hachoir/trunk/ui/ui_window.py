@@ -152,7 +152,7 @@ class MainWindow:
     def add_table(self, parent, addr, size, format, id, description, value):
         addr = str(addr)
         size = str(size)
-        self.table_store.append(parent, (addr, format, size, id, value, description, ))
+        return self.table_store.append(parent, (addr, format, size, id, value, description, ))
 
     def onKeyUp(self, widget, key, data=None):
         if key.keyval == gtk.keysyms.Escape:

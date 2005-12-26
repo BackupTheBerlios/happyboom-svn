@@ -1,95 +1,90 @@
 """
-Exported filter.
+GZIP archive parser.
 
-Description:
-GZIP archive file
+Author: Victor Stinner
 """
 
 import datetime
-from filter import Filter, DeflateFilter
+from filter import OnDemandFilter, DeflateFilter
+from chunk import FormatChunk, StringChunk, EnumChunk, BitsChunk, BitsStruct
 from plugin import registerPlugin
 from stream.gunzip import GunzipStream
 from plugin import getPluginByStream
 from error import error
 from default import DefaultFilter
-from tools import getBacktrace
+from text_handler import hexadecimal, humanFilesize, unixTimestamp
    
-class GzipFile(Filter):
+class GzipFile(OnDemandFilter):
+    os_name = {
+        0: "FAT filesystem",
+        1: "Amiga",
+        2: "VMS (or OpenVMS)",
+        3: "Unix",
+        4: "VM/CMS",
+        5: "Atari TOS",
+        6: "HPFS filesystem (OS/2, NT)",
+        7: "Macintosh",
+        8: "Z-System",
+        9: "CP/M",
+        10: "TOPS-20",
+        11: "NTFS filesystem (NT)",
+        12: "QDOS",
+        13: "Acorn RISCOS"} 
+
     def __init__(self, stream, parent=None):
-        Filter.__init__(self, "gzip_file", "GZIP archive file", stream, parent)
-        self.read("id", "!2B", "Identifier (31,139)")
+        OnDemandFilter.__init__(self, "gzip_file", "GZIP archive file", stream, parent, "<")
+
+        # Gzip header
+        self.read("id", "Identifier (31,139)", (FormatChunk, "uint8[2]"))
         assert self["id"] == (31, 139)
-        self.read("comp_method", "!B", "Compression method", post=self.getCompressionMethod)
-        self.read("flags", "!B", "Flags", post=self.getFlags)
-        self.read("mtime", "<1L", "Modification time", post=self.getMTime)
-        self.read("extra", "!B", "Extra flags")
-        self.read("os", "!B", "OS", post=self.getOS)
+        self.read("compression", "Compression method", (FormatChunk, "uint8"), {"post": self.getCompressionMethod})
+        bits = (
+            (1, "text", "Text (?)"),
+            (1, "crc16", "CRC16"),
+            (1, "extra", "Extra informations (variable size)"),
+            (1, "filename", "Contains filename?"),
+            (1, "comment", "Contains comment?"),
+            (3, "unused", "Unused bits"))
+        flags = self.doRead("flags", "Flags", (BitsChunk, BitsStruct(bits)))
+        self.read("mtime", "Modification time", (FormatChunk, "uint32"), {"post": unixTimestamp})
+        self.read("extra", "Extra flags", (FormatChunk, "uint8"))
+        self.read("os", "Operating system", (EnumChunk, "uint8", GzipFile.os_name))
 
+        # Optionnal fields
         if self["extra"] & 4 == 4:
-            self.read("extra_length", "<2H", "Extra length")
-            self.read("extra", "%us" % self["extra_length"], "Extra")
-        if self["flags"] & 8 == 8:
-            self.readString("filename", "C", "Filename")
-        if self["flags"] & 16 == 16:
-            self.readString("comment", "C", "Comment")
-        if self["flags"] & 2 == 2:
-            self.read("crc16", "!H", "CRC16")
+            self.read("extra_length", "Extra length", (FormatChunk, "uint16"))
+            self.read("extra", "Extra", (FormatChunk, "string[%u]"  % self["extra_length"]))
+        if flags["filename"]:
+            self.read("filename", "Filename", (StringChunk, "C"))
+        if flags["comment"]:
+            self.read("comment", "Comment", (StringChunk, "C"))
+        if flags["crc16"]:
+            self.read("crc16", "CRC16", (FormatChunk, "uint16"), post=hexadecimal)
 
+        # Read content           
         oldpos = stream.tell()
         size = stream.getSize() - oldpos - 8
         try:
             gz_stream = GunzipStream(stream)
-            if hasattr(self, "filename"):
+            if self.hasChunk("filename"):
                 plugin = getPluginByStream(gz_stream, self["filename"])
             else:
                 plugin = getPluginByStream(gz_stream, None)
 
-            self.readChild("data", DeflateFilter, gz_stream, size, plugin) 
+            self.read("data", "Data", (DeflateFilter, gz_stream, size, plugin)) 
         except Exception, msg:
-            error("Error while processing file in gzip: %s\ns%s" % (msg, getBacktrace()))
+            error("Error while processing file in gzip: %s" % msg)
             stream.seek(oldpos)
-            self.read("data", "!%us" % size, "Compressed data")
-        
-        self.read("crc32", "<L", "CRC32")
-        self.read("size", "<L", "Uncompressed size")
+            self.read("data", "Compressed data", (FormatChunk, "string[%u]" % size))
 
-    def getFlags(self, chunk):
-        val = chunk.value
-        flags = []
-        if val & 1 == 1: flags.append("text")
-        if val & 2 == 2: flags.append("crc16")
-        if val & 4 == 4: flags.append("extra")
-        if val & 8 == 8: flags.append("filename")
-        if val & 16 == 16: flags.append("comment")
-        return "|".join(flags)
-        
+        # Footer
+        self.read("crc32", "CRC32", (FormatChunk, "uint32"), {"post": hexadecimal})
+        self.read("size", "Uncompressed size", (FormatChunk, "uint32"), {"post": humanFilesize})
+
     def getCompressionMethod(self, chunk):
         val = chunk.value
         if val < 8: return "reserved"
         if val == 8: return "deflate"
         return "Unknow (%s)" % val
 
-    def getMTime(self, chunk):
-        dt = datetime.datetime.fromtimestamp(chunk.value)
-        return str(dt)
-
-    def getOS(self, chunk):
-        os = { \
-            0: "FAT filesystem",
-            1: "Amiga",
-            2: "VMS (or OpenVMS)",
-            3: "Unix",
-            4: "VM/CMS",
-            5: "Atari TOS",
-            6: "HPFS filesystem (OS/2, NT)",
-            7: "Macintosh",
-            8: "Z-System",
-            9: "CP/M",
-            10: "TOPS-20",
-            11: "NTFS filesystem (NT)",
-            12: "QDOS",
-            13: "Acorn RISCOS"}            
-        val = chunk.value
-        return os.get(val, "Unknow (%s)" % val)
-        
 registerPlugin(GzipFile, "application/x-gzip")

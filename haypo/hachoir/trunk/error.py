@@ -5,9 +5,10 @@ import ui.ui
 from tools import getBacktrace
 
 def warning(message):
+    log_message = message + "\n\n" + getBacktrace()
     if config.debug:
-        message = message + "\n\n" + getBacktrace()
-    log.warning(message)   
+        message = log_message
+    log.warning(log_message)   
     if ui.ui.ui != None:
         import gtk
         dlg = gtk.MessageDialog( \
@@ -19,9 +20,10 @@ def warning(message):
         dlg.destroy()
 
 def error(message, backtrace=None):
+    log_message = message + "\n\n" + getBacktrace()
     if config.debug:
-        message = message + "\n\n" + getBacktrace()
-    log.error(message)
+        message = log_message
+    log.error(log_message)
     if ui.ui.ui != None:
         import gtk
         dlg = gtk.MessageDialog( \

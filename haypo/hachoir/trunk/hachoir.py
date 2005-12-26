@@ -129,9 +129,7 @@ Ubuntu: apt-get install python-gtk2 python-glade2""" % (err))
     except SystemExit:
         pass
     except Exception, err:
-        where = "".join(traceback.format_exception( \
-            sys.exc_type, sys.exc_value, sys.exc_traceback))
-        error("Exception:\n%s\n%s" % (err, where))
+        error("Python Exception: %s" % err)
 	sys.exit(1)
 
 if __name__=="__main__": main()    

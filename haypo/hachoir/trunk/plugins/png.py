@@ -1,121 +1,126 @@
 """
-PNG splitter.
+PNG picture parser.
 
-Status: split into chunks, can only resplit tIME chunk.
 Author: Victor Stinner
 """
 
-from filter import Filter
+import datetime
+from filter import OnDemandFilter
+from chunk import FormatChunk, StringChunk
 from plugin import registerPlugin
+from text_handler import hexadecimal
+from generic.image import RGB
 
-class PngHeader(Filter):
+class Palette(OnDemandFilter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, "png_header", "PNG header", stream, parent)
-        self.read("width", "!L", "Width (pixels)")
-        self.read("height", "!L", "Height (pixels)")
-        self.read("bit_depth", "!B", "Bit depth")
-        self.read("color_type", "!B", "Color type")
-        self.read("compression_method", "!B", "Compression method")
-        self.read("filter_method", "!B", "Filter method")
-        self.read("interlace_method", "!B", "Interlace method")
+        size = stream.getSize()
+        assert (size % 3) == 0
+        count = size / 3
+        OnDemandFilter.__init__(self, "palette", "Palette: %u colors" % count, stream, parent, "!")
+        for i in range(0, count):
+            self.read("color[]", "Color", (RGB,))
 
-    def __str__(self):
-        return "PNG header <size=%ux%u, depth=%u bits/pixel>" % \
-            (self["width"], self["height"],
-             self["bit_depth"])
-
-class PngPhysical(Filter):
+class Header(OnDemandFilter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, "png_physical", "PNG physical", stream, parent)
-        self.read("pixel_per_unit_x", "!L", "Pixel per unit, X axis")
-        self.read("pixel_per_unit_y", "!L", "Pixel per unit, Y axis")
-        self.read("unit_type", "!B", "Unit type")
+        OnDemandFilter.__init__(self, "header", "Header", stream, parent, "!")
+        self.read("width", "Width (pixels)", (FormatChunk, "uint32"))
+        self.read("height", "Height (pixels)", (FormatChunk, "uint32"))
+        self.read("bit_depth", "Bit depth", (FormatChunk, "uint8"))
+        self.read("color_type", "Color type", (FormatChunk, "uint8"))
+        self.read("compression", "Compression method", (FormatChunk, "uint8"))
+        self.read("filter", "Filter method", (FormatChunk, "uint8"))
+        self.read("interlace", "Interlace method", (FormatChunk, "uint8"))
 
-    def __str__(self):
-        if self["unit_type"] == 0:
-            unit = "unknow"
-        else:
-            unit = "meter"
-        return "PNG physical chunk <pixel per unit=(%u,%u), unit=%s>" % \
-            (self["pixel_per_unit_x"], self["pixel_per_unit_y"], unit)
-
-class PngGamma(Filter):
+class Physical(OnDemandFilter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, "png_gamma", "PNG gamma", stream, parent)
-        self.read("gamma", "!L", "Gamma (x10,000)", post=self.getGamma)
+        OnDemandFilter.__init__(self, "physical", "Physical", stream, parent, "!")
+        self.read("pixel_per_unit_x", "Pixel per unit, X axis", (FormatChunk, "uint32"))
+        self.read("pixel_per_unit_y", "Pixel per unit, Y axis", (FormatChunk, "uint32"))
+        self.read("unit_type", "Unit type", (FormatChunk, "uint8"))
+
+class Gamma(OnDemandFilter):
+    def __init__(self, stream, parent):
+        OnDemandFilter.__init__(self, "gamma", "Gamma", stream, parent, "!")
+        self.read("gamma", "Gamma (x10,000)", (FormatChunk, "uint32"), {"post": self.getGamma})
 
     def getGamma(self, chunk):
         return float(chunk.value) / 10000
 
-    def __str__(self):
-        return "PNG gamma <gamma=%0.2f>" % (self["gamma"])
-
-class PngText(Filter):
+class Text(OnDemandFilter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, "png_text", "PNG text", stream, parent)
-        chunk = self.readString("keyword", "C", "Keyword")
+        OnDemandFilter.__init__(self, "text", "Text", stream, parent)
+        chunk = self.read("keyword", "Keyword", (StringChunk, "C"))
         lg = stream.getSize() - chunk.size
-        self.read("text", "!%us" % lg, "Text")
+        self.read("text", "Text", (FormatChunk, "string[%u]" % lg))
 
-    def __str__(self):
-        return "PNG text <keyword=\"%s\", text=\"%s\">" % \
-            (self["keyword"], self["text"])
-
-class PngTime(Filter):
+class Time(OnDemandFilter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, "png_time", "PNG time", stream, parent)
-        self.read("year", "!H", "Year")
-        self.read("month", "!B", "Month")
-        self.read("day", "!B", "Day")
-        self.read("hour", "!B", "Hour")
-        self.read("minute", "!B", "Minute")
-        self.read("second", "!B", "Second")
-
-    def __str__(self):
-        return "PNG time chunk <%04u-%02u-%02u %02u:%02u:%02u>" % \
-            (self["year"], self["month"], self["day"],
-             self["hour"], self["minute"], self["second"])
-        
-class PngChunk(Filter):
-    handler = {
-        "tIME": PngTime,
-        "pHYs": PngPhysical,
-        "IHDR": PngHeader,
-        "gAMA": PngGamma,
-        "tEXt": PngText
-    }
-    def __init__(self, stream, parent):
-        Filter.__init__(self, "png_chunk", "PNG chunk", stream, parent)
-        self.read("size", "!L", "Chunk size")
-        self.read("type", "!4s", "Chunk type")
-        type = self["type"]
-        if type in PngChunk.handler:
-            size = self["size"]
-            oldpos = self._stream.tell()
-            sub = stream.createSub(size=size)
-            self.readStreamChild("chunk_data", sub, PngChunk.handler[type])
-            assert stream.tell() == (oldpos + size) 
-        else:
-            self.read("data", "%us" % self["size"], "Chunk data")
-        self.read("crc32", "!L", "Chunk CRC32")
+        OnDemandFilter.__init__(self, "time", "Time", stream, parent, "!")
+        self.read("year", "Year", [FormatChunk, "H"])
+        self.read("month", "Month", [FormatChunk, "uint8"])
+        self.read("day", "Day", [FormatChunk, "uint8"])
+        self.read("hour", "Hour", [FormatChunk, "uint8"])
+        self.read("minute", "Minute", [FormatChunk, "uint8"])
+        self.read("second", "Second", [FormatChunk, "uint8"])
 
     def updateParent(self, chunk):
-        self.description = "PNG chunk (type %s)" % self["type"]
-        chunk.description = "PNG chunk (type %s)" % self["type"]
+        time = datetime.datetime(self["year"], self["month"], self["day"], self["hour"], self["minute"], self["second"])
+        chunk.description = "Time: %s" % time
 
-    def __str__(self):
-        return "PngChunk <size=%u, type=%s>" % (self["size"], self["type"])
+class Chunk(OnDemandFilter):
+    handler = {
+        "tIME": Time,
+        "pHYs": Physical,
+        "IHDR": Header,
+        "PLTE": Palette,
+        "gAMA": Gamma,
+        "tEXt": Text
+    }
+    name = {
+        "tIME": ("time", "Creation time"),
+        "pHYs": ("physical", "Physical informations"),
+        "IHDR": ("header", "Header"),
+        "PLTE": ("palette", "Palette"),
+        "gAMA": ("gamma", "Gamma"),
+        "IDAT": ("data[]", "Image data"),
+        "IEND": ("end", "End"),
+        "tEXt": ("text", "Text")
+    }
+    def __init__(self, stream, parent):
+        OnDemandFilter.__init__(self, "chunk", "Chunk", stream, parent, "!")
+        self.read("size", "Size", (FormatChunk, "uint32"))
+        self.read("type", "Type", (FormatChunk, "string[4]"))
+        type = self["type"]
+        if type in Chunk.handler:
+            size = self["size"]
+            print "%s.SIZE=%s" % (self.getId(), size)
+            oldpos = self._stream.tell()
+            sub = stream.createSub(size=size)
+            handler = Chunk.handler[type]
+            self.read("data", "Data", (handler,), {"stream": sub, "size": size})
+            assert stream.tell() == (oldpos + size) 
+        else:
+            self.read("data", "Data", [FormatChunk, "string[%u]" % self["size"]])
+        self.read("crc32", "CRC32", (FormatChunk, "uint32"), {"post": hexadecimal})
 
-class PngFile(Filter):
-    """
-    Split a PNG file into chunks.
-    """
+    def updateParent(self, chunk):
+        type = self["type"]
+        if type in Chunk.name:
+            name = Chunk.name[type]
+            id = self.getParent().getUniqChunkId(name[0])
+            self.setId(id)
+            type = name[1] 
+        else:
+            type = "Unknow (%s)" % type
+        chunk.description = "Chunk: %s" % type
 
+class PngFile(OnDemandFilter):
     def __init__(self, stream, parent=None):
-        Filter.__init__(self, "png_file", "PNG file", stream, parent)
-        self.read("header", "!8s", "File header")
-        assert self["header"] == "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A"
+        OnDemandFilter.__init__(self, "png", "PNG picture", stream, parent, "!")
+        self.read("id", "PNG identifier", [FormatChunk, "string[8]"])
+        assert self["id"] == "\x89PNG\r\n\x1A\n"
         while not stream.eof():
-            self.readChild("chunks[]", PngChunk)
+            size = 4*3 + stream.getFormat("!uint32", False)
+            self.read("chunks[]", "Chunk", (Chunk,), {"size": size})
 
 registerPlugin(PngFile, ["image/png", "image/x-png"])

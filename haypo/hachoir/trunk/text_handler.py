@@ -1,7 +1,11 @@
-from tools import humanFilesize as doHumanFilesize
-
 def humanFilesize(chunk):
+    from tools import humanFilesize as doHumanFilesize
     return doHumanFilesize(chunk.value)
+
+def unixTimestamp(chunk):
+    import datetime
+    timestamp = datetime.datetime.fromtimestamp(chunk.value)
+    return str(timestamp) 
 
 def hexadecimal(chunk):
     size = chunk.size

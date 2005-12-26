@@ -123,15 +123,12 @@ def humanDuration(ms):
 def humanFilesize(size):
     if size < 1000:
         return "%u bytes" % size
-    units = ["KB", "MB", "GB"]
+    units = ["KB", "MB", "GB", "TB"]
     size = float(size)
     for unit in units:
         size = size / 1024
-        if size < 100:
+        if size < 1024:
             return "%.1f %s" % (size, unit)
-        if size < 1000:
-            return "%u %s" % (size, unit)
-        last_unit = unit
     return "%u %s" % (size, unit)
 
 def convertDataToPrintableString(data, keep_n=False):

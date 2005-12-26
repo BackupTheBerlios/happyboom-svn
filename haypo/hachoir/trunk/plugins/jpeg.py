@@ -1,32 +1,32 @@
 """
-Exported filter.
+JPEG picture parser.
 
-Description:
-Default filter
+Author: Victor Stinner
 """
 
-from filter import Filter, OnDemandFilter
+from filter import OnDemandFilter
 from plugin import registerPlugin
-from exif import ExifFilter
+from chunk import FormatChunk
+#from exif import ExifFilter
 
 class JpegChunkApp0(OnDemandFilter):
     def __init__(self, stream, parent):
-        OnDemandFilter.__init__(self, "jpeg_chunk", "JPEG chunk App0", stream, parent)
-        self.read("jfif", "5s", "JFIF string")
-        self.read("ver_maj", "B", "Major version")
-        self.read("ver_min", "B", "Minor version")
-        self.read("units", "B", "Units (=0)")
+        OnDemandFilter.__init__(self, "app0", "JPEG APP0", stream, parent, "!")
+        self.read("jfif", "JFIF string", (FormatChunk, "string[5]"))
+        self.read("ver_maj", "Major version", (FormatChunk, "uint8"))
+        self.read("ver_min", "Minor version", (FormatChunk, "uint8"))
+        self.read("units", "Units (=0)", (FormatChunk, "uint8"))
         if self["units"] == 0:
-            self.read("aspect_x", "!H", "Aspect ratio (X)")
-            self.read("aspect_y", "!H", "Aspect ratio (Y)")
+            self.read("aspect_x", "Aspect ratio (X)", (FormatChunk, "uint16"))
+            self.read("aspect_y", "Aspect ratio (Y)", (FormatChunk, "uint16"))
         else:
-            self.read("x_density", "!H", "X density")
-            self.read("y_density", "!H", "Y density")
-        self.read("thumb_w", "B", "Thumbnail width")
-        self.read("thumb_h", "B", "Thumbnail height")
+            self.read("x_density", "X density", (FormatChunk, "uint16"))
+            self.read("y_density", "Y density", (FormatChunk, "uint16"))
+        self.read("thumb_w", "Thumbnail width", (FormatChunk, "uint8"))
+        self.read("thumb_h", "Thumbnail height", (FormatChunk, "uint8"))
         thumb = self["thumb_w"] * self["thumb_h"]
         if thumb != 0:
-            self.read("thumb_data", "%us" % size, "Thumbnail data")
+            self.read("thumb_data", "Thumbnail data", (FormatChunk, "string[%u]" % size))
 
 class JpegChunk(OnDemandFilter):
     type_name = {
@@ -44,28 +44,28 @@ class JpegChunk(OnDemandFilter):
     }
     handler = {
         0xE0: JpegChunkApp0,
-        0xE1: ExifFilter
+#        0xE1: ExifFilter
     }
 
     def __init__(self, stream, parent):
-        OnDemandFilter.__init__(self, "jpeg_chunk", "JPEG chunk", stream, parent)
-        self.read("header", "B", "Header")
+        OnDemandFilter.__init__(self, "chunk", "Chunk", stream, parent, "!")
+        self.read("header", "Header", (FormatChunk, "uint8"))
         assert self["header"] == 0xFF
-        self.read("type", "B", "Type", post=self.postType)
-        self.read("size", "!H", "Size")
+        self.read("type", "Type", (FormatChunk, "uint8"), {"post": self.postType})
+        self.read("size", "Size", (FormatChunk, "uint16"))
         type = self["type"]
         size = self["size"] - 2
         if type in JpegChunk.handler:
             end = stream.tell() + size
             sub = stream.createSub(size=size)
-            self.readStreamChild("content", "Chunk content", sub, JpegChunk.handler[type])
+            self.read("content", "Chunk content", (JpegChunk.handler[type],), {"stream": sub, "size": size})
             assert stream.tell() == end
         else:
-            self.read("data", "!%us" % size, "Data")
+            self.read("data", "Data", (FormatChunk, "string[%u]" % size))
             
     def updateParent(self, chunk):
         type = self.getChunk("type").display
-        desc = "JPEG chunk \"%s\"" % type
+        desc = "Chunk: %s" % type
         chunk.description = desc
 
     def postType(self, chunk):
@@ -75,13 +75,13 @@ class JpegChunk(OnDemandFilter):
 class JpegFile(OnDemandFilter):
     def __init__(self, stream, parent=None):
         OnDemandFilter.__init__(self, "jpeg_file", "JPEG file", stream, parent)
-        self.read("header", "2s", "Header \"start of image\" (0xFF xD8)")
+        self.read("header", "Header \"start of image\" (0xFF xD8)", (FormatChunk, "string[2]"))
         assert self["header"] == "\xFF\xD8"
         while not stream.eof():
-            id = self.readChild("chunk[]", "Jpeg Chunk", JpegChunk)
-            if self[id]["type"] == 0xDA:
+            chunk = self.doRead("chunk[]", "Chunk", (JpegChunk,))
+            if chunk["type"] == 0xDA:
                 break
         size = stream.getSize() - self.getSize()
-        self.read("data", "%us" % size, "JPEG data")
+        self.read("data", "JPEG data", (FormatChunk, "string[%u]" % size))
         
 registerPlugin(JpegFile, "image/jpeg")

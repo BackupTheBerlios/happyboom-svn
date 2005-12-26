@@ -1,6 +1,6 @@
 from stream.file import FileStream
 from plugin import getPluginByStream
-from chunk import FilterChunk
+from chunk import FilterChunk, FormatChunk
 from default import DefaultFilter
 from user_filter import UserFilterDescriptor, loadUserFilter
 from error import error, warning
@@ -88,7 +88,8 @@ class Hachoir:
         stream_size = self._main_filter.getStream().getSize()
         diff_size = filter_size - stream_size
         if diff_size < 0:
-            self._main_filter.read("end", "%us" % (-diff_size), "Raw data")
+            print "Pad", "string[%u]" % -diff_size
+            self._main_filter.read("end", "Raw data", (FormatChunk, "string[%u]" % -diff_size))
 
     def loadFile(self, filename):
         try:

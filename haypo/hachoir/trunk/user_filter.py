@@ -1,4 +1,4 @@
-from filter import Filter
+from filter import OnDemandFilter
 from chunk import FilterChunk
 from xml.dom.minidom import getDOMImplementation, parse
 from program import VERSION
@@ -21,7 +21,7 @@ class UserSubChunk(UserChunk):
         self.sub_format = sub_format
 
 def loadUserFilter(desc, stream, parent):
-    filter = Filter(desc.id, desc.description, stream, parent)
+    filter = OnDemandFilter(desc.id, desc.description, stream, parent)
     for chunk in desc.chunks:
         if chunk.format == "sub":
             modules = chunk.sub_format.split('.')

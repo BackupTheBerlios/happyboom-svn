@@ -7,10 +7,11 @@ Author: Victor Stinner
 
 import re
 from datetime import datetime
-from filter import Filter, DeflateFilter
-from plugin import registerPlugin
+from filter import OnDemandFilter, DeflateFilter
 from tools import convertDataToPrintableString
-from default import EmptyFilter
+from plugin import registerPlugin
+from chunk import FormatChunk, EnumChunk
+from default import DefaultFilter
 from plugin import guessPlugin 
 from error import error
 from tools import getBacktrace, humanFilesize
@@ -46,9 +47,52 @@ def displayTar(tar):
         print "[ File %s ]" % file.name
         displayFile(file)
 
-class TarFileEntry(Filter):
-    def stripNul(self, chunk):
-        return chunk.value.strip("\0")
+class FileEntry(OnDemandFilter):
+    type_name = {
+        0: "Normal disk file (old format)",
+        # 48 is "0", 49 is "1", ...
+        48: "Normal disk file",
+        49: "Link to previously dumped file",
+        50: "Symbolic link",
+        51: "Character special file",
+        52: "Block special file",
+        53: "Directory",
+        54: "FIFO special file",
+        55: "Contiguous file"
+    }
+
+    def __init__(self, stream, parent):
+        OnDemandFilter.__init__(self, "file", "File entry", stream, parent)
+        self.read("name", "Name", (FormatChunk, "string[100]"), {"post": self.printable})
+        self.read("mode", "Mode", (FormatChunk, "string[8]"), {"post": self.convertOctal})
+        self.read("uid", "User ID", (FormatChunk, "string[8]"), {"post": self.convertOctal})
+        self.read("gid", "Group ID", (FormatChunk, "string[8]"), {"post": self.convertOctal})
+        self.read("size", "Size", (FormatChunk, "string[12]"), {"post": self.convertOctal})
+        self.read("mtime", "Modification time", (FormatChunk, "string[12]"), {"post": self.getTime})
+        self.read("check_sum", "Check sum", (FormatChunk, "string[8]"), {"post": self.convertOctal})
+        self.read("type", "Type", (EnumChunk, "uint8", FileEntry.type_name))
+        self.read("lname", "Link name", (FormatChunk, "string[100]"), {"post": self.printable})
+        self.read("magic", "Magic", (FormatChunk, "string[8]"), {"post": self.printable})
+        self.read("uname", "User name", (FormatChunk, "string[32]"), {"post": self.printable})
+        self.read("gname", "Group name", (FormatChunk, "string[32]"), {"post": self.printable})
+        self.read("devmajor", "Dev major", (FormatChunk, "string[8]"), {"post": self.printable})
+        self.read("devminor", "Dev minor", (FormatChunk, "string[8]"), {"post": self.printable})
+        self.read("padding", "Padding (zero)", (FormatChunk, "string[167]"))
+
+        self.name = self["name"].strip("\0")
+        self.size = self.octal2int(self["size"])
+        if self["type"] in (0, ord("0")) and self.size != 0:
+            substream = stream.createSub(stream.tell(), self.size)
+            plugin = guessPlugin(substream, self.name)
+            self.read("content", "Compressed file content", (DeflateFilter, substream, self.size, plugin), {"stream": substream, "size": self.size})
+
+        padding = 512 - stream.tell() % 512
+        if padding != 512:
+            self.read("padding_end", "Padding (512 align)", (FormatChunk, "string[%u]" % padding))
+
+    def printable(self, chunk):
+        value = chunk.value.strip(" \0")
+        return convertDataToPrintableString(value)
 
     def getMode(self, chunk):
         mode = self.octal2int(chunk.value)
@@ -69,57 +113,15 @@ class TarFileEntry(Filter):
     def convertOctal(self, chunk):
         return self.octal2int(chunk.value)
 
-    def stripNul(self, chunk):
-        val = chunk.value.strip("\0")
-        return convertDataToPrintableString(val)
-
     def getTime(self, chunk):
         value = self.octal2int(chunk.value) 
-        return datetime.fromtimestamp(value)
-
-    def __init__(self, stream, parent):
-        Filter.__init__(self, "tar_file_entry","Tar file entry", stream, parent)
-        self.read("name", "!100s", "Name", post=self.stripNul)
-        self.name = self["name"].strip("\0")
-        self.read("mode", "!8s", "Mode", post=self.convertOctal)
-        self.read("uid", "!8s", "User ID", post=self.convertOctal)
-        self.read("gid", "!8s", "Group ID", post=self.convertOctal)
-        self.read("size", "!12s", "Size", post=self.convertOctal)
-        self.size = self.octal2int(self["size"])
-        self.read("mtime", "!12s", "Modification time", self.getTime)
-        self.read("check_sum", "!8s", "Check sum")
-        self.read("type", "!c", "Type")
-        self.read("lname", "!100s", "Link name", post=self.stripNul)
-        self.read("magic", "!8s", "Magic", post=self.stripNul)
-        self.read("uname", "!32s", "User name", post=self.stripNul)
-        self.read("gname", "!32s", "Group name", post=self.stripNul)
-        self.read("devmajor", "!8s", "Dev major")
-        self.read("devminor", "!8s", "Dev minor")
-        self.read("header_padding", "!167s", "Padding (zero)")
-        if self["type"] in ("\0", "0") and self.size != 0:
-            substream = stream.createSub(stream.tell(), self.size)
-            plugin = guessPlugin(substream, self.name)
-
-            oldpos = stream.tell()
-            try:
-                chunk = self.readChild("filedata", DeflateFilter, substream, self.size, plugin)
-#                chunk = self.readLimitedChild("filedata", stream, self.size, plugin)
-            except Exception, msg:
-                error("Error while processing tar file \"%s\": %s\n%s" % (self.name, msg, getBacktrace()))
-                stream.seek(oldpos)
-                chunk = self.readChild("filedata", EmptyFilter)
-                filter = chunk.getFilter()
-                filter.read("filedata", "!%us" % self.size, "File data")
-
-        if stream.tell() % 512 != 0:
-            padding = 512 - stream.tell() % 512
-            self.read("padding", "!%ss" % padding, "Padding (512 align)")
+        return str(datetime.fromtimestamp(value))
 
     def isEmpty(self):
         return self.name == ""
 
     def octal2int(self, str):
-        str = str.strip("\0")
+        str = str.strip(" \0")
         if str=="": return 0
         assert re.match("^[0-7]+$", str)
         try:
@@ -127,38 +129,23 @@ class TarFileEntry(Filter):
         except:
             return 0
 
-    def getType(self):
-        name = { \
-            "\0": "Normal disk file (old format), Unix compatible",
-            "0": "Normal disk file",
-            "1": "Link to previously dumped file",
-            "2": "Symbolic link",
-            "3": "Character special file",
-            "4": "Block special file",
-            "5": "Directory",
-            "6": "FIFO special file",
-            "7": "Contiguous file"
-        }
-        name.get(self["type"], "Unknow type (%02X)" % ord(self["type"]))
-
     def updateParent(self, chunk):
         if not self.isEmpty():
             text = "Tar File (%s: %s, %s)" \
-                % (self.name, self.getType(), humanFilesize(self.size))
+                % (self.name, self.getChunk("type").display, humanFilesize(self.size))
         else:
             text = "Tar File (terminator, empty header)"
         chunk.description = text
         self.setDescription(text)
 
-class TarFile(Filter):
+class TarFile(OnDemandFilter):
     def __init__(self, stream, parent=None):
-        Filter.__init__(self, "tar_file", "TAR archive file", stream, parent)
+        OnDemandFilter.__init__(self, "tar_file", "TAR archive file", stream, parent)
         while not stream.eof():
-            chunk = self.readChild("file[]", TarFileEntry)
-            if chunk.getFilter().isEmpty():
+            file = self.doRead("file[]", "File", (FileEntry,))
+            if file.isEmpty():
                 break
-        
         padding = stream.getSize() - stream.tell()
-        self.read("padding", "!%ss" % padding, "Padding (4096 align)")
-        
+        self.read("padding", "Padding", (FormatChunk, "string[%u]" % padding))
+
 registerPlugin(TarFile, ["application/x-gtar", "application/x-tar"])

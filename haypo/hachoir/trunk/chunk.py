@@ -1,6 +1,6 @@
 import struct, re, types
 import config
-from format import checkFormat, splitFormat, getFormatSize 
+from format import checkFormat, splitFormat, getFormatSize, getRealFormat, formatIsString, formatIsInteger
 from error import warning, error
 from tools import convertDataToPrintableString
 
@@ -67,11 +67,14 @@ class Chunk(object):
     def _setAddr(self, addr): self._addr = addr
     def _getAddr(self): return self._addr
     def _getSize(self): return self._size
-    def _getId(self): return self._id
-    def _setId(self, id):
-        if self._id == id: return
-        self._parent.updateChunkId(self, id)
-        self._id = id
+    def _getId(self):
+        return self._id
+    def _setId(self, new_id):
+        old_id = self.id
+        if new_id == old_id:
+            return
+        self._id = new_id
+        self._parent.updateChunkId(old_id, new_id)
     addr = property(_getAddr, _setAddr)        
     size = property(_getSize)        
     id = property(_getId, _setId)
@@ -131,9 +134,11 @@ class FilterChunk(Chunk):
     def getFilter(self):
         return self._filter
 
-    def _setId(self, id):
-        Chunk._setId(self, id)
-        self._filter.setId(id)
+    def _setId(self, new_id):
+        if new_id == self.id:
+            return
+        self._filter.setId(new_id)
+        Chunk._setId(self, new_id)
     id = property(Chunk._getId, _setId)
 
     def _getDescription(self):
@@ -257,25 +262,31 @@ class StringChunk(Chunk):
         else:
             text = self._read(config.max_string_length)
             return convertDataToPrintableString(text)
-        
-class FormatChunk(Chunk):
-    regex_sub_format = re.compile(r'\{([^}]+)\}')
 
-    def __init__(self, id, description, stream, addr, format, parent):
-        Chunk.__init__(self, id, description, stream, addr, None, parent)
+class FormatChunk(Chunk):
+    def __init__(self, id, description, stream, format, parent):
+        Chunk.__init__(self, id, description, stream, stream.tell(), None, parent)
         self._format = None
         self._doSetFormat(format)
 
     def _doSetFormat(self, format):
         if format == self._format:
             return
+
+        # Add endian if needed
+        splited = splitFormat(format)
+        if splited[0] == None and splited[2] not in "scbB":
+            endian = self._parent.endian
+            assert endian != None
+            format = endian + format
+            
         self._format = format
-        self._is_string = self.isString()
+        self._real_format = getRealFormat(format)
+        self._is_string = formatIsString(self._format)
         if not self._is_string:
-            count = splitFormat(self._format)[1]
-            self._is_array = (count != 1)
+            self._is_array = (1 < splited[1])
         else:
-            self._is_array = False
+            self._is_array = False 
         self._size = getFormatSize(self._format)
         self._value = {}
        
@@ -294,9 +305,6 @@ class FormatChunk(Chunk):
 
     def getSmallFormat(self):
         return self._format
-
-    def isString(self):
-        return self._format[-1] == "s"
 
     def convertToStringSize(self, size):
         self._doSetFormat("%us" % size)
@@ -358,7 +366,7 @@ class FormatChunk(Chunk):
         if max_size not in self._value:
             data, truncated = self._getRawData(max_size)
             if not truncated:
-                data = struct.unpack(self._format, data)
+                data = struct.unpack(self._real_format, data)
                 if not self._is_array:
                     data = data[0]
             else:
@@ -375,3 +383,102 @@ class FormatChunk(Chunk):
             return convertDataToPrintableString(data)
         else:
             return data 
+
+class EnumChunk(FormatChunk):
+    def __init__(self, id, description, stream, format, dict, parent):
+        assert formatIsInteger(format)
+        FormatChunk.__init__(self, id, description, stream, format, parent)
+        self._dict = dict
+
+    def getDisplayData(self):
+        value = self.getValue()
+        return self._dict.get(value, "Unknow (%s)" % value)
+
+class BitsStruct(object):
+    size_to_struct = {
+        1: "B",
+        2: "H",
+        3: "L",
+        4: "L"}
+
+    def __init__(self, items=None):
+        self._items_list = []
+        self._items_dict = {}
+        self._size = 0
+        self._source = None
+        if items != None:
+            for item in items:
+                if 3<len(item):
+                    type = item[3]
+                else:
+                    type = None
+                self.add(item[0], item[1], item[2], type)
+            assert self.isValid()
+
+    def isValid(self):
+        return (0 < self._size) and ((self._size % 8) == 0)
+
+    def add(self, bits, id, description, type=None):
+        # TODO: (Maybe) Generate new id if another already exist
+        assert id not in self._items_dict
+        assert 0<bits
+        assert bits <= 32
+        if type == None:
+            if 1<bits:
+                type = "bits"
+            else:
+                type = "bit"
+        self._items_list.append(id)
+        self._items_dict[id] = (self._size, bits, type, description)
+        self._size += bits
+
+    def __getitem__(self, id):
+        assert self.isValid() 
+        item = self._items_dict[id]
+        addr = item[0]
+        size = item[1]
+        data = self._source.getRaw()
+        start = addr / 8
+        shift = addr % 8
+        mask = (1 << size) - 1
+        byte_size = (size + 7) / 8
+        data = data[start:start+byte_size]
+        type = BitsStruct.size_to_struct[byte_size]
+        value = struct.unpack(type, data)[0]
+        value = (value >> shift) & mask
+        if size == 1:
+            return value == 1
+        else:
+            return value
+
+    def setSource(self, source):
+        self._source = source
+
+    def _getSize(self):
+        assert self.isValid() 
+        return self._size / 8
+    size = property(_getSize)
+
+    def display(self, ui, parent):
+        for id in self._items_list:
+            item = self._items_dict[id]
+            addr = item[0]
+            size = item[1]
+            format = item[2]
+            desc = item[3]
+            display = self[id]
+            ui.add_table(parent, addr, size, format, id, desc, display)
+
+class BitsChunk(Chunk):
+    def __init__(self, id, description, stream, struct, parent):
+        Chunk.__init__(self, id, description, stream, stream.tell(), struct.size, parent)
+        self._struct = struct
+        self._struct.setSource(self)
+        stream.seek(self.size, 1)
+
+    def uiDisplay(self, ui):
+        path = ui.add_table(None, self.addr, self.size, "bits", self.id, self.description, "*bits*")
+        self._struct.display(ui, path)
+
+    def __getitem__(self, id):
+        return self._struct[id]
