@@ -1,0 +1,31 @@
+News in version 2005-12-26
+    o Some speed up:
+      - use more caches (eg. for format operations like getting format size)
+      - merge FormatChunkCache and FormatChunk to limit function calls
+    o New command line options: "--use-profiler" and "--debug"
+    o Hide backtrace by default (need "--debug" command line option)
+    o Delete ArrayFilter class, replace it with classical while Python
+      structure.
+    o Add "copy to clipboard" in user interface
+    o Add AVI (written with a new author, Aurélien Jacobs), MP3, ID3, MBR,
+      EXT2, PCX, BMP, WORMS2 plugins. RPM plugin can now read all headers
+      and also file content.
+    o Kill arbitrary limits (address/size) ;-) (in Chunk/Filter classes and in UI)
+    o Don't support FormatChunk dynamic format (like "{size}s"),
+      nor "@end@" keyword anymore
+    o Start work on "on demand filter": create OnlyFormatsChunkFilter class
+      which only instanciate objects when needed. It's only used
+      in EXT2 plugin yet.
+
+News in version 2005-12-11 (svn commit 314)
+    o First public release
+    o Use GTK+ interface with Glade XML files (dynamically loaded) 
+    o Available plugins : jpeg, ar, email, bzip2, exif, elf, exe, gif,
+      pdf, png, rpm, tar, xcf, zip, gzip, asn1, 3ds
+    o Support three types of chunks: FormatChunk, FilterChunk, StringChunk.
+      String format can be: C, UnixLine, WindowsLine, MacLine, AutoLine.
+    o Use cache for FormatChunk value and FileStream access.
+    o Use MIME type detection to choose the best filter.
+    o Development features:
+      - it's possible to edit chunks list: create, edit, remove chunk
+      - it's possible to store and load a filter into/from XML file
