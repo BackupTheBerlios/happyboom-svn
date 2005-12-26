@@ -5,6 +5,9 @@ from error import warning, error
 from tools import convertDataToPrintableString
 
 class Chunk(object):
+    """
+    A chunk address is fixed. If you want to move the chunk, delete it :-P
+    """
     def __init__(self, id, description, stream, addr, size, parent):
         self._id = id
         self.description = description
@@ -14,6 +17,10 @@ class Chunk(object):
         self._stream = stream
         self.post_process = None
         self.display = None
+
+    def getStaticSize(stream, args):
+        return None
+    getStaticSize = staticmethod(getStaticSize)
 
     def clone(self):
         raise Exception("%s doesn't implement clone() method!" % self)
@@ -27,10 +34,6 @@ class Chunk(object):
 
     def getSmallFormat(self):
         return self.__class__.__name__
-
-    def update(self):
-        self.display = None
-        self.postProcess()
 
     def getStream(self):
         return self._stream
@@ -64,7 +67,6 @@ class Chunk(object):
     def setParent(self, parent):
         self._parent = parent
     def getParent(self): return self._parent
-    def _setAddr(self, addr): self._addr = addr
     def _getAddr(self): return self._addr
     def _getSize(self): return self._size
     def _getId(self):
@@ -75,7 +77,7 @@ class Chunk(object):
             return
         self._id = new_id
         self._parent.updateChunkId(old_id, new_id)
-    addr = property(_getAddr, _setAddr)        
+    addr = property(_getAddr)
     size = property(_getSize)        
     id = property(_getId, _setId)
     value = property(getValue)
@@ -93,33 +95,16 @@ class FilterChunk(Chunk):
             filter.getSize(), parent)
         self._description = filter.getDescription()
     
-    def clone(self, addr=None):
-        filter_copy = self._filter.clone(addr=addr)
-        # TODO: Is it always alright? (or use parent_addr = self.parent_addr)
-        parent_addr = addr
-        return FilterChunk(self.id, filter_copy, self.getParent(), parent_addr)
-    
     def getFormat(self):
         return self.__class__.__name__ + " (%s)" % self._filter.__class__.__name__
 
     def getSmallFormat(self):
         return self._filter.__class__.__name__
 
-    def update(self):
-        new = self._filter.clone()
-        if new != None:
-            self.setFilter(new)
-        Chunk.update(self)
-
     def setFilter(self, filter):
         self._filter = filter
         self._filter.updateParent(self)
     
-    def _setAddr(self, addr):
-        self._addr = addr
-        self._filter.setAddr(addr)
-    addr = property(Chunk._getAddr, _setAddr)        
-        
     def _getSize(self):
         return self._filter.getSize()
     size = property(_getSize)        
@@ -172,9 +157,6 @@ class StringChunk(Chunk):
         self._str_type = str_type
         self.eol = None
         self._findSize()
-        self._cache_addr = None
-        self._cache_max_size = None
-        self._cache_value = None
         self.strip = strip
 
     def getFormat(self):
@@ -221,11 +203,6 @@ class StringChunk(Chunk):
         self._stream.seek(self.addr + self._size)
         
     def _read(self, max_size):
-        if self._cache_addr==self.addr and self._cache_max_size==max_size:
-            return self._cache_value
-        self._cache_addr = self.addr
-        self._cache_max_size = max_size
-
         self._stream.seek(self.addr)
         if self._str_type == "Pascal32":
             self._stream.seek(4,1)
@@ -245,12 +222,7 @@ class StringChunk(Chunk):
                 text = text.strip()
             else:
                 text = text.strip(self.strip)
-        self._cache_value = text
         return text
-
-    def update(self):
-        Chunk.update(self)
-        self._findSize()
 
     def getValue(self, max_size=None):
         return self._read(None)
@@ -268,6 +240,11 @@ class FormatChunk(Chunk):
         Chunk.__init__(self, id, description, stream, stream.tell(), None, parent)
         self._format = None
         self._doSetFormat(format)
+        stream.seek(self.size, 1)
+
+    def getStaticSize(stream, args):
+        return getFormatSize(args[0])
+    getStaticSize = staticmethod(getStaticSize)
 
     def _doSetFormat(self, format):
         if format == self._format:
@@ -294,11 +271,6 @@ class FormatChunk(Chunk):
         if addr == None:
             addr = self._addr
         return FormatChunk(self.id, self.description, self._stream, addr, self._format, self._parent)
-
-    def _setAddr(self, addr):
-        self._addr = addr
-        self._value = {}
-    addr = property(Chunk._getAddr, _setAddr)
 
     def getFormat(self):
         return self.__class__.__name__ + " (%s)" % self._format

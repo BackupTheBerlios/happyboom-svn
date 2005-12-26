@@ -1,6 +1,8 @@
+import os
 from error import StreamError
 from stream import Stream
-import os
+from cache import Cache
+import config
 
 class FileCacheEntry:
     def __init__(self, index, data):
@@ -11,12 +13,19 @@ class FileCacheEntry:
     def __cmp__(self, to):
         return cmp(self.used, to.used)
 
-class FileCache:
+class FileCache(Cache):
     def __init__(self, file, file_size, block_size=4096, block_count=100):
+        Cache.__init__(self, "FileCache")
         self.file = file
         self.file_size = file_size
         self.block_size = block_size
         self.max_block = block_count
+        self.blocks = {}
+
+    def getCacheSize(self):
+        return len(self.blocks)
+
+    def purgeCache(self):
         self.blocks = {}
 
     def removeOldestBlock(self):
@@ -76,7 +85,8 @@ class FileStream(Stream):
             else:
                 self._end = 0
             if use_cache:
-                self._cache = FileCache(self._file, self._size, 4096, 10)
+                self._cache = FileCache(self._file, self._size, \
+                    config.file_cache_block_size, config.file_cache_block_count)
             else:
                 self._cache = None
 

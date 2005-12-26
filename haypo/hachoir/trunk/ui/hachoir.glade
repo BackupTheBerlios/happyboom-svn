@@ -177,6 +177,23 @@
 		  <property name="homogeneous">True</property>
 		</packing>
 	      </child>
+
+	      <child>
+		<widget class="GtkToolButton" id="toolbutton_purge_cache">
+		  <property name="visible">True</property>
+		  <property name="label" translatable="yes">Purge cache</property>
+		  <property name="use_underline">True</property>
+		  <property name="stock_id">gtk-clear</property>
+		  <property name="visible_horizontal">True</property>
+		  <property name="visible_vertical">True</property>
+		  <property name="is_important">False</property>
+		  <signal name="clicked" handler="on_toolbutton_purge_cache" last_modification_time="Mon, 26 Dec 2005 07:42:41 GMT"/>
+		</widget>
+		<packing>
+		  <property name="expand">False</property>
+		  <property name="homogeneous">True</property>
+		</packing>
+	      </child>
 	    </widget>
 	  </child>
 	</widget>

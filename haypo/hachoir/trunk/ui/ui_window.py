@@ -210,6 +210,10 @@ class MainWindow:
         col.add_attribute(cell, 'text', num)
         treeview.set_search_column(num)
         col.set_sort_column_id(num)
+
+    def on_toolbutton_purge_cache(self, widget, data=None):
+        from cache import CacheList
+        CacheList.getInstance().purgeCaches()
  
     def on_toolbutton_parent(self, widget, data=None):
         self.ui.on_go_parent()

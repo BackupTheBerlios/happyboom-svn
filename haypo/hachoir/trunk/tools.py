@@ -103,21 +103,28 @@ def humanDuration(ms):
     min = sec/60
     sec = sec%60
     if min<60:
-        text = "%u min %u sec" % (min, sec)
+        return "%u min %u sec" % (min, sec)
 
     # Hours
     hour = min/60
     min = min/60
     if hour < 24:
-        text = "%u hour(s) %u min" % (hour, min)
+        return "%u hour(s) %u min" % (hour, min)
 
     # Days
     day = hour/24
     hour = hour%24
+    if day < 365:
+        return "%u day(s) %u hour(s)" % (day, hour)    
+
+    # Years
+    # TODO: Better estimation !?
+    year = day / 365
+    day = day % 365
     if hour != 0:
-        text = "%u day(s) %u hour(s)" % (day, hour)    
+        text = "%u year(s) %u day(s)" % (year, day)    
     else:
-        text = "%u day(s)" % (day)
+        text = "%u year(s)" % (year)
     return text
 
 def humanFilesize(size):

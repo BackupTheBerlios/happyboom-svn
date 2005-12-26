@@ -8,6 +8,7 @@ import ui.ui as ui
 from chunk import Chunk, FormatChunk, FilterChunk, StringChunk, BitsChunk
 from error import error
 from format import getFormatSize, splitFormat
+from cache import Cache
 
 class BasicFilter(object):
     regex_chunk_uniq_id = re.compile("^(.*?)([0-9]+)$")
@@ -23,6 +24,10 @@ class BasicFilter(object):
         self._endian = endian
         self.filter_chunk = None
 
+    def getStaticSize(stream, args):
+        return None
+    getStaticSize = staticmethod(getStaticSize)
+
     def updateParent(self, chunk): pass
     def getId(self): return self._id
     def setId(self, id):
@@ -34,7 +39,6 @@ class BasicFilter(object):
     def getDescription(self): return self._description
     def setDescription(self, description): self._description = description
     def getAddr(self): return self._addr
-    def setAddr(self, addr): self._addr = addr
     def getParent(self): return self._parent
     def getStream(self): return self._stream
     def updateChunkId(self, old_id, new_id): pass
@@ -90,22 +94,26 @@ class BasicFilter(object):
     def hasChunk(self, id):
         return id in self._chunks_dict
 
-    # --- Pure virtual methods -----------
-    def getSize(self): assert False
-    def __getitem__(self, chunk_id): assert False
-    def getChunk(self, chunk_id): assert False
-    def display(self): assert False
-
     def _getEndian(self): return self._endian
     endian = property(_getEndian)
 
-class OnDemandFilter(BasicFilter):
+    # --- Pure virtual methods -----------
+    def getSize(self): todoWriteMethod(self, "getSize") 
+    def __getitem__(self, chunk_id): todoWriteMethod(self, "__getitem__") 
+    def getChunk(self, chunk_id): todoWriteMethod(self, "getChunk")
+    def display(self): todoWriteMethod(self, "display")
+
+class OnDemandFilter(BasicFilter, Cache):
     def __init__(self, id, description, stream, parent, endian=None):
         BasicFilter.__init__(self, id, description, stream, parent, stream.tell(), endian)
+        Cache.__init__(self, "Filter %s" % id)
         self._size = 0
         self._chunks = []
         self._chunks_cache = {}
-    
+   
+    def getCacheSize(self):
+        return len(self._chunks_cache)
+
     def updateChunkId(self, old_id, new_id):
         # Update self._chunks
         pos = self._chunks.index(old_id)
@@ -137,7 +145,7 @@ class OnDemandFilter(BasicFilter):
         ui.window.update_table(self, pos, *info)
 
     def purgeCache(self):
-        if len(self._chunks_cache) != 0:
+        if len(self._chunks_cache) != 0 and config.verbose:
             print "Purge cache: destroy %s chunks" % len(self._chunks_cache)
         self._chunks_cache = {}
         
@@ -150,7 +158,10 @@ class OnDemandFilter(BasicFilter):
             size = optionnal.get("size", None)
             filter_addr = filter_stream.tell()
             args = info[1:]
-
+            if size == None:
+                size = chunk_class.getStaticSize(self._stream, info[1:])
+#                if size != None:
+#                    optionnal["size"] = size
             if size == None:
                 filter = chunk_class(filter_stream, self, *args)
                 description = filter.getDescription()
@@ -182,11 +193,12 @@ class OnDemandFilter(BasicFilter):
             else:
                 args = [ i for i in info[1:] ]
             instance_info = [info[0], id, description, self._stream]+args+[self]
-            # TODO: Use static method to get chunk fixed size (if existing)
-            if chunk_class == FormatChunk:
-                size = getFormatSize(info[1])
+
+            size = chunk_class.getStaticSize(self._stream, info[1:])
+            if size != None:
                 self._stream.seek(size, 1)
             else:
+                # Instanciate the chunk
                 seek = False
                 chunk = info[0] (*instance_info[1:], **optionnal)
                 size = chunk.size

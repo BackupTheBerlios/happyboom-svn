@@ -93,9 +93,8 @@ class Chunk(OnDemandFilter):
         type = self["type"]
         if type in Chunk.handler:
             size = self["size"]
-            print "%s.SIZE=%s" % (self.getId(), size)
             oldpos = self._stream.tell()
-            sub = stream.createSub(size=size)
+            sub = stream.createLimited(size=size)
             handler = Chunk.handler[type]
             self.read("data", "Data", (handler,), {"stream": sub, "size": size})
             assert stream.tell() == (oldpos + size) 
