@@ -168,12 +168,12 @@ class StringChunk(Chunk):
     def _findSize(self):
         self._stream.seek(self.addr)
         if self._str_type == "Pascal16":
-            self.length = self._stream.getFormat("!H")[0]
+            self.length = self._stream.getFormat("!uint16")
             self._size = 2 + self.length
             self.eol = ""
             return
         if self._str_type == "Pascal32":
-            self.length = self._stream.getFormat("!L")[0]
+            self.length = self._stream.getFormat("!uint32")
             self._size = 4 + self.length
             self.eol = ""
             return
