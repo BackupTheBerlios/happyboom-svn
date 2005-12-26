@@ -1,0 +1,2 @@
+List of TODO can be found which following command:
+  grep TODO -A3 $(find -name "*.py")
