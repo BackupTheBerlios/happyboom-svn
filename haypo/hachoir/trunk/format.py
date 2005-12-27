@@ -99,3 +99,7 @@ def checkFormat(format):
 def splitFormat(format):
     cache = FormatCache.getInstance()[format]
     return cache[1:4]   
+
+def formatIsArray(format):
+    cache = FormatCache.getInstance()[format]
+    return 1 < cache[2]   

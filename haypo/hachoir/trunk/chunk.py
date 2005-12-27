@@ -1,6 +1,6 @@
 import struct, re, types
 import config
-from format import checkFormat, splitFormat, getFormatSize, getRealFormat, formatIsString, formatIsInteger
+from format import checkFormat, splitFormat, getFormatSize, getRealFormat, formatIsString, formatIsArray, formatIsInteger
 from error import warning, error
 from tools import convertDataToPrintableString
 
@@ -362,7 +362,7 @@ class FormatChunk(Chunk):
 
 class EnumChunk(FormatChunk):
     def __init__(self, id, description, stream, format, dict, parent):
-        assert formatIsString(format) or formatIsInteger(format)
+        assert not formatIsArray(format)
         FormatChunk.__init__(self, id, description, stream, format, parent)
         self._dict = dict
 #        value = self.getValue()
