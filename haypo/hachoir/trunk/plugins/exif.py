@@ -8,22 +8,21 @@ Informations about Exif at:
 Author: Victor Stinner
 """
 
-from filter import Filter
+from filter import OnDemandFilter
 from format import getFormatSize
+from chunk import FormatChunk, EnumChunk
 import struct
 
-class ExifEntry(Filter):
+class ExifEntry(OnDemandFilter):
     format = {
-        1: (1, "B"),
-        2: (1, "s"),
-        3: (1, "H"),
-        4: (1, "L"),
-        5: (2, "L"),
-        7: (1, "s"),
-#        9: (1, "l"),
-#        10: (2, "l")
-        9: (1, "L"),
-        10: (2, "L")
+        1: (1, "uint8"),
+        2: (1, "string"),
+        3: (1, "uint16"),
+        4: (1, "uint32"),
+        5: (2, "uint32"),
+        7: (1, "string"),
+        9: (1, "int32"),
+        10: (2, "int32")
     }
 
     type_name = {    
@@ -130,109 +129,97 @@ class ExifEntry(Filter):
     }
 
     def __init__(self, stream, parent, endian):
-        Filter.__init__(self, "exif_entry", "Exif entry", stream, parent)
-        self.endian = endian
-        self.read("tag", endian+"H", "Tag", post=self.processTag)
-        self.read("type", endian+"H", "Type", post=self.processType)
-        self.read("count", endian+"L", "Count")
+        OnDemandFilter.__init__(self, "exif_entry", "Exif entry", stream, parent, endian)
+        self.read("tag", "Tag", (EnumChunk, "uint16", ExifEntry.tag_name))
+        self.read("type", "Type", (FormatChunk, "uint16"), {"post": self.processType})
+        self.read("count", "Count", (FormatChunk, "uint32"))
 
         # Create format
-        format = ExifEntry.format.get(self["type"], (1, "B"))
-        self.format = "%s%u%s" % (self.endian, format[0]*self["count"], format[1])
+        format = ExifEntry.format.get(self["type"], (1, "uint8"))
+        self.format = "%s[%u]" % (format[1], format[0]*self["count"])
 
         # Get size
         self.size = getFormatSize(self.format)
 
         # Get offset/value
         if 4 < self.size:
-            self.read("offset", endian+"L", "Value offset")
+            self.read("offset", "Value offset", (FormatChunk, "uint32"))
         else:
-            self.read("value", self.format, "Value")
+            self.read("value", "Value", (FormatChunk, self.format))
             if self.size < 4:
-                self.read("padding", "%us" % (4-self.size), "Padding")
+                self.read("padding", "Padding", (FormatChunk, "string[%u]" % (4-self.size)))
 
     def updateParent(self, parent):
-        parent.description = "Exif entry (%s)" % self.getTag() 
-
-    def getTag(self):
-        return ExifEntry.tag_name.get(self["tag"], "Unknown tag (0x%04X)" % self["tag"])
+        parent.description = "Exif entry: %s" % self.getChunk("tag").getDisplayData()
 
     def processType(self, chunk):
         return ExifEntry.type_name.get(chunk.value, "%u" % chunk.value) 
 
-    def processTag(self, chunk):
-        chunk.description = self.getTag()
-        return "0x%04X" % chunk.value 
-
 def sortExifEntry(a,b):
     return int( a["offset"] - b["offset"] )
 
-class ExifIFD(Filter):
+class ExifIFD(OnDemandFilter):
     def __init__(self, stream, parent, endian, offset_diff):
-        Filter.__init__(self, "exif", "Exif IFD", stream, parent)
-        self.endian = endian
-        self.read("id", endian+"H", "IFD identifier")
+        OnDemandFilter.__init__(self, "exif", "Exif IFD", stream, parent, endian)
+        self.read("id", "IFD identifier", (FormatChunk, "uint16"))
         entries = []
         next_chunk_offset = None
         while True:
-            next = stream.getFormat("!L", False)[0]
+            # TODO: "!uint32" or self._endian+"uint32" ?
+            next = stream.getFormat("!uint32", False)
             if next in (0, 0xF0000000):
                 break
-            chunk = self.readChild("entry[]", ExifEntry, endian)
-            entry = chunk.getFilter()
+            entry = self.doRead("entry[]", "Entry", (ExifEntry, self._endian))
             if entry["tag"] in (0x8769, 0x0201):
                 next_chunk_offset = entry["value"]+offset_diff
                 break
             if 4 < entry.size:
                 entries.append(entry)
-        self.read("next", endian+"L", "Next IFD offset")
+        self.read("next", "Next IFD offset", (FormatChunk, "uint32"))
         entries.sort( sortExifEntry )
         for entry in entries:
             offset = entry["offset"]+offset_diff
             padding = offset - stream.tell()
             if 0 < padding:
-                self.read("padding[]", "%us" % padding, "Padding (?)")
+                self.read("padding[]", "Padding (?)", (FormatChunk, "string[%u]" % padding))
             assert offset == stream.tell()
-            self.read("entry_value[]", entry.format, "Value of %s" % entry.getId())
+            self.read("entry_value[]", "Value of %s" % entry.getId(), (FormatChunk, entry.format))
         if next_chunk_offset != None:
             padding = next_chunk_offset - stream.tell()
             if 0 < padding:
-                self.read("padding[]", "%us" % padding, "Padding (?)")
+                self.read("padding[]", "Padding", (FormatChunk, "string[%u]" % padding))
 
     def updateParent(self, chunk):
-        desc = "Exif IFD (id %s)" % self["id"]
-        chunk.description = desc
-        self.setDescription(desc)
+        chunk.description = "Exif IFD (id %s)" % self["id"]
 
-class ExifFilter(Filter):
+class ExifFilter(OnDemandFilter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, "exif", "Exif", stream, parent)
+        OnDemandFilter.__init__(self, "exif", "Exif", stream, parent, None)
 
         # Headers
-        self.read("header", "6s", "Header (Exif\\0\\0)")
+        self.read("header", "Header (Exif\\0\\0)", (FormatChunk, "string[6]"))
         assert self["header"] == "Exif\0\0"
-        self.read("byte_order", "2s", "Byte order")
+        self.read("byte_order", "Byte order", (FormatChunk, "string[2]"))
         assert self["byte_order"] in ("II", "MM")
         if self["byte_order"] == "II":
-           endian = "<"
+           self._endian = "<"
         else:
-           endian = ">"
-        self.read("header2", endian+"H", "Header2 (42)")
-
-        self.read("nb_entry", endian+"H", "Number of entries")
-        self.read("whatsthis?", endian+"H", "What's this ??")
-        while True:
-            tag = stream.getN(2, False)
-            if tag == "\xFF\xD8":
+           self._endian = ">"
+        self.read("header2", "Header2 (42)", (FormatChunk, "uint16"))
+        self.read("nb_entry", "Number of entries", (FormatChunk, "uint16"))
+        self.read("whatsthis?", "What's this ??", (FormatChunk, "uint16"))
+        while not stream.eof():
+            tag = stream.getFormat("!uint16", False)
+            if tag == 0xFFD8:
                 size = stream.getSize() - stream.tell()
-                sub = stream.createLimited(size=size)
+                sub = stream.createSub(size=size)
                 from jpeg import JpegFile
-                self.readStreamChild("thumbnail", sub, JpegFile)
+                self.read("thumbnail", "JPEG thumbnail", (JpegFile,), {"stream": sub})
                 break
-            if tag == "\xFF\xFF":
+            elif tag == 0xFFFF:
                 break
-            self.readChild("ifd[]", ExifIFD, endian, 6)
+            id = self.read("ifd[]", "IFD", (ExifIFD, self._endian, 6))
         size = stream.getSize() - stream.tell()
         if 0 < size:
-            self.read("end", "%us" % size, "End")
+            self.read("end", "End", (FormatChunk, "string[%u]" % size))
         assert self.getSize() == stream.getSize()

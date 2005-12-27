@@ -141,6 +141,9 @@ def humanFilesize(size):
 def convertDataToPrintableString(data, keep_n=False):
     if len(data) == 0:
         return "(empty)"
+    if not isinstance(data, unicode):
+        data = re.sub("[^\x00-\x7F]", ".", data)
+        data = unicode(data, "ascii")
     display = ""
     for c in data:
         if ord(c)<32:
@@ -155,13 +158,20 @@ def convertDataToPrintableString(data, keep_n=False):
                 else:
                     display = display + c
             else:
-#                display = display + "\\x%02X" % ord(c)
                 display = display + "."
-        elif c in string.printable:
-            display = display + c
         else:
-            display = display + "."
-    return "\"%s\"" % display
+            display = display + c
+#            if is_8bit:
+#                if ord(c) != 0xFF:
+#                    display = display + c
+#                else:
+#                    display = display + "."
+#            else:                    
+#                if c in string.printable:
+#                    display = display + c
+#                else:
+#                    display = display + "."
+    return u"\"%s\"" % display
 
 def getBacktrace():
     try:

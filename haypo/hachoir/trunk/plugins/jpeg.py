@@ -7,7 +7,7 @@ Author: Victor Stinner
 from filter import OnDemandFilter
 from plugin import registerPlugin
 from chunk import FormatChunk
-#from exif import ExifFilter
+from exif import ExifFilter
 
 class JpegChunkApp0(OnDemandFilter):
     def __init__(self, stream, parent):
@@ -44,7 +44,7 @@ class JpegChunk(OnDemandFilter):
     }
     handler = {
         0xE0: JpegChunkApp0,
-#        0xE1: ExifFilter
+        0xE1: ExifFilter
     }
 
     def __init__(self, stream, parent):

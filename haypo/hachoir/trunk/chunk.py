@@ -137,6 +137,7 @@ class FilterChunk(Chunk):
 
 class StringChunk(Chunk):
     regex_eol_nr = re.compile("[\n\r]")
+    regex_not_ascii = re.compile("[^\x00-\x7F]")
     names = {
         "C": "c-string",
         "MacLine": "mac line",
@@ -147,7 +148,7 @@ class StringChunk(Chunk):
         "WindowsLine": "windows line"
     }
 
-    def __init__(self, id, description, stream, str_type, parent, strip=None):
+    def __init__(self, id, description, stream, str_type, parent, strip=None, charset="ascii"):
         """
         Strip: if strip=None, call read text.strip()
                if strip is a string, call read text.strip(self.strip)
@@ -158,12 +159,13 @@ class StringChunk(Chunk):
         self.eol = None
         self._findSize()
         self.strip = strip
+        self.charset = charset
 
     def getFormat(self):
-        return StringChunk.names[self._str_type]
-
-    def getSmallFormat(self):
-        return StringChunk.names[self._str_type]
+        return "%s (%s)" % (\
+            StringChunk.names[self._str_type],
+            self.charset)
+    getSmallFormat = getFormat
 
     def _findSize(self):
         self._stream.seek(self.addr)
@@ -222,6 +224,12 @@ class StringChunk(Chunk):
                 text = text.strip()
             else:
                 text = text.strip(self.strip)
+        try:                
+            text = unicode(text, self.charset)
+        except:
+            self.charset = "ascii"
+            text = StringChunk.regex_not_ascii.sub(".", text)
+            text = unicode(text, "ascii")
         return text
 
     def getValue(self, max_size=None):
