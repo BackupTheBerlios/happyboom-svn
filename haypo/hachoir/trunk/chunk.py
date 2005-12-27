@@ -362,7 +362,7 @@ class FormatChunk(Chunk):
 
 class EnumChunk(FormatChunk):
     def __init__(self, id, description, stream, format, dict, parent):
-        assert formatIsInteger(format)
+        assert formatIsString(format) or formatIsInteger(format)
         FormatChunk.__init__(self, id, description, stream, format, parent)
         self._dict = dict
 #        value = self.getValue()
@@ -373,12 +373,6 @@ class EnumChunk(FormatChunk):
         return self._dict.get(value, "Unknow (%s)" % value)
 
 class BitsStruct(object):
-    size_to_struct = {
-        1: "B",
-        2: "H",
-        3: "L",
-        4: "L"}
-
     def __init__(self, items=None):
         self._items_list = []
         self._items_dict = {}
@@ -417,12 +411,15 @@ class BitsStruct(object):
         size = item[1]
         data = self._source.getRaw()
         start = addr / 8
-        shift = addr % 8
         mask = (1 << size) - 1
-        byte_size = (size + 7) / 8
+        byte_size = (size + (addr % 8) + 7) / 8
+        shift = (start+byte_size) * 8 - (size+addr)
         data = data[start:start+byte_size]
-        type = BitsStruct.size_to_struct[byte_size]
-        value = struct.unpack(type, data)[0]
+        value = 0
+        for character in data:
+            value <<= 8
+            value += ord(character)
+#        print "%u..%u : " % (addr, addr+size), "bytes %u..%u : " % (start, start+byte_size), "shift=", shift, "mask=", mask, "value=", value, "final=",(value >> shift) & mask
         value = (value >> shift) & mask
         if size == 1:
             return value == 1

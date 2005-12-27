@@ -7,8 +7,8 @@ def BunzipStream(stream):
     size = stream.getSize()
     filename = stream.filename
 
-    # TODO: If you reach this limit that mean that a new
-    # code have to be written :-) (using BZ2File or BZ2Decompressor)
+    # TODO: If you reach this limit that mean that a new
+    # code have to be written :-) (using BZ2File or BZ2Decompressor)
     assert size < 10000000
     oldpos = stream.tell()
     stream.seek(0)

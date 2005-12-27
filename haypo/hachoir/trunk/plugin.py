@@ -12,11 +12,17 @@ def getPluginByMime(mimes, default=DefaultFilter):
     for mime in mimes:
         mime = mime[0]
         if mime in hachoir_plugins:
-            plugins = plugins + hachoir_plugins[mime]
+            for plugin in hachoir_plugins[mime]:
+                if plugin not in plugins:
+                    plugins.append(plugin)
     if len(plugins)==0:
         return default
     if 1<len(plugins):
-        warning("More than one plugin have same MIME...")
+        plist = []
+        for plugin in plugins:
+            plist.append(plugin.__name__)
+        plist = ", ".join(plist)
+        warning("More than one plugin have same MIME:\n%s" % plist)
     return plugins[0]
     
 def getPluginByStream(stream, filename, default=DefaultFilter):
