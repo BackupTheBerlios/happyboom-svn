@@ -160,8 +160,6 @@ class OnDemandFilter(BasicFilter, Cache):
             args = info[1:]
             if size == None:
                 size = chunk_class.getStaticSize(self._stream, info[1:])
-#                if size != None:
-#                    optionnal["size"] = size
             if size == None:
                 filter = chunk_class(filter_stream, self, *args)
                 description = filter.getDescription()

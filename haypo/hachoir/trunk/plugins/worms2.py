@@ -76,13 +76,17 @@ class Resource(OnDemandFilter):
             while stream.tell() < end:
                 self.read("res[]", "Resource", (Resource,))
 
-#    def getStaticSize(stream, args):
-#        oldpos = stream.tell()
-#        stream.seek(4, 1)
-#        size = 1 + stream.getFormat("<uint32")
-#        stream.seek(oldpos)
-#        return size
-#    getStaticSize = staticmethod(getStaticSize)
+    def getStaticSize(stream, args):
+        oldpos = stream.tell()
+        if stream.getFormat("string[3]", False) != "DIR":
+            stream.seek(4, 1)
+            size = 1 + stream.getFormat("<uint32")
+        else:
+            stream.seek(8, 1)
+            size = stream.getFormat("<uint32")
+        stream.seek(oldpos)
+        return size
+    getStaticSize = staticmethod(getStaticSize)
 
     def updateParent(self, chunk):            
         size = humanFilesize(self["size"])
@@ -92,6 +96,6 @@ class Resource(OnDemandFilter):
 class Worms2_Dir_File(OnDemandFilter):
     def __init__(self, stream, parent):
         OnDemandFilter.__init__(self, "worms2_dir_file", "Worms2 directory (.dir) file", stream, parent, "<")
-        self.read("res[]", "Resource", (Resource,))
+        self.read("resources", "Directory of resources", (Resource,))
          
 registerPlugin(Worms2_Dir_File, "hachoir/worms2")
