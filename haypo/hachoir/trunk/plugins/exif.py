@@ -131,7 +131,7 @@ class ExifEntry(OnDemandFilter):
     def __init__(self, stream, parent, endian):
         OnDemandFilter.__init__(self, "exif_entry", "Exif entry", stream, parent, endian)
         self.read("tag", "Tag", (EnumChunk, "uint16", ExifEntry.tag_name))
-        self.read("type", "Type", (FormatChunk, "uint16"), {"post": self.processType})
+        self.read("type", "Type", (EnumChunk, "uint16", ExifEntry.type_name))
         self.read("count", "Count", (FormatChunk, "uint32"))
 
         # Create format
@@ -151,9 +151,6 @@ class ExifEntry(OnDemandFilter):
 
     def updateParent(self, parent):
         parent.description = "Exif entry: %s" % self.getChunk("tag").getDisplayData()
-
-    def processType(self, chunk):
-        return ExifEntry.type_name.get(chunk.value, "%u" % chunk.value) 
 
 def sortExifEntry(a,b):
     return int( a["offset"] - b["offset"] )

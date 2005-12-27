@@ -173,14 +173,11 @@ class StringChunk(Chunk):
             self.length = self._stream.getFormat("!uint16")
             self._size = 2 + self.length
             self.eol = ""
-            return
-        if self._str_type == "Pascal32":
+        elif self._str_type == "Pascal32":
             self.length = self._stream.getFormat("!uint32")
             self._size = 4 + self.length
             self.eol = ""
-            return
-            
-        if self._str_type == "AutoLine":
+        elif self._str_type == "AutoLine":
             self._size = self._stream.searchLength(StringChunk.regex_eol_nr, True)
             assert self._size != -1
             self._stream.seek(self.addr + self._size-1)
@@ -189,19 +186,18 @@ class StringChunk(Chunk):
                 self.eol = "\r\n"
                 self._size = self._size + 1
             self.length = self._size - len(self.eol)
-            return
-
-        if self._str_type == "UnixLine":
-            self.eol = "\n"
-        elif self._str_type == "WindowsLine":
-            self.eol = "\r\n"
-        elif self._str_type == "MacLine":
-            self.eol = "\r"
-        else: 
-            self.eol = "\0"
-        self._size = self._stream.searchLength(self.eol, True)
-        assert self._size != -1
-        self.length = self._size - len(self.eol)
+        else:            
+            if self._str_type == "UnixLine":
+                self.eol = "\n"
+            elif self._str_type == "WindowsLine":
+                self.eol = "\r\n"
+            elif self._str_type == "MacLine":
+                self.eol = "\r"
+            else: 
+                self.eol = "\0"
+            self._size = self._stream.searchLength(self.eol, True)
+            assert self._size != -1
+            self.length = self._size - len(self.eol)
         self._stream.seek(self.addr + self._size)
         
     def _read(self, max_size):
@@ -369,6 +365,8 @@ class EnumChunk(FormatChunk):
         assert formatIsInteger(format)
         FormatChunk.__init__(self, id, description, stream, format, parent)
         self._dict = dict
+#        value = self.getValue()
+#        self.description = self.description + ": " + self._dict.get(value, "Unknow (%s)" % value)
 
     def getDisplayData(self):
         value = self.getValue()
