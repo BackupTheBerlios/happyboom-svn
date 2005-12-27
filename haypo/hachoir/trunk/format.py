@@ -102,4 +102,4 @@ def splitFormat(format):
 
 def formatIsArray(format):
     cache = FormatCache.getInstance()[format]
-    return 1 < cache[2]   
+    return (1 < cache[2]) and (cache[3] != "s")

@@ -1,6 +1,6 @@
 import struct, re, types
 import config
-from format import checkFormat, splitFormat, getFormatSize, getRealFormat, formatIsString, formatIsArray, formatIsInteger
+from format import checkFormat, splitFormat, getFormatSize, getRealFormat, formatIsString, formatIsArray, formatIsInteger, formatIsArray
 from error import warning, error
 from tools import convertDataToPrintableString
 
@@ -264,10 +264,7 @@ class FormatChunk(Chunk):
         self._format = format
         self._real_format = getRealFormat(format)
         self._is_string = formatIsString(self._format)
-        if not self._is_string:
-            self._is_array = (1 < splited[1])
-        else:
-            self._is_array = False 
+        self._is_array = formatIsArray(format)
         self._size = getFormatSize(self._format)
         self._value = {}
        
