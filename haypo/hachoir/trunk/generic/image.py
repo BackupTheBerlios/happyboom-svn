@@ -12,8 +12,12 @@ class RGB(OnDemandFilter):
         self.read("green", "Green", (FormatChunk, "uint8"))
         self.read("blue", "Blue", (FormatChunk, "uint8"))
 
+    def getStaticSize(stream, args):
+        return 3 
+    getStaticSize = staticmethod(getStaticSize)
+
     def updateParent(self, chunk):
-        value = self["red"] << 16 + self["green"] << 8 + self["blue"]
+        value = (self["red"] << 16) + (self["green"] << 8) + self["blue"]
         if value in RGB.name:
             chunk.description = "RGB color: "+RGB.name[value]
         else:
