@@ -110,7 +110,8 @@ and PyGlade at: http://glade.gnome.org/
 
 Gentoo: emerge pytgtk
 Debian: apt-get install python2.4-gtk python2.4-magic
-Ubuntu: apt-get install python-gtk2 python-glade2""" % (err))
+Ubuntu: apt-get install python-gtk2 python-glade2
+Mandriva: urpmi pygtk2.0-libglade-2.6.2-1mdk (or pygtk2.0-libglade?)""" % (err))
                 sys.exit(1)
         if opt["use_profiler"]:
             import profile, pstats

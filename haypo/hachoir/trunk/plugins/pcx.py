@@ -7,13 +7,7 @@ from plugin import registerPlugin
 from chunk import FormatChunk, EnumChunk
 from stream.file import FileStream
 from cStringIO import StringIO
-from generic.image import RGB
-
-class Palette(OnDemandFilter):
-    def __init__(self, stream, parent, count):
-        OnDemandFilter.__init__(self, "rgb_color", "RGB color (8 bits/component)", stream, parent)
-        for i in range(0, count):
-            self.read("color[]", "Color", (RGB,))
+from generic.image import RGB, Palette
 
 def StreamDeflateRLE(filter, stream, size):
     start = stream.tell()

@@ -10,12 +10,12 @@ from filter import OnDemandFilter
 from plugin import registerPlugin
 from tools import humanFilesize
 from chunk import FormatChunk, StringChunk, EnumChunk
+from generic.image import Palette
 
-class Worms2_Image(OnDemandFilter):
+class Image(OnDemandFilter):
     def __init__(self, stream, parent):
         OnDemandFilter.__init__(self, "worms2_image", "Worms2 image", stream, parent, "<")
-        nb_color = 244/3
-        self.read("palette", "Palette (%u colors)" % nb_color, (FormatChunk, "string[%u]" % (nb_color*3)))
+        self.read("palette", "Palette", (Palette, 81))
         self.read("padding", "Padding", (FormatChunk, "uint8"))
         self.read("width", "Width", (FormatChunk, "uint16"))
         self.read("height", "Height", (FormatChunk, "uint16"))
@@ -24,20 +24,28 @@ class Worms2_Image(OnDemandFilter):
         size = stream.getSize() - stream.tell()
         self.read("end", "Raw end", (FormatChunk, "string[%u]" % size))
 
-class Worms2_Sprite(OnDemandFilter):
+class Sprite(OnDemandFilter):
     def __init__(self, stream, parent):
         OnDemandFilter.__init__(self, "worms2_sprite", "Worms2 sprite", stream, parent)
+        self.read("palette", "Palette", (Palette, 81))
         # TODO ...
         size = stream.getSize() - stream.tell()
         self.read("end", "Raw end", (FormatChunk, "string[%u]" % size))
 
-class Worms2_Font(OnDemandFilter):
+class Font(OnDemandFilter):
     def __init__(self, stream, parent):
-        OnDemandFilter.__init__(self, "worms2_sprite", "Worms2 sprite", stream, parent)
-        self.read("palette", "Palette (?)", (FormatChunk, "string[%u]" % (244+33)))
-        self.read("charset", "Charset", (FormatChunk, "string[%u]" % (32)))
-        self.read("data", "Data", (FormatChunk, "string[%u]" % (32+30+4+136)))
-        # TODO ...
+        OnDemandFilter.__init__(self, "worms2_sprite", "Worms2 sprite", stream, parent, "<")
+        self.read("palette", "Palette", (Palette, 81))
+        self.read("header", "Header !?", (FormatChunk, "string[%u]" % 0x105))
+
+#        while not stream.eof():
+        while 2*4 < (stream.getSize() - stream.tell()):
+            ofst_x = self.doRead("offset[]", "Offset X", (FormatChunk, "uint16")).value
+            ofst_y = self.doRead("offset[]", "Offset Y", (FormatChunk, "uint16")).value
+            width = self.doRead("width[]", "Width", (FormatChunk, "uint16")).value
+            height = self.doRead("size[]", "Height", (FormatChunk, "uint16")).value
+            size = (width-ofst_x) * (height-ofst_y)
+            self.read("data[]", "Font content", (FormatChunk, "string[%u]" % size))
         size = stream.getSize() - stream.tell()
         self.read("end", "Raw end", (FormatChunk, "string[%u]" % size))
 
@@ -50,9 +58,9 @@ class Resource(OnDemandFilter):
     }
 
     handler = {
-        "IMG": Worms2_Image,
-        "SPR": Worms2_Sprite,
-        "FNT": Worms2_Font
+        "IMG": Image,
+        "SPR": Sprite,
+        "FNT": Font
     }
 
     def __init__(self, stream, parent):

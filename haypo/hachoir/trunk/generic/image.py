@@ -22,3 +22,9 @@ class RGB(OnDemandFilter):
             chunk.description = "RGB color: "+RGB.name[value]
         else:
             chunk.description = "RGB color: #%02X%02X%02X" % (self["red"], self["green"], self["blue"])
+
+class Palette(OnDemandFilter):
+    def __init__(self, stream, parent, count):
+        OnDemandFilter.__init__(self, "palette", "Palette of %u RGB colors" % count, stream, parent)
+        for i in range(0, count):
+            self.read("color[]", "Color", (RGB,))

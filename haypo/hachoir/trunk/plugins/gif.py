@@ -8,7 +8,7 @@ from filter import OnDemandFilter
 from plugin import registerPlugin
 from chunk import FormatChunk, EnumChunk, BitsChunk, BitsStruct
 from error import warning
-from generic.image import RGB
+from generic.image import Palette
 
 class Image(OnDemandFilter):
     def __init__(self, stream, parent):
@@ -28,7 +28,7 @@ class Image(OnDemandFilter):
 
         return
         if not self.flags["local_color"]:
-            self.read("local_map", "Local color map", (ColorMap, 1 << self.flags["size_local"]))
+            self.read("local_map", "Local color map", (Palette, 1 << self.flags["size_local"]))
             self.local_map = self["local_map"]
         else:
             self.local_map = None
@@ -36,12 +36,6 @@ class Image(OnDemandFilter):
     def updateParent(self, chunk):
         chunk.description = "Image: %ux%u pixels at (%u,%u)" \
             % (self["width"], self["height"], self["left"], self["top"])
-
-class ColorMap(OnDemandFilter):
-    def __init__(self, stream, parent, nb_colors):
-        OnDemandFilter.__init__(self, "gif_colormap", "Color map: %u colors" % nb_colors, stream, parent)
-        for i in range(0, nb_colors):
-            self.read("color[]", "Color", (RGB,))
 
 class ExtensionChunk(OnDemandFilter):
     def __init__(self, stream, parent):
@@ -96,7 +90,7 @@ class GifFile(OnDemandFilter):
         
         screen = self.doRead("screen", "Screen descriptor", (ScreenDescriptor,))
         if screen.flags["global_map"]:
-            self.read("color_map", "Color map", (ColorMap, 1 << screen.bits_per_pixel))
+            self.read("color_map", "Color map", (Palette, 1 << screen.bits_per_pixel))
             self.color_map = self["color_map"]
         else:
             self.color_map = None
