@@ -4,23 +4,24 @@ RPM archive parser.
 Author: Victor Stinner, 1st December 2005.
 """
 
-from filter import Filter
+from filter import OnDemandFilter
 from plugin import registerPlugin
+from chunk import FormatChunk, EnumChunk, StringChunk
 from format import getFormatSize
 from gzip import GzipFile
 
-class RpmItem(Filter):
+class Item(OnDemandFilter):
     format = {
         #  (use FormatChunk? else use StringChunk, chunk format, count)
-        0: (True, "B", 1),
-        1: (True, "c", 1),
-        2: (True, "B", 1),
-        3: (True, "H", 1),
-        4: (True, "L", 1),
-        5: (True, "L", 2),
+        0: (True, "uint8", 1),
+        1: (True, "char", 1),
+        2: (True, "uint8", 1),
+        3: (True, "uint16", 1),
+        4: (True, "uint32", 1),
+        5: (True, "uint32", 2),
         6: (False, "C", 1),
-        7: (True, "s", 1),
-        8: (True, "s", 1),
+        7: (True, "string", 1),
+        8: (True, "strin", 1),
         9: (False, "C", 1)
     }
     type_name = {
@@ -51,48 +52,43 @@ class RpmItem(Filter):
         256+12: "RSA header signature"
     }
     
-    def __init__(self, stream, parent):
-        Filter.__init__(self, "rpm_item", "RPM item", stream, parent)
-        self.read("tag", "!L", "Tag")
-        self.read("type", "!L", "Type", post=self.postType)
-        self.read("offset", "!L", "Offset")
-        self.read("count", "!L", "Count")
-
-    def postType(self, chunk):
-        return self.getType(chunk.value)
+    def __init__(self, stream, parent, tag_name_dict=None):
+        OnDemandFilter.__init__(self, "rpm_item", "RPM item", stream, parent, "!")
+        if tag_name_dict == None:
+            self.tag_name_dict = Item.tag_name
+        else:
+            self.tag_name_dict = tag_name_dict 
+        self.read("tag", "Tag", (EnumChunk, "uint32", self.tag_name_dict))
+        self.read("type", "Type", (EnumChunk, "uint32", Item.type_name))
+        self.read("offset", "Offset", (FormatChunk, "uint32"))
+        self.read("count", "Count", (FormatChunk, "uint32"))
 
     def updateParent(self, chunk):
-        type = self.getType(self["type"])
-        tag = self.getTagName()
-        chunk.description = "RPM item: %s (%s)" % (tag, type)
+        type = self.getChunk("type").getDisplayData()
+        tag = self.getChunk("tag").getDisplayData()
+        chunk.description = "Item: %s (%s)" % (tag, type)
         
-    def getTagName(self):
-        tag = self["tag"]
-        return RpmItem.tag_name.get(tag, "Unknow tag (%s)" % tag)
-
     def doRead(self, filter):
         type = self["type"]
-        desc = "Value of item %s, %s" % (self.getId(), self.getDescription())
         if type != 8:
-            format = RpmItem.format[type]
+            desc = "Value of %s: %s" % (self.getId(), self.getDescription())
+            format = Item.format[type]
             if format[0]:
-                if 2 < self["count"] and format[1] != "s":
-                    format = "!" + str(format[2] * self["count"] * getFormatSize(format[1])) + "s"
+                if 2 < self["count"] and format[1] != "string":
+                    format = "string[%u]" % (format[2] * self["count"] * getFormatSize(format[1]))
                 else:
-                    format = "!" + str(format[2] * self["count"]) + format[1]
-                filter.read("data[]", format, desc)
+                    format = "%s[%u]" % (format[1], format[2] * self["count"])
+                filter.read("data[]", desc, (FormatChunk, format))
             else:     
                 format = format[1]
-                filter.readString("data[]", format, desc)
+                filter.read("data[]", desc, (StringChunk, format))
         else:
             id = filter.getUniqChunkId("data[]")
             for i in range(0, self["count"]):
-                filter.readString(id+"[]", "C", desc)
-    
-    def getType(self, type):
-        return RpmItem.type_name.get(type, "Unknow type (%s)" % type)
+                desc = "Value %u of %s: %s" % (i, self.getId(), self.getDescription())
+                filter.read(id+"[]", desc, (StringChunk, "C"))
 
-class RpmHeaderItem(RpmItem):
+class ItemHeader(Item):
     tag_name = {
         61: "Current image",
         62: "Signatures",
@@ -169,25 +165,24 @@ class RpmHeaderItem(RpmItem):
         1079: "Verify script",
         #TODO: Finish the list (id 1070..1162 using rpm library source code)
     }
-        
-    def getTagName(self):
-        tag = self["tag"]
-        return RpmHeaderItem.tag_name.get(tag, "Unknow tag (%s)" % tag)
+
+    def __init__(self, stream, parent):
+        Item.__init__(self, stream, parent, ItemHeader.tag_name)
             
 def sortRpmItem(a,b):
     return int( a["offset"] - b["offset"] )
 
-class Header(Filter):
+class Header(OnDemandFilter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, "header", "Header", stream, parent)
-        id = self.read("id", "4s", "Identifier").value
-        assert id == "\x8E\xAD\xE8\x01"
-        self.read("padding", "4s", "Padding")
-        self.read("count", "!L", "Count")
-        self.read("size", "!L", "Store size")
+        OnDemandFilter.__init__(self, "header", "Header", stream, parent, "!")
+        self.read("id", "Identifier", (FormatChunk, "string[4]"))
+        assert self["id"] == "\x8E\xAD\xE8\x01"
+        self.read("padding", "Padding", (FormatChunk, "string[4]"))
+        self.read("count", "Count", (FormatChunk, "uint32"))
+        self.read("size", "Store size", (FormatChunk, "uint32"))
         items = []
         for i in range(0, self["count"]):
-            item = self.readChild("item[]", RpmHeaderItem).getFilter()
+            item = self.doRead("item[]", "Item", (ItemHeader,))
             items.append(item)
         items.sort( sortRpmItem )
 
@@ -197,26 +192,26 @@ class Header(Filter):
             offset = item["offset"]
             diff = offset - (stream.tell() - start)
             if 0 < diff:
-                self.read("padding[]", "%us" % diff, "Padding")
+                self.read("padding[]", "Padding", (FormatChunk, "string[%u]" % diff))
 
             print "Read %s" % item.getId()                
             item.doRead(self)
         size = end - stream.tell()
         if 0 < size:    
-            self.read("padding[]", "%us" % size, "Padding")
+            self.read("padding[]", "Padding", (FormatChunk, "string[%u]" % size))
 
-class RpmSignature(Filter):
+class Signature(OnDemandFilter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, "rpm_sig", "RPM signature", stream, parent)
-        self.read("id", "!3B", "Identifier")
+        OnDemandFilter.__init__(self, "rpm_sig", "Signature", stream, parent, "!")
+        self.read("id", "Identifier", (FormatChunk, "uint8[3]"))
         assert self["id"] == (142, 173, 232)
-        self.read("version", "!B", "Signature version")
-        self.read("reserved", "4s", "Reserved")
-        self.read("count", "!L", "Count")
-        self.read("size", "!L", "Size")
+        self.read("version", "Signature version", (FormatChunk, "uint8"))
+        self.read("reserved", "Reserved", (FormatChunk, "string[4]"))
+        self.read("count", "Count", (FormatChunk, "uint32"))
+        self.read("size", "Size", (FormatChunk, "uint32"))
         items = []
         for i in range(0, self["count"]):
-            item = self.readChild("item[]", RpmItem).getFilter()
+            item = self.doRead("item[]", "Item", (Item,))
             items.append(item)
         items.sort( sortRpmItem )
 
@@ -226,36 +221,32 @@ class RpmSignature(Filter):
             offset = item["offset"]
             diff = offset - (stream.tell() - start)
             if 0 < diff:
-                self.read("padding[]", "%us" % diff, "Padding")
+                self.read("padding[]", "Padding", (FormatChunk, "string[%u]" % diff))
             item.doRead(self)
         size = end - stream.tell()
         if 0 < size:    
-            self.read("padding[]", "%us" % size, "Padding")
+            self.read("padding[]", "Padding", (FormatChunk, "string[%u]" % size))
 
-class RpmFile(Filter):
+class RpmFile(OnDemandFilter):
+    rpm_type_name = {
+        0: "Binary",
+        1: "Source"
+    }
     def __init__(self, stream, parent):
-        Filter.__init__(self, "rpm_file", "RPM File", stream, parent)
-        self.read("id", "!4B", "Identifier")
+        OnDemandFilter.__init__(self, "rpm_file", "RPM File", stream, parent, "!")
+        self.read("id", "Identifier", (FormatChunk, "uint8[4]"))
         assert self["id"] == (237, 171, 238, 219)
-        self.read("major_ver", "!B", "Major version")
-        self.read("minor_ver", "!B", "Minor version")
-        self.read("type", "!H", "RPM type", post=self.postType)
-        self.read("architecture", "!H", "Architecture")
-        self.read("name", "!66s", "Archive name")
-        self.read("osnum", "!H", "OS")
-        self.read("signature_type", "!H", "Type of signature")
-        self.read("reserved", "16s", "Reserved")
-        self.readChild("signature", RpmSignature)
-        self.readChild("header", Header)
+        self.read("major_ver", "Major version", (FormatChunk, "uint8"))
+        self.read("minor_ver", "Minor version", (FormatChunk, "uint8"))
+        self.read("type", "RPM type", (EnumChunk, "uint16", RpmFile.rpm_type_name))
+        self.read("architecture", "Architecture", (FormatChunk, "uint16"))
+        self.read("name", "Archive name", (FormatChunk, "string[66]"))
+        self.read("osnum", "OS", (FormatChunk, "uint16"))
+        self.read("signature_type", "Type of signature", (FormatChunk, "uint16"))
+        self.read("reserved", "Reserved", (FormatChunk, "string[16]"))
+        self.read("signature", "Signature", (Signature,))
+        self.read("header", "Header", (Header,))
         sub = stream.createSub()
-        self.readStreamChild("gz_content", sub, GzipFile)
-
-    def postType(self, chunk):
-        if chunk.value == 0:
-            return "Binary"
-        elif chunk.value == 1:
-            return "Source"
-        else:
-            return "Unknown (%s)" % chunk.value
+        self.read("gz_content", "Gziped content", (GzipFile,), {"stream": sub})
 
 registerPlugin(RpmFile, "application/x-rpm")
