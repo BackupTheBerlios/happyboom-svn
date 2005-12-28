@@ -119,11 +119,14 @@
 	      <child>
 		<widget class="GtkToolButton" id="toolbutton_open">
 		  <property name="visible">True</property>
-		  <property name="tooltip" translatable="yes">Open a filter and apply it to this level</property>
+		  <property name="tooltip" translatable="yes">Open a new file</property>
 		  <property name="stock_id">gtk-open</property>
 		  <property name="visible_horizontal">True</property>
 		  <property name="visible_vertical">True</property>
 		  <property name="is_important">False</property>
+		  <accessibility>
+		    <atkproperty name="AtkObject::accessible_description" translatable="yes">Open a new file</atkproperty>
+		  </accessibility>
 		  <signal name="clicked" handler="on_toolbutton_new" last_modification_time="Thu, 01 Dec 2005 23:30:26 GMT"/>
 		</widget>
 		<packing>
@@ -135,6 +138,7 @@
 	      <child>
 		<widget class="GtkToolButton" id="toolbutton_close">
 		  <property name="visible">True</property>
+		  <property name="tooltip" translatable="yes">Close current file</property>
 		  <property name="stock_id">gtk-close</property>
 		  <property name="visible_horizontal">True</property>
 		  <property name="visible_vertical">True</property>
@@ -181,6 +185,7 @@
 	      <child>
 		<widget class="GtkToolButton" id="toolbutton_purge_cache">
 		  <property name="visible">True</property>
+		  <property name="tooltip" translatable="yes">Purge all caches</property>
 		  <property name="label" translatable="yes">Purge cache</property>
 		  <property name="use_underline">True</property>
 		  <property name="stock_id">gtk-clear</property>
@@ -863,6 +868,7 @@
 		  <child>
 		    <widget class="GtkButton" id="info_chunk_save">
 		      <property name="visible">True</property>
+		      <property name="tooltip" translatable="yes">Save chunk content to a file</property>
 		      <property name="can_default">True</property>
 		      <property name="can_focus">True</property>
 		      <property name="label">gtk-save</property>
@@ -876,6 +882,7 @@
 		  <child>
 		    <widget class="GtkButton" id="on_chunk_copy">
 		      <property name="visible">True</property>
+		      <property name="tooltip" translatable="yes">Copy chunk displayed value to clipboard</property>
 		      <property name="can_default">True</property>
 		      <property name="can_focus">True</property>
 		      <property name="label">gtk-copy</property>
@@ -1025,6 +1032,7 @@
 	      <child>
 		<widget class="GtkButton" id="button3">
 		  <property name="visible">True</property>
+		  <property name="tooltip" translatable="yes">Read selected chunk content in display it as hexadecimal</property>
 		  <property name="can_focus">True</property>
 		  <property name="label">gtk-refresh</property>
 		  <property name="use_stock">True</property>
@@ -1171,6 +1179,7 @@
 	      <child>
 		<widget class="GtkButton" id="button4">
 		  <property name="visible">True</property>
+		  <property name="tooltip" translatable="yes">Read selected chunk content in display it as ASCII</property>
 		  <property name="can_focus">True</property>
 		  <property name="label">gtk-refresh</property>
 		  <property name="use_stock">True</property>
