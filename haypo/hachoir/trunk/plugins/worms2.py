@@ -13,7 +13,8 @@ from chunk import FormatChunk, StringChunk, EnumChunk, BitsChunk, BitsStruct
 from generic.image import Palette
 
 # Only for debug purpose
-from text_handler import binary, str2hex, str2bin
+from text_handler import binary
+from tools import str2hex, str2bin
 
 class ImageData(OnDemandFilter):
     def __init__(self, stream, parent):
