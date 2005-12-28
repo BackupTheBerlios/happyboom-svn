@@ -10,7 +10,10 @@ def msdosDatetime(chunk):
     day = (val >> 16) & 31            # 5 bits: day
     month = (val >> 21) & 15          # 4 bits: month
     year = 1980 + ((val >> 25) & 127) # 7 bits: year
-    return str(datetime.datetime(year, month, day, hour, min, sec))
+    try:
+        return str(datetime.datetime(year, month, day, hour, min, sec))
+    except:
+        return "invalid msdos datetime (%s)" % val
     
 def humanFilesize(chunk):
     return doHumanFilesize(chunk.value)
