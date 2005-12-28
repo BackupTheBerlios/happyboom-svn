@@ -1,5 +1,5 @@
 import datetime
-from tools import humanFilesize as doHumanFilesize
+from tools import humanFilesize as doHumanFilesize, str2bin
 
 def msdosDatetime(chunk):
     assert chunk.size == 4
@@ -18,6 +18,9 @@ def humanFilesize(chunk):
 def unixTimestamp(chunk):
     timestamp = datetime.datetime.fromtimestamp(chunk.value)
     return str(timestamp) 
+
+def binary(chunk):
+    return str2bin(chunk.getRaw()) + " (%s)" % chunk.value
 
 def hexadecimal(chunk):
     size = chunk.size

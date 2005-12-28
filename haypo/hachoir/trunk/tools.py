@@ -1,5 +1,31 @@
 import traceback, sys, string, re
 
+def byte2bin(x):
+    text = ""
+    for i in range(0,8):
+        mask = 1 << (7-i)
+        if (x & mask) == mask:
+            text += "1"
+        else:
+            text += "0"
+    return text            
+
+def str2bin(value):
+    text = ""
+    for character in value:
+        if text != "":
+            text += " "
+        text += byte2bin(ord(character))
+    return text
+
+def str2hex(value):
+    text = "(hex) "
+    for character in value:
+        if text != "":
+            text += " "
+        text += "%02X" % ord(character)
+    return text
+
 def _regexMaxLength(pattern, in_parenthesis=False):
     """
     Don't use this function directly, use regexMagLength!

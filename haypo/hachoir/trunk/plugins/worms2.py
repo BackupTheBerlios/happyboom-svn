@@ -9,45 +9,132 @@ from plugin import registerPlugin
 from filter import OnDemandFilter
 from plugin import registerPlugin
 from tools import humanFilesize
-from chunk import FormatChunk, StringChunk, EnumChunk
+from chunk import FormatChunk, StringChunk, EnumChunk, BitsChunk, BitsStruct
 from generic.image import Palette
+
+# Only for debug purpose
+from text_handler import binary, str2hex, str2bin
+
+class ImageData(OnDemandFilter):
+    def __init__(self, stream, parent):
+        OnDemandFilter.__init__(self, "image_data", "Image data (uncompressed)", stream, parent, "<")
+        self.x = self.doRead("x", "Offset X", (FormatChunk, "uint16")).value
+        self.y = self.doRead("y", "Offset Y", (FormatChunk, "uint16")).value
+        self.width = self.doRead("width", "Width", (FormatChunk, "uint16")).value
+        self.height = self.doRead("height", "Height", (FormatChunk, "uint16")).value
+        size = (self.width-self.x) * (self.height-self.y)
+        self.read("data", "Font content", (FormatChunk, "string[%u]" % size))
+
+    def updateParent(self, chunk):
+        chunk.description = "Image data: %ux%u pixels at (%u,%u)" \
+            % (self.width, self.height, self.x, self.y)
 
 class Image(OnDemandFilter):
     def __init__(self, stream, parent):
-        OnDemandFilter.__init__(self, "worms2_image", "Worms2 image", stream, parent, "<")
+        OnDemandFilter.__init__(self, "image", "Image", stream, parent, "<")
         self.read("palette", "Palette", (Palette, 81))
         self.read("padding", "Padding", (FormatChunk, "uint8"))
         self.read("width", "Width", (FormatChunk, "uint16"))
         self.read("height", "Height", (FormatChunk, "uint16"))
         size = self["width"] * self["height"]
         self.read("img_data", "Data", (FormatChunk, "string[%u]" % size))
-        size = stream.getSize() - stream.tell()
+        size = stream.getLastPos() - stream.tell()
         self.read("end", "Raw end", (FormatChunk, "string[%u]" % size))
+
+    def updateParent(self, chunk):            
+        chunk.description = "Image: %ux%u pixels" % \
+            (self["width"], self["height"])
 
 class Sprite(OnDemandFilter):
     def __init__(self, stream, parent):
-        OnDemandFilter.__init__(self, "worms2_sprite", "Worms2 sprite", stream, parent)
+        OnDemandFilter.__init__(self, "sprite", "Sprite", stream, parent, "<")
+        name = parent.name
         self.read("palette", "Palette", (Palette, 81))
-        # TODO ...
-        size = stream.getSize() - stream.tell()
+        if True:
+            self.read("header116", "Header 116", (FormatChunk, "uint8"))
+            assert self["header116"] == 116 
+            self.read("a", "???", (FormatChunk, "uint8"))
+            self.read("zero", "Zeros", (FormatChunk, "string[9]"))
+            assert self["zero"] == ("\0" * 9)
+            if False:
+                bits = (
+                    (1, "info1", ""),
+                    (1, "various1", ""),
+                    (1, "info2", ""),
+                    (3, "various2", ""),
+                    (3, "zero", ""),
+                    (3, "various3", ""),
+                    (1, "info3", ""),
+                    (1, "one", ""),
+                    (2, "various4", "")
+                )
+                flags = self.doRead("flags", "Flags", (BitsChunk, BitsStruct(bits)))
+                assert flags["zero"] == 0
+                assert flags["one"] == True
+            else:
+                self.read("flags", "???", (FormatChunk, "uint16"), {"post": binary})
+            self.read("zero2", "Zero2", (FormatChunk, "uint16"))
+            assert self["zero2"] == 0
+            import re
+            if re.match("^Tv", name) != None:
+                size = 2
+            elif re.match("^Holy", name) != None:
+                size = 26
+            elif re.match("^Banana", name) != None:
+                size = 29-15+2
+            elif re.match("^Homing", name) != None:
+                size = 29-15+3+8-1+2
+            elif re.match("^Marker", name) != None:
+                size = 29+2-15 
+            else:
+                size = 29-15
+            self.read("end_of_header", "End of mysterious header", (FormatChunk, "string[%u]" % size))
+            self.x = self.doRead("offset_x[]", "Offset X", (FormatChunk, "uint16")).value
+            self.y = self.doRead("offset_y[]", "Offset Y", (FormatChunk, "uint16")).value
+            self.width = self.doRead("width[]", "Width", (FormatChunk, "uint16")).value
+            self.height = self.doRead("height[]", "Height", (FormatChunk, "uint16")).value
+
+            #print "Sprite % 20s: x=%s, header=% 2s, header=%s | %s" \
+            #    % (name, x, size, str2bin(self["end_of_header"][:2]), str2hex(self["end_of_header"]))
+            #print "Sprite % 20s: a=%s, header=% 2s, header=%s" \
+            #    % (name, self["a"], size, str2hex(self["end_of_header"]))
+
+#            print "Sprite % 20s, a=%s, header=% 2s, flags=%s (%s), size=%ux%u at (%u,%u)" \
+#                % (name, self["a"], size, str2bin(self.getChunk("flags").getRaw()), self["flags"], width, height, x, y)
+
+        else:                
+            self.read("data", "Data", (FormatChunk, "string[40]"))
+            print "Sprite % 20s: %s" \
+                % (name, str2hex(self["data"]))
+            
+        size = stream.getLastPos() - stream.tell()
         self.read("end", "Raw end", (FormatChunk, "string[%u]" % size))
+
+    def updateParent(self, chunk):            
+        chunk.description = "Sprite: %ux%u pixels" % \
+            (self.width, self.height)
 
 class Font(OnDemandFilter):
     def __init__(self, stream, parent):
-        OnDemandFilter.__init__(self, "worms2_sprite", "Worms2 sprite", stream, parent, "<")
+        OnDemandFilter.__init__(self, "font", "Font", stream, parent, "<")
         self.read("palette", "Palette", (Palette, 81))
         self.read("header", "Header !?", (FormatChunk, "string[%u]" % 0x105))
 
 #        while not stream.eof():
-        while 2*4 < (stream.getSize() - stream.tell()):
-            ofst_x = self.doRead("offset[]", "Offset X", (FormatChunk, "uint16")).value
-            ofst_y = self.doRead("offset[]", "Offset Y", (FormatChunk, "uint16")).value
-            width = self.doRead("width[]", "Width", (FormatChunk, "uint16")).value
-            height = self.doRead("size[]", "Height", (FormatChunk, "uint16")).value
-            size = (width-ofst_x) * (height-ofst_y)
-            self.read("data[]", "Font content", (FormatChunk, "string[%u]" % size))
-        size = stream.getSize() - stream.tell()
+        self.nb_characters = 0
+        while 2*4 < (stream.getLastPos() - stream.tell()):
+            id = self.read("image[]", "Image", (ImageData,))
+            if self.nb_characters == 0:
+                image = self[id]
+                self.width = image.width
+                self.height = image.height
+            self.nb_characters += 1
+        size = stream.getLastPos() - stream.tell()
         self.read("end", "Raw end", (FormatChunk, "string[%u]" % size))
+
+    def updateParent(self, chunk):
+        chunk.description = "Font: %ux%u pixels, %u characters" \
+            % (self.width, self.height, self.nb_characters)
 
 class Resource(OnDemandFilter):
     name = {
@@ -74,7 +161,7 @@ class Resource(OnDemandFilter):
             
             size = pos + size + 1 - stream.tell()
             if self.tag in Resource.handler:
-                sub = stream.createSub(size=size)
+                sub = stream.createLimited(size=size)
                 self.read("data", "Data", (Resource.handler[self.tag],), {"stream": sub})
             else:
                 self.read("data", "Data", (FormatChunk, "string[%u]" % size))
@@ -97,9 +184,12 @@ class Resource(OnDemandFilter):
     getStaticSize = staticmethod(getStaticSize)
 
     def updateParent(self, chunk):            
-        size = humanFilesize(self["size"])
-        tag = self.getChunk("tag").getDisplayData()
-        chunk.description = tag+": %s (size=%s)" % (self.name, size)
+        if self["tag"] != "DIR":
+            chunk.description = "[%s] %s" % (self.name, self["data"].getDescription())
+        else:
+            tag = self.getChunk("tag").getDisplayData()
+            size = humanFilesize(self["size"])
+            chunk.description = tag+": %s (size=%s)" % (self.name, size)
 
 class Worms2_Dir_File(OnDemandFilter):
     def __init__(self, stream, parent):
