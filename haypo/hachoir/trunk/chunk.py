@@ -2,7 +2,7 @@ import struct, re, types
 import config
 from format import checkFormat, splitFormat, getFormatSize, getRealFormat, formatIsString, formatIsArray, formatIsInteger, formatIsArray
 from error import warning, error
-from tools import convertDataToPrintableString
+from tools import convertDataToPrintableString, str2long
 
 class Chunk(object):
     """
@@ -371,12 +371,14 @@ class EnumChunk(FormatChunk):
         return self._dict.get(value, "Unknow (%s)" % value)
 
 class BitsStruct(object):
-    def __init__(self, items=None):
+    def __init__(self, items=None, do_reverse=False):
         self._items_list = []
         self._items_dict = {}
         self._size = 0
         self._source = None
         if items != None:
+            if do_reverse:
+                items = reversed(items)
             for item in items:
                 if 3<len(item):
                     type = item[3]
@@ -411,13 +413,9 @@ class BitsStruct(object):
         start = addr / 8
         mask = (1 << size) - 1
         byte_size = (size + (addr % 8) + 7) / 8
-        shift = (start+byte_size) * 8 - (size+addr)
+        shift = addr - start*8
         data = data[start:start+byte_size]
-        value = 0
-        for character in data:
-            value <<= 8
-            value += ord(character)
-#        print "%u..%u : " % (addr, addr+size), "bytes %u..%u : " % (start, start+byte_size), "shift=", shift, "mask=", mask, "value=", value, "final=",(value >> shift) & mask
+        value = str2long(data)
         value = (value >> shift) & mask
         if size == 1:
             return value == 1

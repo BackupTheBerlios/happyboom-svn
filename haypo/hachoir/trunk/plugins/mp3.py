@@ -175,20 +175,13 @@ class MP3_File(OnDemandFilter):
             (2, "layer", "MPEG audio layer"), # MP3_File.layer[self.layer]
             (1, "protection", "Protected?"))
         self.header = self.doRead("header", "Header", (BitsChunk, BitsStruct(bits)))
-        assert self.header["sync"] == 2047
+        #assert self.header["sync"] == 2047
 
-        if False:
-            bits = (
-                (1, "xxx", "???"),
-                (1, "padding", "Stream chunk use padding?"),
-                (2, "sampling_rate", "Sampling rate"),
-                (4, "bit_rate", "Bit rate"))
-        else:
-            bits = (
-                (4, "bit_rate", "Bit rate"),
-                (2, "sampling_rate", "Sampling rate"),
-                (1, "padding", "Stream chunk use padding?"),
-                (1, "xxx", "???"))
+        bits = (
+            (1, "extension", "Extension"),
+            (1, "padding", "Stream chunk use padding?"),
+            (2, "sampling_rate", "Sampling rate"),
+            (4, "bit_rate", "Bit rate"))
         self.rates = self.doRead("rates", "Rates and padding", (BitsChunk, BitsStruct(bits)))
 
         bits = (
@@ -199,8 +192,9 @@ class MP3_File(OnDemandFilter):
             (2, "channel_mode", "Channel mode")) # MP3_File.channel_mode[channel_mode]
         self.various = self.doRead("various", "Channel mode, mode extension, copyright, original", (BitsChunk, BitsStruct(bits)))
 
+        # Get sampling rate
         version = self.header["version"]
-        layer = self.header["layer"]
+        layer = 4 - self.header["layer"]
         self.sampling_rate = MP3_File.sampling_rate[version][self.rates["sampling_rate"]]
 
         # Get bit rates
@@ -210,15 +204,20 @@ class MP3_File(OnDemandFilter):
             rates = MP3_File.bit_rate[2] # MPEG2 / MPEG2.5
         self.bit_rate = rates[layer][self.rates["bit_rate"]]
 
+        # Calculate frame size
         frame_size = (144 * self.sampling_rate) / self.bit_rate + self.rates["padding"]
-        print "Frame size=%s" % frame_size
-        print "MPEG: %u bps, %s Hz" % (self.bit_rate, self.sampling_rate)
 
-#       TODO: :-)
+#       TODO: Read audio content
 #        size = ??? 
 #        self.read("content", "Content", (FormatChunk, "string[%u]" % size))
         
         size = stream.getSize() - stream.tell()
         self.read("end", "End", (FormatChunk, "string[%u]" % size))
+
+        #--- Display summary ---
+        print "MPEG version %s, layer %s" % \
+            (MP3_File.version[version], MP3_File.layer[layer])
+        print "  format: %u bps, %s Hz" % (self.bit_rate, self.sampling_rate)
+        print "  frame size=%s bytes" % frame_size
         
 registerPlugin(MP3_File, "audio/mpeg")

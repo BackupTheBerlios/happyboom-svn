@@ -2,9 +2,11 @@ from stream.file import FileStream
 from plugin import getPluginByStream
 from chunk import FilterChunk, FormatChunk
 from default import DefaultFilter
-from user_filter import UserFilterDescriptor, loadUserFilter
 from error import error, warning
 from mime import getStreamMime
+
+# TODO: Re-enable that :-)
+#from user_filter import UserFilterDescriptor, loadUserFilter
 
 class Hachoir:
     instance = None

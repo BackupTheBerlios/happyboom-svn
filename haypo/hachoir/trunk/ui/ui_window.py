@@ -56,10 +56,10 @@ class MainWindow:
         self.hexa_path = xml.get_widget('hexa_path')
         self.hexa_content = xml.get_widget('hexa_content')
         self.menu_close = xml.get_widget('menu_close')
-        self.info_filter_open = xml.get_widget('info_filter_open')
-        self.info_filter_save = xml.get_widget('info_filter_save')
-        self.info_filter_export = xml.get_widget('info_filter_export')
-        self.info_filter_property = xml.get_widget('info_filter_property')
+#        self.info_filter_open = xml.get_widget('info_filter_open')
+#        self.info_filter_save = xml.get_widget('info_filter_save')
+#        self.info_filter_export = xml.get_widget('info_filter_export')
+#        self.info_filter_property = xml.get_widget('info_filter_property')
         self.info = InfoNotebook(xml)
         self.table = xml.get_widget('table')
         self.table_store = None
@@ -71,7 +71,6 @@ class MainWindow:
         
     def onChunkCopy(self, event):
         chunk = self.getActiveChunk()
-        print "Copy %s" % chunk
         assert chunk != None
         text = chunk.getStringValue()
         self.ui.getClipboard().set_text(text)
@@ -103,10 +102,10 @@ class MainWindow:
         if not file_present:
             self.toolbutton_parent.set_sensitive(False)
         self.toolbutton_close.set_sensitive(file_present)
-        self.info_filter_open.set_sensitive(filter_present)
-        self.info_filter_save.set_sensitive(filter_present)
-        self.info_filter_export.set_sensitive(filter_present)
-        self.info_filter_property.set_sensitive(filter_present)
+#        self.info_filter_open.set_sensitive(filter_present)
+#        self.info_filter_save.set_sensitive(filter_present)
+#        self.info_filter_export.set_sensitive(filter_present)
+#        self.info_filter_property.set_sensitive(filter_present)
         self.menu_close.set_sensitive(file_present)
 
     def getTableChunk(self, col):
@@ -115,6 +114,8 @@ class MainWindow:
         return self.ui.hachoir.getFilter().getChunk(chunk_id)
 
     def on_treeview_button_press_event(self, treeview, event):
+        return
+        # TODO: Re-enable popup menu :-)
         if event.button == 3:
             x = int(event.x)
             y = int(event.y)
@@ -156,7 +157,7 @@ class MainWindow:
 
     def onKeyUp(self, widget, key, data=None):
         if key.keyval == gtk.keysyms.Escape:
-            self.on_go_parent()
+            self.ui.on_go_parent()
         
     def onTableRowActivate(self, widget, iter, data=None):
         row = self.table_store[iter]
@@ -290,18 +291,7 @@ class MainWindow:
         path = chunk.getParent().getPath()+"/"+chunk.id
         self.ascii_path.set_text(path)
         raw = chunk.getRaw(config.max_ascii_length)
-        # TODO: Remove old code
-        if False:
-            # TODO: Use better str=>ascii code ...
-            content = ""
-            wrap = 16
-            while len(raw) != 0:
-                if len(content) != 0:
-                    content = content + "\n"
-                content = content + convertDataToPrintableString(raw[:wrap])
-                raw = raw[wrap:]
-        else:
-            content = convertDataToPrintableString(raw, True)
+        content = convertDataToPrintableString(raw, True)
         if config.max_hexa_length < chunk.size:
             if len(content) != 0:
                 content = content + "\n"
