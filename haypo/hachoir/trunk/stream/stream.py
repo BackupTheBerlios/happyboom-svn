@@ -42,7 +42,7 @@ class Stream:
         return self.getLastPos() <= self.tell() 
 
     def createSub(self, start=None, size=None):
-        if start==None:
+        if start == None:
             start = self.tell()
         if size == None:
             size = self.getSize()-start
@@ -68,6 +68,8 @@ class Stream:
         pos = self.search(needle, size_max)
         if pos == -1: return -1
         lg = pos - self.tell()
+        # TODO: Support Unicode?
+        assert not isinstance(needle, unicode)
         if include_str:
             if isinstance(needle, str):
                 lg = lg + len(needle)
@@ -95,7 +97,7 @@ class Stream:
         Search a string between current position and pos_max (which will be
         also tested). Returns -1 if fails.
         """
-        is_regex =  not isinstance(needle, str)
+        is_regex = not isinstance(needle, str)
         if is_regex:
             len_needle = regexMaxLength(needle.pattern)
         else:

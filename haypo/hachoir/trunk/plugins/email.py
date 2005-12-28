@@ -4,17 +4,18 @@ Email parser
 Author: Victor Stinner
 """
 
-from filter import Filter, DeflateFilter
+from filter import OnDemandFilter, DeflateFilter
 from plugin import registerPlugin, guessPlugin, getPluginByMime
+from chunk import StringChunk
 from default import DefaultFilter
 from mime import splitMimes
 from error import warning, error
 from stream.base_64 import Base64Stream
 import re
 
-class EmailHeader(Filter):
+class EmailHeader(OnDemandFilter):
     def __init__(self, stream, parent=None):
-        Filter.__init__(self, "email_hdr", "Email header", stream, parent)
+        OnDemandFilter.__init__(self, "email_hdr", "Email header", stream, parent)
         self._dict = {}
         regex_new = re.compile("^([A-Za-z][A-Za-z0-9-]*): (.*)$")
         regex_continue = re.compile("^[\t ]+(.*)$")
@@ -23,7 +24,7 @@ class EmailHeader(Filter):
         last_index = None
         while True:
             id = "header[%u]" % linenb
-            chunk = self.readString(id, "AutoLine", "Header line")
+            chunk = self.doRead(id, "Header line", (StringChunk, "AutoLine"))
             if chunk.length == 0: return
             line = chunk.value
 
@@ -63,22 +64,22 @@ class EmailHeader(Filter):
         index = index.lower()
         return self._dict[index]
 
-class EmailPart(Filter):
+class EmailPart(OnDemandFilter):
     def __init__(self, stream, parent=None):
-        Filter.__init__(self, "email_part", "Email part", stream, parent)
-        self.readChild("header", EmailHeader)
+        OnDemandFilter.__init__(self, "email_part", "Email part", stream, parent)
+        self.read("header", "Header", (EmailHeader,))
         readEmailContent(self, stream.createSub())
 
-class EmailBody(Filter):
+class EmailBody(OnDemandFilter):
     def __init__(self, stream, parent=None):
-        Filter.__init__(self, "email_body", "Email body", stream, parent)
+        OnDemandFilter.__init__(self, "email_body", "Email body", stream, parent)
         linenb = 1 
         while not stream.eof():
             guess = stream.read(5, False)
             if guess=="From ":
                 break
             id = "body[%u]" % linenb
-            chunk = self.readString(id, "AutoLine", "Body text")
+            self.read(id, "Body text", (StringChunk, "AutoLine"))
             linenb = linenb + 1
 
 def readEmailContent(self, stream):
@@ -145,13 +146,13 @@ def readBody(self, stream, mime):
     # Finally read data
     try:
         if deflate:
-            self.readChild("body", DeflateFilter, substream, size, plugin) 
+            self.read("body", "Body", (DeflateFilter, substream, size, plugin))
         else:
-            self.readStreamChild("body", substream, plugin)
+            self.read("body", "Body", (plugin,), {"stream": substream})
     except Exception, msg:
         error("Error while parsing email body: %s" % msg)
         substream.seek(0)
-        self.readStreamChild("body", substream, DefaultFilter)
+        self.read("body", "Body", (DefaultFilter,), {"stream": substream})
 
 def readMultipartEmail(self, stream, boundary):
     assert boundary[0] == '"' and boundary[-1] == '"'
@@ -160,9 +161,8 @@ def readMultipartEmail(self, stream, boundary):
     count = 1
     while True:
         id = "multipart_space[%u]" % count
-        chunk = self.readString(id, "AutoLine", "Space before first email parts")
-        value = chunk.value
-        if value == boundary:
+        line = self.doRead(id, "Space before first email parts", (StringChunk, "AutoLine")).value
+        if line == boundary:
             break
         count = count + 1
 
@@ -172,12 +172,12 @@ def readMultipartEmail(self, stream, boundary):
         start = stream.tell()
         size = stream.searchLength(boundary, False)
         sub = stream.createSub(start, size)
-        self.readStreamChild("part[%u]" % part, sub, EmailPart)
+        self.read("part[%u]" % part, "Email part %u" % part, (EmailPart,), {"stream": sub})
         stream.seek(start+size)
-        chunk = self.readString("boundary[%u]" % boundary_index, "AutoLine", "Boundary")
+        line = self.doRead("boundary[%u]" % boundary_index, "Boundary", (StringChunk, "AutoLine")).value
         part = part + 1
         boundary_index = boundary_index + 1
-        if chunk.value == boundary+"--":
+        if line == boundary+"--":
             break
 
 def getEmailMime(self):
@@ -191,12 +191,13 @@ def getEmailMime(self):
     assert len(mimes) == 1
     return mimes[0]
 
-class Email(Filter):
+class Email(OnDemandFilter):
     def __init__(self, stream, parent):
-        Filter.__init__(self, "email", "Email", stream, parent)
-        self.readString("id", "AutoLine", "Email identifier")
-        self.readChild("header", EmailHeader)
-        readEmailContent(self, stream.createSub())
+        OnDemandFilter.__init__(self, "email", "Email", stream, parent)
+        self.read("id", "Email identifier", (StringChunk, "AutoLine"))
+        self.read("header", "Header", (EmailHeader,))
+        #readEmailContent(self, stream.createSub())
+        readEmailContent(self, stream)
 
     def __str__(self):
         header = self["header"]
@@ -207,17 +208,18 @@ class Email(Filter):
             text = text + " (date %s)" % header["Date"]
         return text
 
-class EmailFilter(Filter):
+class EmailFilter(OnDemandFilter):
     def __init__(self, stream, parent=None):
-        Filter.__init__(self, "email", "Email maildir parser", stream, parent)
+        OnDemandFilter.__init__(self, "email", "Email maildir parser", stream, parent)
         while not stream.eof():
-            chunk = self.readChild("email[]", Email)
-            if stream.eof():
-                break
+            id = self.read("email[]", "Email", (Email,))
+            if id == "email[2]": break
+
+            # Search next email (line which starts with "From ")                
             while not stream.eof():
                 guess = stream.read(5, False)
                 if guess == "From ":
                     break
-                self.readString("space[]", "AutoLine", "Space")
+                self.read("space[]", "Space", (StringChunk, "AutoLine"))
 
 registerPlugin(EmailFilter, ["message/rfc822", "text/x-mail"])

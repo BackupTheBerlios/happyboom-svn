@@ -220,12 +220,13 @@ class StringChunk(Chunk):
                 text = text.strip()
             else:
                 text = text.strip(self.strip)
-        try:                
-            text = unicode(text, self.charset)
-        except:
-            self.charset = "ascii"
-            text = StringChunk.regex_not_ascii.sub(".", text)
-            text = unicode(text, "ascii")
+        if self.charset != "ascii":
+            try:                
+                text = unicode(text, self.charset)
+            except:
+                self.charset = "ascii"
+                text = StringChunk.regex_not_ascii.sub(".", text)
+                text = unicode(text, "ascii")
         return text
 
     def getValue(self, max_size=None):

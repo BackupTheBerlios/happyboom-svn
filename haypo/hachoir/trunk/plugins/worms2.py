@@ -24,7 +24,7 @@ class ImageData(OnDemandFilter):
         self.width = self.doRead("width", "Width", (FormatChunk, "uint16")).value
         self.height = self.doRead("height", "Height", (FormatChunk, "uint16")).value
         size = (self.width-self.x) * (self.height-self.y)
-        self.read("data", "Font content", (FormatChunk, "string[%u]" % size))
+        self.read("data", "Image content", (FormatChunk, "string[%u]" % size))
 
     def updateParent(self, chunk):
         chunk.description = "Image data: %ux%u pixels at (%u,%u)" \
@@ -40,7 +40,8 @@ class Image(OnDemandFilter):
         size = self["width"] * self["height"]
         self.read("img_data", "Data", (FormatChunk, "string[%u]" % size))
         size = stream.getLastPos() - stream.tell()
-        self.read("end", "Raw end", (FormatChunk, "string[%u]" % size))
+        if size != 0:
+            self.read("end", "Raw end", (FormatChunk, "string[%u]" % size))
 
     def updateParent(self, chunk):            
         chunk.description = "Image: %ux%u pixels" % \
@@ -54,7 +55,7 @@ class Sprite(OnDemandFilter):
         if True:
             self.read("header116", "Header 116", (FormatChunk, "uint8"))
             assert self["header116"] == 116 
-            self.read("a", "???", (FormatChunk, "uint8"))
+            self.read("type", "Type?", (FormatChunk, "uint8"))
             self.read("zero", "Zeros", (FormatChunk, "string[9]"))
             assert self["zero"] == ("\0" * 9)
             if False:
@@ -90,10 +91,18 @@ class Sprite(OnDemandFilter):
             else:
                 size = 29-15
             self.read("end_of_header", "End of mysterious header", (FormatChunk, "string[%u]" % size))
-            self.x = self.doRead("offset_x[]", "Offset X", (FormatChunk, "uint16")).value
-            self.y = self.doRead("offset_y[]", "Offset Y", (FormatChunk, "uint16")).value
-            self.width = self.doRead("width[]", "Width", (FormatChunk, "uint16")).value
-            self.height = self.doRead("height[]", "Height", (FormatChunk, "uint16")).value
+            if True: 
+                self.x = self.doRead("offset_x[]", "Offset X", (FormatChunk, "uint16")).value
+                self.y = self.doRead("offset_y[]", "Offset Y", (FormatChunk, "uint16")).value
+                self.width = self.doRead("width[]", "Width", (FormatChunk, "uint16")).value
+                self.height = self.doRead("height[]", "Height", (FormatChunk, "uint16")).value
+                size = (self.width - self.x) * (self.height - self.y)
+                if size <= (stream.getLastPos() - stream.tell()+1-1):
+                    self.read("image_data[]", "Data", (FormatChunk, "string[%u]" % size))
+            else:
+                image = self.doRead("image[]", "Image", (ImageData,))
+                self.width = image.width
+                self.height = image.height
 
             #print "Sprite % 20s: x=%s, header=% 2s, header=%s | %s" \
             #    % (name, x, size, str2bin(self["end_of_header"][:2]), str2hex(self["end_of_header"]))
@@ -108,7 +117,7 @@ class Sprite(OnDemandFilter):
             print "Sprite % 20s: %s" \
                 % (name, str2hex(self["data"]))
             
-        size = stream.getLastPos() - stream.tell()
+        size = stream.getLastPos() - stream.tell() + 1
         self.read("end", "Raw end", (FormatChunk, "string[%u]" % size))
 
     def updateParent(self, chunk):            
@@ -119,18 +128,21 @@ class Font(OnDemandFilter):
     def __init__(self, stream, parent):
         OnDemandFilter.__init__(self, "font", "Font", stream, parent, "<")
         self.read("palette", "Palette", (Palette, 81))
-        self.read("header", "Header !?", (FormatChunk, "string[%u]" % 0x105))
 
-#        while not stream.eof():
+        size = 261 
+        # TODO: Decode header
+        self.read("header", "Header !?", (FormatChunk, "string[%u]" % size))
+
         self.nb_characters = 0
-        while 2*4 < (stream.getLastPos() - stream.tell()):
+#        while 2*4 < (stream.getLastPos() - stream.tell() + 1):
+        for i in range(0, 160):
             id = self.read("image[]", "Image", (ImageData,))
             if self.nb_characters == 0:
                 image = self[id]
                 self.width = image.width
                 self.height = image.height
             self.nb_characters += 1
-        size = stream.getLastPos() - stream.tell()
+        size = stream.getLastPos() - stream.tell() + 1
         self.read("end", "Raw end", (FormatChunk, "string[%u]" % size))
 
     def updateParent(self, chunk):
