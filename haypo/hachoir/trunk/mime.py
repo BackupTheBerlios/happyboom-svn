@@ -14,6 +14,11 @@ from error import warning
 
 instance = None
 
+_mime_by_ext = {
+    '.gz':  'application/x-gzip',
+    '.ico': 'image/x-ico'
+}
+
 class GuessMime:
     def __init__(self):
         self.use_fallback = False
@@ -50,9 +55,8 @@ def getFileMime(realname, filename=None):
     return getBufferMime(buffer, filename)
 
 def getMimeByExt(ext):    
-    if ext == '.gz':
-        return 'application/x-gzip'
-    return None        
+    global _mime_by_ext
+    return _mime_by_ext.get(ext, None)
 
 def getStreamMime(stream, filename):
     oldpos = stream.tell()
@@ -73,6 +77,11 @@ def getAnotherBufferMime(buffer):
         return "application/pdf"
     if buffer[:14] == "gimp xcf file\0":
         return "image/x-xcf"
+
+    if buffer[0:2] == "\0\0" \
+    and buffer[2:4] in ("\x01\0", "\x02\0") \
+    and buffer[9] == "\0":
+        return "image/x-ico"
 
     if buffer[0] == "\x0A" \
     and buffer[1] in "\x00\x02\x03\x04\x05" \
