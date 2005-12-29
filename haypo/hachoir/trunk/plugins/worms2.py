@@ -71,45 +71,42 @@ class Sprite(OnDemandFilter):
         assert self["header116"] == 116 
         self.read("type", "Type?", (FormatChunk, "uint8"))
         self.read("zero[]", "???", (FormatChunk, "string[9]"))
-        self.read("flags[]", "???", (FormatChunk, "uint16"), {"post": binary})
+        self.read("flags_a", "???", (FormatChunk, "uint16"), {"post": binary})
         self.read("zero[]", "???", (FormatChunk, "uint16"))
+        flags_b = self.doRead("flags_b", "???", (FormatChunk, "uint16"), {"post": binary}).value
         import re
-        marker = False
-        if re.match("^Tv", name) != None:
-            size = 2
-        elif re.match("^Holy", name) != None:
-            size = 26
-        elif re.match("^Banana", name) != None:
-            size = 29-15+2
-        elif re.match("^Homing", name) != None:
-            size = 29-15+3+8-1+2
-        elif re.match("^Marker", name) != None:
-            marker = True
-            size = 29+2-15 
-        else:
-            size = 29-15
-        flags = self.doRead("flags[]", "???", (FormatChunk, "uint16"), {"post": binary}).value
-        if True:
-            if flags != 0:
-                size = 12
-                if re.match("^Batrope", name) != None:
-                    size += 24
-                self.read("zero[]", "???", (FormatChunk, "string[%u]" % size))
-            self.x = self.doRead("x[]", "Offset X", (FormatChunk, "uint16")).value
-            self.y = self.doRead("y[]", "Offset Y", (FormatChunk, "uint16")).value
-            self.width = self.doRead("width[]", "Width", (FormatChunk, "uint16")).value
-            self.height = self.doRead("height[]", "Height", (FormatChunk, "uint16")).value
-            self.count = self.doRead("count", "Item count", (FormatChunk, "uint16")).value
-            for i in range(0, self.count):
-                self.read("item[]", "Item", (SpriteItem,))
-#                real_width = self.width - self.x
-#                real_height = self.height - self.y
-#                size = real_width * real_height
-#                if size <= (stream.getLastPos() - stream.tell()+1-1):
-#                    self.read("image_data[]", "Data (%ux%u pixels)" % (real_width, real_height), (FormatChunk, "string[%u]" % size))
+        if flags_b != 0:
+            n = 1
+            if re.match("^Batrope", name) != None:
+                n = 3
+            elif re.match("^Homing", name) != None:
+                n = 2
+            elif re.match("^Sheep", name) != None:
+                n = 5
+            elif re.match("^Network", name) != None:
+                n = 18
+            size = n * 12
+            self.read("zero[]", "???", (FormatChunk, "string[%u]" % size))
+        self.x = self.doRead("x[]", "Offset X", (FormatChunk, "uint16")).value
+        self.y = self.doRead("y[]", "Offset Y", (FormatChunk, "uint16")).value
+        self.width = self.doRead("width[]", "Width", (FormatChunk, "uint16")).value
+        self.height = self.doRead("height[]", "Height", (FormatChunk, "uint16")).value
+        self.count = self.doRead("count", "Item count", (FormatChunk, "uint16")).value
+        for i in range(0, self.count):
+            self.read("item[]", "Item", (SpriteItem,))
+        if False:            
+            real_width = self.width - self.x
+            real_height = self.height - self.y
+            size = real_width * real_height
+            if size <= (stream.getLastPos() - stream.tell()+1-1):
+                self.read("image_data[]", "Data (%ux%u pixels)" % (real_width, real_height), (FormatChunk, "string[%u]" % size))
+        else:                
+            size = stream.getLastPos() - stream.tell() + 1
+            self.read("raw", "Raw data", (FormatChunk, "string[%u]" % size))
 
         size = stream.getLastPos() - stream.tell() + 1
-        self.read("end", "Raw end", (FormatChunk, "string[%u]" % size))
+        if 0 < size:
+            self.read("end", "Raw end", (FormatChunk, "string[%u]" % size))
 
     def updateParent(self, chunk):            
         if self.count is not None:
