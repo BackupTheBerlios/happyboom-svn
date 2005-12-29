@@ -47,82 +47,77 @@ class Image(OnDemandFilter):
         chunk.description = "Image: %ux%u pixels" % \
             (self["width"], self["height"])
 
+class SpriteItem(OnDemandFilter):
+    def __init__(self, stream, parent):
+        OnDemandFilter.__init__(self, "sprite_item", "Sprite item", stream, parent, "<")
+        self.read("a", "???", (FormatChunk, "uint8"))
+        self.read("b", "???", (FormatChunk, "uint16"))
+        self.read("c", "???", (FormatChunk, "uint8"))
+        self.read("x", "Offset X", (FormatChunk, "uint16"))
+        self.read("y", "Offset Y", (FormatChunk, "uint16"))
+        self.read("width", "Width", (FormatChunk, "uint16"))
+        self.read("height", "Height", (FormatChunk, "uint16"))
+
+    def updateParent(self, chunk):            
+        chunk.description = "Sprite item: %ux%u pixels at (%u,%u)" % \
+            (self["width"], self["height"], self["x"], self["y"])
+
 class Sprite(OnDemandFilter):
     def __init__(self, stream, parent):
         OnDemandFilter.__init__(self, "sprite", "Sprite", stream, parent, "<")
         name = parent.name
         self.read("palette", "Palette", (Palette, 81))
+        self.read("header116", "Header 116", (FormatChunk, "uint8"))
+        assert self["header116"] == 116 
+        self.read("type", "Type?", (FormatChunk, "uint8"))
+        self.read("zero[]", "???", (FormatChunk, "string[9]"))
+        self.read("flags[]", "???", (FormatChunk, "uint16"), {"post": binary})
+        self.read("zero[]", "???", (FormatChunk, "uint16"))
+        import re
+        marker = False
+        if re.match("^Tv", name) != None:
+            size = 2
+        elif re.match("^Holy", name) != None:
+            size = 26
+        elif re.match("^Banana", name) != None:
+            size = 29-15+2
+        elif re.match("^Homing", name) != None:
+            size = 29-15+3+8-1+2
+        elif re.match("^Marker", name) != None:
+            marker = True
+            size = 29+2-15 
+        else:
+            size = 29-15
+        flags = self.doRead("flags[]", "???", (FormatChunk, "uint16"), {"post": binary}).value
         if True:
-            self.read("header116", "Header 116", (FormatChunk, "uint8"))
-            assert self["header116"] == 116 
-            self.read("type", "Type?", (FormatChunk, "uint8"))
-            self.read("zero", "Zeros", (FormatChunk, "string[9]"))
-            assert self["zero"] == ("\0" * 9)
-            if False:
-                bits = (
-                    (1, "info1", ""),
-                    (1, "various1", ""),
-                    (1, "info2", ""),
-                    (3, "various2", ""),
-                    (3, "zero", ""),
-                    (3, "various3", ""),
-                    (1, "info3", ""),
-                    (1, "one", ""),
-                    (2, "various4", "")
-                )
-                flags = self.doRead("flags", "Flags", (BitsChunk, BitsStruct(bits)))
-                assert flags["zero"] == 0
-                assert flags["one"] == True
-            else:
-                self.read("flags", "???", (FormatChunk, "uint16"), {"post": binary})
-            self.read("zero2", "Zero2", (FormatChunk, "uint16"))
-            assert self["zero2"] == 0
-            import re
-            if re.match("^Tv", name) != None:
-                size = 2
-            elif re.match("^Holy", name) != None:
-                size = 26
-            elif re.match("^Banana", name) != None:
-                size = 29-15+2
-            elif re.match("^Homing", name) != None:
-                size = 29-15+3+8-1+2
-            elif re.match("^Marker", name) != None:
-                size = 29+2-15 
-            else:
-                size = 29-15
-            self.read("end_of_header", "End of mysterious header", (FormatChunk, "string[%u]" % size))
-            if True: 
-                self.x = self.doRead("offset_x[]", "Offset X", (FormatChunk, "uint16")).value
-                self.y = self.doRead("offset_y[]", "Offset Y", (FormatChunk, "uint16")).value
-                self.width = self.doRead("width[]", "Width", (FormatChunk, "uint16")).value
-                self.height = self.doRead("height[]", "Height", (FormatChunk, "uint16")).value
-                size = (self.width - self.x) * (self.height - self.y)
-                if size <= (stream.getLastPos() - stream.tell()+1-1):
-                    self.read("image_data[]", "Data", (FormatChunk, "string[%u]" % size))
-            else:
-                image = self.doRead("image[]", "Image", (ImageData,))
-                self.width = image.width
-                self.height = image.height
+            if flags != 0:
+                size = 12
+                if re.match("^Batrope", name) != None:
+                    size += 24
+                self.read("zero[]", "???", (FormatChunk, "string[%u]" % size))
+            self.x = self.doRead("x[]", "Offset X", (FormatChunk, "uint16")).value
+            self.y = self.doRead("y[]", "Offset Y", (FormatChunk, "uint16")).value
+            self.width = self.doRead("width[]", "Width", (FormatChunk, "uint16")).value
+            self.height = self.doRead("height[]", "Height", (FormatChunk, "uint16")).value
+            self.count = self.doRead("count", "Item count", (FormatChunk, "uint16")).value
+            for i in range(0, self.count):
+                self.read("item[]", "Item", (SpriteItem,))
+#                real_width = self.width - self.x
+#                real_height = self.height - self.y
+#                size = real_width * real_height
+#                if size <= (stream.getLastPos() - stream.tell()+1-1):
+#                    self.read("image_data[]", "Data (%ux%u pixels)" % (real_width, real_height), (FormatChunk, "string[%u]" % size))
 
-            #print "Sprite % 20s: x=%s, header=% 2s, header=%s | %s" \
-            #    % (name, x, size, str2bin(self["end_of_header"][:2]), str2hex(self["end_of_header"]))
-            #print "Sprite % 20s: a=%s, header=% 2s, header=%s" \
-            #    % (name, self["a"], size, str2hex(self["end_of_header"]))
-
-#            print "Sprite % 20s, a=%s, header=% 2s, flags=%s (%s), size=%ux%u at (%u,%u)" \
-#                % (name, self["a"], size, str2bin(self.getChunk("flags").getRaw()), self["flags"], width, height, x, y)
-
-        else:                
-            self.read("data", "Data", (FormatChunk, "string[40]"))
-            print "Sprite % 20s: %s" \
-                % (name, str2hex(self["data"]))
-            
         size = stream.getLastPos() - stream.tell() + 1
         self.read("end", "Raw end", (FormatChunk, "string[%u]" % size))
 
     def updateParent(self, chunk):            
-        chunk.description = "Sprite: %ux%u pixels" % \
-            (self.width, self.height)
+        if self.count is not None:
+            chunk.description = "Animation: %ux%u pixels, %u frame(s)" % \
+                (self.width, self.height, self.count)
+        else:                
+            chunk.description = "Sprite: %ux%u pixels" % \
+                (self.width, self.height)
 
 class Font(OnDemandFilter):
     def __init__(self, stream, parent):
