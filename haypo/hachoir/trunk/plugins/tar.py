@@ -16,37 +16,6 @@ from plugin import guessPlugin
 from error import error
 from tools import getBacktrace, humanFilesize
 
-def displayModeItem(mode):
-    if mode & 4 == 4: r="r"
-    else: r="-"
-    if mode & 2 == 2: w="w"
-    else: w="-"
-    if mode & 1 == 1: x="x"
-    else: x="-"
-    return "%c%c%c" % (r, w, x)
-
-def displayMode(mode):
-    owner = displayModeItem(mode >> 6 & 7)
-    group = displayModeItem(mode >> 3 & 7)
-    other = displayModeItem(mode & 7)
-    print "Mode = %04o (%s%s%s)" % (mode, owner, group, other)
-    
-def displayFile(tar):
-    print "name = \"%s\"" % (tar.name)
-    displayMode(tar.mode)
-    print "User = \"%s\" (id %s)" % (tar.uname, tar.uid)
-    print "Group = \"%s\" (id %s)" % (tar.gname, tar.gid)
-    print "Size = %s bytes" % (tar.size)
-    print "Modification time = %s" % (tar.mtime)
-    print "Magic = %s" % (tar.magic)
-    print "Type = %s" % (tar.getType())
-    
-def displayTar(tar):
-    for file in tar.files:
-        file = file.getFilter()
-        print "[ File %s ]" % file.name
-        displayFile(file)
-
 class FileEntry(OnDemandFilter):
     type_name = {
         0: "Normal disk file (old format)",

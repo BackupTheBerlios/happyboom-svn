@@ -39,19 +39,26 @@ class GzipFile(OnDemandFilter):
         assert self["id"] == (31, 139)
         self.read("compression", "Compression method", (FormatChunk, "uint8"), {"post": self.getCompressionMethod})
         bits = (
-            (1, "text", "Text (?)"),
-            (1, "crc16", "CRC16"),
+            (1, "text", "File content is probably ASCII text"),
+            (1, "crc16", "Header CRC16"),
             (1, "extra", "Extra informations (variable size)"),
             (1, "filename", "Contains filename?"),
             (1, "comment", "Contains comment?"),
             (3, "unused", "Unused bits"))
         flags = self.doRead("flags", "Flags", (BitsChunk, BitsStruct(bits)))
         self.read("mtime", "Modification time", (FormatChunk, "uint32"), {"post": unixTimestamp})
-        self.read("extra", "Extra flags", (FormatChunk, "uint8"))
+
+        bits = (
+            (1, "unused", "(unused)"),
+            (1, "slowest", "Compressor used maximum compression (slowest)"),
+            (1, "fastest", "Compressor used the fastest compression"),
+            (5, "unused2", "(unused)"))
+        extra_flags = self.doRead("extra_flags", "Extra flags", (BitsChunk, BitsStruct(bits)))
+
         self.read("os", "Operating system", (EnumChunk, "uint8", GzipFile.os_name))
 
         # Optionnal fields
-        if self["extra"] & 4 == 4:
+        if flags["extra"] & 4 == 4:
             self.read("extra_length", "Extra length", (FormatChunk, "uint16"))
             self.read("extra", "Extra", (FormatChunk, "string[%u]"  % self["extra_length"]))
         if flags["filename"]:
@@ -59,7 +66,7 @@ class GzipFile(OnDemandFilter):
         if flags["comment"]:
             self.read("comment", "Comment", (StringChunk, "C"))
         if flags["crc16"]:
-            self.read("crc16", "CRC16", (FormatChunk, "uint16"), post=hexadecimal)
+            self.read("hdr_crc16", "Header CRC16", (FormatChunk, "uint16"), post=hexadecimal)
 
         # Read content           
         oldpos = stream.tell()
