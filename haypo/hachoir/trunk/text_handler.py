@@ -1,5 +1,6 @@
 import datetime
-from tools import humanFilesize as doHumanFilesize, str2bin
+from tools import humanFilesize as doHumanFilesize
+from bits import str2bin
 
 def msdosDatetime(chunk):
     assert chunk.size == 4

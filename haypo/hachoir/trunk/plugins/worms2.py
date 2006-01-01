@@ -14,7 +14,6 @@ from generic.image import Palette
 
 # Only for debug purpose
 from text_handler import binary
-from tools import str2hex, str2bin
 
 class ImageData(OnDemandFilter):
     def __init__(self, stream, parent):
@@ -39,9 +38,7 @@ class Image(OnDemandFilter):
         self.read("height", "Height", (FormatChunk, "uint16"))
         size = self["width"] * self["height"]
         self.read("img_data", "Data", (FormatChunk, "string[%u]" % size))
-        size = stream.getLastPos() - stream.tell()
-        if size != 0:
-            self.read("end", "Raw end", (FormatChunk, "string[%u]" % size))
+        self.addPadding()
 
     def updateParent(self, chunk):            
         chunk.description = "Image: %ux%u pixels" % \
@@ -75,43 +72,42 @@ class Sprite(OnDemandFilter):
         self.read("zero[]", "???", (FormatChunk, "uint16"))
         flags_b = self.doRead("flags_b", "???", (FormatChunk, "uint16"), {"post": binary}).value
         import re
+        self.n = 0
         if flags_b != 0:
-            n = 1
+            self.n = 1
             if re.match("^Batrope", name) != None:
-                n = 3
+                self.n = 3
             elif re.match("^Homing", name) != None:
-                n = 2
+                self.n = 2
             elif re.match("^Sheep", name) != None:
-                n = 5
+                self.n = 5
             elif re.match("^Network", name) != None:
-                n = 18
-            size = n * 12
+                self.n = 18
+        size = self.n * 12
+        if size != 0:
             self.read("zero[]", "???", (FormatChunk, "string[%u]" % size))
         self.x = self.doRead("x[]", "Offset X", (FormatChunk, "uint16")).value
         self.y = self.doRead("y[]", "Offset Y", (FormatChunk, "uint16")).value
         self.width = self.doRead("width[]", "Width", (FormatChunk, "uint16")).value
         self.height = self.doRead("height[]", "Height", (FormatChunk, "uint16")).value
         self.count = self.doRead("count", "Item count", (FormatChunk, "uint16")).value
-        for i in range(0, self.count):
-            self.read("item[]", "Item", (SpriteItem,))
+#        for i in range(0, self.count):
+#            self.read("item[]", "Item", (SpriteItem,))
         if False:            
             real_width = self.width - self.x
             real_height = self.height - self.y
             size = real_width * real_height
-            if size <= (stream.getLastPos() - stream.tell()+1-1):
+            if size <= (stream.getLastPos() - stream.tell()):
                 self.read("image_data[]", "Data (%ux%u pixels)" % (real_width, real_height), (FormatChunk, "string[%u]" % size))
-        else:                
-            size = stream.getLastPos() - stream.tell() + 1
+        elif False:                
+            size = stream.getLastPos() - stream.tell()
             self.read("raw", "Raw data", (FormatChunk, "string[%u]" % size))
-
-        size = stream.getLastPos() - stream.tell() + 1
-        if 0 < size:
-            self.read("end", "Raw end", (FormatChunk, "string[%u]" % size))
+        self.addPadding()
 
     def updateParent(self, chunk):            
         if self.count is not None:
-            chunk.description = "Animation: %ux%u pixels, %u frame(s)" % \
-                (self.width, self.height, self.count)
+            chunk.description = "Animation: n=%u, %ux%u pixels, %u frame(s)" % \
+                (self.n, self.width, self.height, self.count)
         else:                
             chunk.description = "Sprite: %ux%u pixels" % \
                 (self.width, self.height)
@@ -134,8 +130,7 @@ class Font(OnDemandFilter):
                 self.width = image.width
                 self.height = image.height
             self.nb_characters += 1
-        size = stream.getLastPos() - stream.tell() + 1
-        self.read("end", "Raw end", (FormatChunk, "string[%u]" % size))
+        self.addPadding()
 
     def updateParent(self, chunk):
         chunk.description = "Font: %ux%u pixels, %u characters" \
@@ -166,7 +161,8 @@ class Resource(OnDemandFilter):
             
             size = pos + size + 1 - stream.tell()
             if self.tag in Resource.handler:
-                sub = stream.createLimited(size=size)
+                #sub = stream.createLimited(size=size)
+                sub = stream.createSub(size=size)
                 self.read("data", "Data", (Resource.handler[self.tag],), {"stream": sub})
             else:
                 self.read("data", "Data", (FormatChunk, "string[%u]" % size))

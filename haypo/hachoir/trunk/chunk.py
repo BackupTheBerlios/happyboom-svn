@@ -2,7 +2,8 @@ import struct, re, types
 import config
 from format import checkFormat, splitFormat, getFormatSize, getRealFormat, formatIsString, formatIsArray, formatIsInteger, formatIsArray
 from error import warning, error
-from tools import convertDataToPrintableString, str2long
+from tools import convertDataToPrintableString
+from bits import str2long
 
 class Chunk(object):
     """
