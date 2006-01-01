@@ -97,6 +97,11 @@ class BasicFilter(object):
     def _getEndian(self): return self._endian
     endian = property(_getEndian)
 
+    def addPadding(self):
+        size = self._stream.getLastPos() - self._stream.tell()
+        if size != 0:
+            self.read("end", "Raw end", (FormatChunk, "string[%u]" % size))
+
     # --- Pure virtual methods -----------
     def getSize(self): todoWriteMethod(self, "getSize") 
     def __getitem__(self, chunk_id): todoWriteMethod(self, "__getitem__") 
@@ -141,8 +146,9 @@ class OnDemandFilter(BasicFilter, Cache):
         assert pos != -1
         self._chunks_dict[id][1] = desc
 
-        info = self.displayChunkInfo(id)
-        ui.window.update_table(self, pos, *info)
+        if ui.ui != None:
+            info = self.displayChunkInfo(id)
+            ui.window.update_table(self, pos, *info)
 
     def purgeCache(self):
         if len(self._chunks_cache) != 0 and config.verbose:

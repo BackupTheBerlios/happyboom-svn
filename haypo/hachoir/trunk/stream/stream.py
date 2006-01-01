@@ -46,6 +46,7 @@ class Stream:
             start = self.tell()
         if size == None:
             size = self.getSize()-start
+        print "create sub : start=%s, size=%s" % (start, size)            
         return SubStream(self, start, size, self.filename)
 
     def createLimited(self, start=None, size=None):
@@ -147,7 +148,7 @@ class LimitedStream(Stream):
         self._size = size
         self._end = self._start + self._size
         self._last_pos = self._end - 1
-        self._stream.seek(self._start)
+        self._seed = self._start
 
     def getType(self):
         return "%s of %s: %s..%s" % \
@@ -163,18 +164,26 @@ class LimitedStream(Stream):
         
     def read(self, size, seek=True):
         """ Works like Posix read (can returns less than size bytes. """
-        return self._stream.read(size, seek)
+        self._stream.seek(self._seed)
+        data = self._stream.read(size, seek)
+        if seek:
+            self._seed += len(data)
+        return data
 
     def getN(self, size, seek=True):
-        if self._start+self._size<self._stream.tell()+size:
+        if self._start+self._size<self._seed+size:
             raise StreamError( \
                 "Can't read outsize the stream\n"
                 +"(try to read %u byte(s) from position %s, where stream in limited in [%u;%u])" \
-                % (size, self._stream.tell(), self._start, self._end))
-        return self._stream.getN(size, seek)
+                % (size, self._seed, self._start, self._end))
+        self._stream.seek(self._seed)
+        data = self._stream.getN(size, seek)
+        if seek:
+            self._seed += size
+        return data
 
     def tell(self):
-        return self._stream.tell()
+        return self._seed
 
     def seek(self, pos, where=0):
         if where == 2:
@@ -182,9 +191,9 @@ class LimitedStream(Stream):
         elif where == 0:
             pos = pos
         elif where == 1:
-            pos = self._stream.tell() + pos
+            pos = self._seed + pos
         assert self._start <= pos and pos <= self._end
-        self._stream.seek(pos, 0)
+        self._seed = pos
         
     def getSize(self):
         return self._size
@@ -207,22 +216,18 @@ class SubStream(LimitedStream):
             pos = pos - self._start
         return pos
                
-    def read(self, size, seek=True):
-        """ Works like Posix read (can returns less than size bytes. """
-        return self._stream.read(size, seek)
- 
     def seek(self, pos, where=0):
         if where == 2:
             pos = self.getLastPos() - pos
         elif where == 0:
             pos = self._start + pos
         elif where == 1:
-            pos = self._stream.tell() + pos
+            pos = self._seed + pos
         assert self._start <= pos and pos <= self._end
-        self._stream.seek(pos, 0)
+        self._seed = pos
 
     def tell(self):
-        return self._stream.tell() - self._start
+        return self._seed - self._start
     
     def getLastPos(self):
         return self._end - self._start
