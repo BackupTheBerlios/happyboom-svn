@@ -46,7 +46,6 @@ class Stream:
             start = self.tell()
         if size == None:
             size = self.getSize()-start
-        print "create sub : start=%s, size=%s" % (start, size)            
         return SubStream(self, start, size, self.filename)
 
     def createLimited(self, start=None, size=None):
