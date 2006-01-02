@@ -190,12 +190,13 @@ class ExifIFD(OnDemandFilter):
             padding = next_chunk_offset - stream.tell()
             if 0 < padding:
                 self.read("padding[]", "Padding", (FormatChunk, "string[%u]" % padding))
-        size = self.getSize()
-        if (size % 4) != 0:
-            if parent.jpeg_soi != None and parent.jpeg_soi <= stream.tell():
-                return
-            padding = 4 - (size % 4)
-            self.read("padding[]", "Padding to be aligned to 4", (FormatChunk, "string[%u]" % padding))
+        # TODO: When padding is needed !?                
+#        size = self.getSize()
+#        if (size % 4) != 0:
+#            if parent.jpeg_soi != None and parent.jpeg_soi <= stream.tell():
+#                return
+#            padding = 4 - (size % 4)
+#            self.read("padding[]", "Padding to be aligned to 4", (FormatChunk, "string[%u]" % padding))
 
     def updateParent(self, chunk):
         chunk.description = "Exif IFD (id %s)" % self["id"]
