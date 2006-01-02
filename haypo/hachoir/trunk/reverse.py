@@ -2,7 +2,7 @@ from stream.file import FileStream
 from plugins.worms2 import Worms2_Dir_File
 from plugins.gzip import GzipFile
 from format import getFormatSize
-from bits import countBits
+from bits import countBits, long2bin, str2hex
 import sys
 
 class IntValues:
@@ -12,6 +12,9 @@ class IntValues:
         self.max = None
         if data != None:
             self.set(data)
+
+    def __hash__(self):
+        return hash(self.items)
 
     def hasValue(self, value):
         return self._in(self.items, value)
@@ -141,22 +144,33 @@ class Field:
     def __init__(self, id):
         self.id = id    
         self.values = {}
+        self.values_list = {}
         self.streams = {}
 
     def getStreamsByValue(self, value):
-        return self.streams.get(value, [])
+        return self.streams.get(hash(value), [])
 
     def getValueByStream(self, stream, default=None):
         return self.values.get(stream, default)
 
+    def getBitSize(self):
+        values = self.getValues()
+        max_value = max([ value.max for value in values])
+        min_value = min([ value.min for value in values])
+        return max(countBits(max_value), countBits(min_value))
+
     def getValues(self):
-        return self.streams.keys()
+        return self.values_list.values()
 
     def addValue(self, stream, value):
+        if not isinstance(value, IntValues):
+            value = IntValues(value)
         self.values[stream] = value
-        if value not in self.streams:
-            self.streams[value] = []
-        self.streams[value].append(stream)
+        if hash(value) not in self.streams:
+            self.streams[hash(value)] = []
+        self.streams[hash(value)].append(stream)
+        if hash(value) not in self.values_list:
+            self.values_list[hash(value)] = value
 
 class Reverse:
     def __init__(self):
@@ -292,19 +306,21 @@ class Reverse:
                     read = int( stream.getFormat(format, False) )
                     if value.hasValue(read):
                         ok.add(addr)
+                        break
         return ok                    
 
     def findField(self, id, data_range):
         field = self.fields[id]
         ok = data_range
-        max_values = map(lambda x: x.max, field.getValues())
-        min_values = map(lambda x: x.min, field.getValues())
-        size_bits = max(countBits(max(max_values)), countBits(min(min_values)))
-        print size_bits
+        size_bits = field.getBitSize()
+        print "Find integer field \"%s\" (at least %u bits long) ..." % (id, size_bits)
+        i = 1
         for stream in self.streams:
+            print "  find in stream %u/%u ..." % (i, len(self.streams))
             value = field.getValueByStream(stream)
             addr = self.findInteger(stream, value, data_range, size_bits)
             ok = ok.intersection(addr)
+            i += 1
         return ok            
 
     def addSource(self, stream, fields={}):
@@ -315,33 +331,12 @@ class Reverse:
                 self.fields[id] = Field(id)
             self.fields[id].addValue(stream, fields[id])
 
-def main():
-    name = '/home/haypo/worms/Gfx.dir'
-    f = open(name, 'r')
-    input = FileStream(f, name)
-    root = Worms2_Dir_File(input, None)
-    res = root["resources"]
-    reverse = Reverse()
-#    sprite_range = IntValues( [(0,13), 67, 72] )
-    sprite_range = IntValues( (0,72) )
-    for i in sprite_range.values():
-        sprite = res["res[%u]" % i]["data"]
-        stream = sprite.getStream().createSub(start=sprite.getAddr(), size=sprite.getSize())
-#        assert sprite.n < 5
-        reverse.addSource(stream, {"n": sprite.n})
-    header = IntValues( (243, 258) )
-    print "Find field in range %s" % header
-#    reverse.displayData(header)        
-#     reverse.displayConstant(header)
-    addr = reverse.findField("n", header)
-    print "Address of field n: %s\n(or in %s)" % (addr[0], addr[1])
-
 def loadGZ(filename):
     f = open(filename, 'r')
     input = FileStream(f, filename)
     return GzipFile(input, None) 
 
-def main():
+def gzip_size():
     reverse = Reverse()
     for filename in sys.argv[1:]:
         g = loadGZ(filename)
@@ -355,5 +350,100 @@ def main():
     addr = reverse.findField("size", header)
     print "Address of field n: %s" % addr 
 
+def int16Bits(value):
+    v = []
+    for i in range(0,16):
+        mask = 1 << i
+        if (value & mask) == mask:
+            v.append(1)
+        else:
+            v.append(0)  
+    return v
+
+def guessBits(d):    
+    for n in d:
+        val = d[n]
+        data = val[0]
+        print "====== n=%u, data set=%u items" % (n, len(val))
+        if 1<len(val):
+            for i in range(0, 11):
+                cst = True
+                for bits in val[1:]:
+                    if bits[i] != data[i]:
+                        cst = False
+                        break
+                if cst:
+                    print "bit %u: const=%s" % (i, data[i])
+        else:
+            print "(not enough data)"
+   
+def worms2_sprite(res):    
+    #sprite_range = IntValues( (0,73) )
+    #sprite_range = IntValues( (0,100) )
+    sprite_range = IntValues( (0,100) )
+    d = {}
+    for i in sprite_range.values():
+        sprite = res["res[%u]" % i]["data"]
+        flags = sprite["flags_b"]
+        w,h = sprite["width[0]"],sprite["height[0]"]
+        if w < 10 or 1000<w or h<10 or 1000<h:
+            print "res[%u] errone" % i
+        else:
+            n = sprite.n
+            stream = sprite.getStream()
+            stream.seek(81*3+1) ; m = stream.getFormat("uint8")-1
+            #stream.seek(258) ;  data = stream.getN(14)
+            stream.seek(81*3) ;  data = stream.getN(272-243)
+            if n not in d:
+                d[n] = []
+#            d[n].append( (sprite["type"],int16Bits(flags),sprite["width[0]"],sprite["height[0]"],i) )
+            d[n].append( (i, m, data) )
+#    guessBits(d)        
+#    return
+        
+    for n in d:
+        print "======== %s =========" % n
+        for data in d[n]:
+            print "% 3s] n=% 2s m=% 2s %s" % (data[0], n, data[1], str2hex(data[2]))
+#            xxx = "".join(map(str,bits[1]))
+#            print "%s] %s (%ux%u), id=res[%u]" % (bits[0], xxx, bits[2], bits[3], bits[4])
+
+def worms2_n(res):
+    reverse = Reverse()
+    sprite_range = IntValues( (0,72) )
+    for i in sprite_range.values():
+        sprite = res["res[%u]" % i]["data"]
+        #stream = sprite.getStream().createSub(start=sprite.getAddr(), size=sprite.getSize())
+        reverse.addSource(stream, {"n": sprite.n})
+    header = IntValues( (243, 258) )
+    print "Find field in range %s" % header
+#    reverse.displayData(header)        
+#     reverse.displayConstant(header)
+    addr = reverse.findField("n", header)
+    print "Address of field n: %s\n(or in %s)" % (addr[0], addr[1])
+
+def worms2_font(res):
+    reverse = Reverse()
+    sprite_range = IntValues( (713,739) )
+    for i in sprite_range.values():
+        font = res["res[%u]" % i]["data"]
+        reverse.addSource(font.getStream(), {"nb": font["nb_char"]})
+    header = IntValues( (0, 600) )
+    print "Find field in range %s" % header
+#    reverse.displayData(header)        
+#     reverse.displayConstant(header)
+    addr = reverse.findField("nb", header)
+    print "Address of field n: %s" % (addr)
+#    print "Address of field n: %s\n(or in %s)" % (addr[0], addr[1])
+
+def worms2():
+    f = open('/home/haypo/worms/Gfx.dir', 'r')
+    input = FileStream(f, None)
+    res = Worms2_Dir_File(input, None)["resources"]
+#    worms2_sprite(res)
+#    worms2_n(res)
+    worms2_font(res)
+ 
 if __name__=="__main__":
-    main()
+    worms2()
+#    gzip_size()

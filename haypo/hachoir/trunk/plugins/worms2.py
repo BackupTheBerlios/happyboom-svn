@@ -25,6 +25,15 @@ class ImageData(OnDemandFilter):
         size = (self.width-self.x) * (self.height-self.y)
         self.read("data", "Image content", (FormatChunk, "string[%u]" % size))
 
+    def getStaticSize(stream, args):
+        oldpos = stream.tell()
+        x, y = stream.getFormat("<uint16"), stream.getFormat("<uint16")
+        w, h = stream.getFormat("<uint16"), stream.getFormat("<uint16")
+        size = 2*4 + (w-x) * (h-y)
+        stream.seek(oldpos)
+        return size
+    getStaticSize = staticmethod(getStaticSize)
+
     def updateParent(self, chunk):
         chunk.description = "Image data: %ux%u pixels at (%u,%u)" \
             % (self.width, self.height, self.x, self.y)
@@ -44,9 +53,23 @@ class Image(OnDemandFilter):
         chunk.description = "Image: %ux%u pixels" % \
             (self["width"], self["height"])
 
-class SpriteItem(OnDemandFilter):
+class MysteriousHeader(OnDemandFilter):
     def __init__(self, stream, parent):
         OnDemandFilter.__init__(self, "sprite_item", "Sprite item", stream, parent, "<")
+        self.read("a", "???", (FormatChunk, "uint16"))
+        self.read("b", "???", (FormatChunk, "uint16"))
+        self.read("c", "???", (FormatChunk, "uint16"))
+        self.read("d", "???", (FormatChunk, "uint16"))
+        self.read("e", "???", (FormatChunk, "uint16"))
+        self.read("f", "???", (FormatChunk, "uint16"))
+        
+    def updateParent(self, chunk):            
+        chunk.description = "Mysterious: d=%s f=%s a=%s b=%s c=%s e=%s" % \
+            (self["d"],self["f"],self["a"],self["b"],self["c"],self["e"])
+
+class SpriteFrame(OnDemandFilter):
+    def __init__(self, stream, parent):
+        OnDemandFilter.__init__(self, "frame", "Sprite frame", stream, parent, "<")
         self.read("a", "???", (FormatChunk, "uint8"))
         self.read("b", "???", (FormatChunk, "uint16"))
         self.read("c", "???", (FormatChunk, "uint8"))
@@ -56,7 +79,7 @@ class SpriteItem(OnDemandFilter):
         self.read("height", "Height", (FormatChunk, "uint16"))
 
     def updateParent(self, chunk):            
-        chunk.description = "Sprite item: %ux%u pixels at (%u,%u)" % \
+        chunk.description = "Frame: %ux%u pixels at (%u,%u)" % \
             (self["width"], self["height"], self["x"], self["y"])
 
 class Sprite(OnDemandFilter):
@@ -66,75 +89,85 @@ class Sprite(OnDemandFilter):
         self.read("palette", "Palette", (Palette, 81))
         self.read("header116", "Header 116", (FormatChunk, "uint8"))
         assert self["header116"] == 116 
-        self.read("type", "Type?", (FormatChunk, "uint8"))
-        self.read("zero[]", "???", (FormatChunk, "string[9]"))
-        self.read("flags_a", "???", (FormatChunk, "uint16"), {"post": binary})
-        self.read("zero[]", "???", (FormatChunk, "uint16"))
-        flags_b = self.doRead("flags_b", "???", (FormatChunk, "uint16"), {"post": binary}).value
-        import re
-        self.n = 0
-        if flags_b != 0:
-            self.n = 1
-            if re.match("^Batrope", name) != None:
-                self.n = 3
-            elif re.match("^Homing", name) != None:
-                self.n = 2
-            elif re.match("^Sheep", name) != None:
-                self.n = 5
-            elif re.match("^Network", name) != None:
-                self.n = 18
-        size = self.n * 12
-        if size != 0:
-            self.read("zero[]", "???", (FormatChunk, "string[%u]" % size))
-        self.x = self.doRead("x[]", "Offset X", (FormatChunk, "uint16")).value
-        self.y = self.doRead("y[]", "Offset Y", (FormatChunk, "uint16")).value
-        self.width = self.doRead("width[]", "Width", (FormatChunk, "uint16")).value
-        self.height = self.doRead("height[]", "Height", (FormatChunk, "uint16")).value
-        self.count = self.doRead("count", "Item count", (FormatChunk, "uint16")).value
-#        for i in range(0, self.count):
-#            self.read("item[]", "Item", (SpriteItem,))
+
+        if False:
+            self.read("n", "Type?", (FormatChunk, "uint8"))
+            self.read("zero[]", "???", (FormatChunk, "string[9]"))
+            self.read("flags_a", "???", (FormatChunk, "uint16"), {"post": binary})
+            self.read("zero[]", "???", (FormatChunk, "uint16"))
+            flags_b = self.doRead("flags_b", "???", (FormatChunk, "uint16"), {"post": binary}).value
+            for i in range(0, self["n"]-1):
+                self.read("mysterious[]", "Mysterious header", (MysteriousHeader,))
+        else:
+            self.read("n", "Type?", (FormatChunk, "uint16"))
+            self.read("m", "Type?", (FormatChunk, "uint16"))
+            for i in range(0, self["n"]):
+                self.read("mysterious[]", "Mysterious header", (MysteriousHeader,))
+            
+        self.read("x", "Offset X", (FormatChunk, "uint16"))
+        self.read("y", "Offset Y", (FormatChunk, "uint16"))
+        self.read("width", "Width", (FormatChunk, "uint16"))
+        self.read("height", "Height", (FormatChunk, "uint16"))
+        self.read("count", "Frame count", (FormatChunk, "uint16"))
+        for i in range(0, self["count"]):
+            self.read("item[]", "Frame", (SpriteFrame,))
         if False:            
-            real_width = self.width - self.x
-            real_height = self.height - self.y
+            real_width = self["width"] - self["x"]
+            real_height = self["height"] - self["y"]
             size = real_width * real_height
             if size <= (stream.getLastPos() - stream.tell()):
                 self.read("image_data[]", "Data (%ux%u pixels)" % (real_width, real_height), (FormatChunk, "string[%u]" % size))
-        elif False:                
-            size = stream.getLastPos() - stream.tell()
-            self.read("raw", "Raw data", (FormatChunk, "string[%u]" % size))
         self.addPadding()
 
     def updateParent(self, chunk):            
-        if self.count is not None:
-            chunk.description = "Animation: n=%u, %ux%u pixels, %u frame(s)" % \
-                (self.n, self.width, self.height, self.count)
-        else:                
-            chunk.description = "Sprite: %ux%u pixels" % \
-                (self.width, self.height)
+        chunk.description = "Animation: %ux%u pixels, %u mysterious, %u frame(s)" % \
+            (self["width"], self["height"], self["n"], self["count"])
 
 class Font(OnDemandFilter):
     def __init__(self, stream, parent):
         OnDemandFilter.__init__(self, "font", "Font", stream, parent, "<")
         self.read("palette", "Palette", (Palette, 81))
 
-        size = 261 
-        # TODO: Decode header
-        self.read("header", "Header !?", (FormatChunk, "string[%u]" % size))
+        self.read("header116", "Header 116", (FormatChunk, "uint8"))
 
-        self.nb_characters = 0
-#        while 2*4 < (stream.getLastPos() - stream.tell() + 1):
-        for i in range(0, 160):
-            id = self.read("image[]", "Image", (ImageData,))
-            if self.nb_characters == 0:
-                image = self[id]
-                self.width = image.width
-                self.height = image.height
-            self.nb_characters += 1
+        #--- Ugly header ---
+        size = 32+2-1
+        self.read("zero[]", "???", (FormatChunk, "string[%u]" % size))
+        size = 32 
+        self.read("charset", "???", (FormatChunk, "string[%u]" % size))
+        size = 25+2-1 
+        self.read("iter", "???", (FormatChunk, "string[%u]" % size))
+        size = 6 
+        self.read("charset2", "???", (FormatChunk, "string[%u]" % size))
+        size = 6
+        self.read("iter2", "???", (FormatChunk, "string[%u]" % size))
+        size = 24
+        self.read("charset3", "???", (FormatChunk, "string[%u]" % size))
+        size = 32
+        self.read("zero", "???", (FormatChunk, "string[%u]" % size))
+        self.read("a", "???", (FormatChunk, "uint16"))
+        self.read("b", "???", (FormatChunk, "uint16"))
+        self.read("c", "???", (FormatChunk, "uint16"))
+        size = 27
+        self.read("zero", "???", (FormatChunk, "string[%u]" % size))
+        size = 64 
+        self.read("charset4", "???", (StringChunk, "Fixed"), {"size": size, "charset": "iso-8859-1"})
+        self.read("d", "???", (FormatChunk, "uint16"))
+
+        # Read images
+        self.read("nb_char", "Number of characters", (FormatChunk, "uint16"))
+        for i in range(0, self["nb_char"]):
+            self.read("image[]", "Image", (ImageData,))
+
+        # Get image size
+        image = self["image[0]"]
+        self.width = image.width
+        self.height = image.height
         self.addPadding()
 
     def updateParent(self, chunk):
         chunk.description = "Font: %ux%u pixels, %u characters" \
-            % (self.width, self.height, self.nb_characters)
+            % (self.width, self.height, self["nb_char"])
 
 class Resource(OnDemandFilter):
     name = {

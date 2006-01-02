@@ -146,10 +146,11 @@ class StringChunk(Chunk):
         "AutoLine": "line",
         "Pascal16": "pascal16",
         "Pascal32": "pascal32",
-        "WindowsLine": "windows line"
+        "WindowsLine": "windows line",
+        "Fixed": "fixed"
     }
 
-    def __init__(self, id, description, stream, str_type, parent, strip=None, charset="ascii"):
+    def __init__(self, id, description, stream, str_type, parent, strip=None, charset="ascii", size=None):
         """
         Strip: if strip=None, call read text.strip()
                if strip is a string, call read text.strip(self.strip)
@@ -158,7 +159,7 @@ class StringChunk(Chunk):
         Chunk.__init__(self, id, description, stream, stream.tell(), 0, parent)
         self._str_type = str_type
         self.eol = None
-        self._findSize()
+        self._findSize(size)
         self.strip = strip
         self.charset = charset
 
@@ -168,9 +169,13 @@ class StringChunk(Chunk):
             self.charset)
     getSmallFormat = getFormat
 
-    def _findSize(self):
+    def _findSize(self, size):
         self._stream.seek(self.addr)
-        if self._str_type == "Pascal16":
+        if self._str_type == "Fixed":
+            self.length = size 
+            self._size = size
+            self.eol = ""
+        elif self._str_type == "Pascal16":
             self.length = self._stream.getFormat("!uint16")
             self._size = 2 + self.length
             self.eol = ""
