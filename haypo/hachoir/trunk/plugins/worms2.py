@@ -23,7 +23,8 @@ class ImageData(OnDemandFilter):
         self.width = self.doRead("width", "Width", (FormatChunk, "uint16")).value
         self.height = self.doRead("height", "Height", (FormatChunk, "uint16")).value
         size = (self.width-self.x) * (self.height-self.y)
-        self.read("data", "Image content", (FormatChunk, "string[%u]" % size))
+#        self.read("data", "Image content", (FormatChunk, "string[%u]" % size))
+        self.addPadding()
 
     def getStaticSize(stream, args):
         oldpos = stream.tell()
@@ -41,7 +42,6 @@ class ImageData(OnDemandFilter):
 class Image(OnDemandFilter):
     def __init__(self, stream, parent):
         OnDemandFilter.__init__(self, "image", "Image", stream, parent, "<")
-        self.read("padding", "Padding", (FormatChunk, "uint8"))
         self.read("width", "Width", (FormatChunk, "uint16"))
         self.read("height", "Height", (FormatChunk, "uint16"))
         size = self["width"] * self["height"]
@@ -85,9 +85,6 @@ class Sprite(OnDemandFilter):
     def __init__(self, stream, parent):
         OnDemandFilter.__init__(self, "sprite", "Sprite", stream, parent, "<")
         name = parent.name
-        self.read("header116", "Header 116", (FormatChunk, "uint8"))
-        assert self["header116"] == 116 
-
         if False:
             self.read("n", "Type?", (FormatChunk, "uint8"))
             self.read("zero[]", "???", (FormatChunk, "string[9]"))
@@ -125,12 +122,10 @@ class Font(OnDemandFilter):
     def __init__(self, stream, parent):
         OnDemandFilter.__init__(self, "font", "Font", stream, parent, "<")
 
-        self.read("header116", "Header 116", (FormatChunk, "uint8"))
-
         #--- Ugly header ---
         size = 33
         self.read("zero[]", "???", (FormatChunk, "string[%u]" % size))
-        size = 256 - stream.tell()
+        size = 255 - stream.tell()
         self.read("xxx", "???", (FormatChunk, "string[%u]" % size))
         self.read("nb_char8bit", "???", (FormatChunk, "uint8"))
         self.read("align", "Next factor of four to height?", (FormatChunk, "uint16"))
@@ -174,10 +169,12 @@ class Resource(OnDemandFilter):
             self.name = self.doRead("name", "Name", (StringChunk, "C")).value
             
             size = pos + size + 1 - stream.tell()
+            self.read("bpp", "Bits / pixel", (FormatChunk, "uint8"))
+            self.read("xxx", "???", (FormatChunk, "uint8"))
+            nb_color = self.doRead("nb_color", "Number of colors", (FormatChunk, "uint16")).value
+            self.read("palette", "Palette", (Palette, nb_color))
+            size -= (4 + nb_color*3)
             if self.tag in Resource.handler:
-                self.read("palette", "Palette", (Palette, 81))
-                size = size-81*3
-                #sub = stream.createLimited(size=size)
                 sub = stream.createSub(size=size)
                 self.read("data", "Data", (Resource.handler[self.tag],), {"stream": sub})
             else:
