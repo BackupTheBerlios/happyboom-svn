@@ -41,7 +41,6 @@ class ImageData(OnDemandFilter):
 class Image(OnDemandFilter):
     def __init__(self, stream, parent):
         OnDemandFilter.__init__(self, "image", "Image", stream, parent, "<")
-        self.read("palette", "Palette", (Palette, 81))
         self.read("padding", "Padding", (FormatChunk, "uint8"))
         self.read("width", "Width", (FormatChunk, "uint16"))
         self.read("height", "Height", (FormatChunk, "uint16"))
@@ -86,7 +85,6 @@ class Sprite(OnDemandFilter):
     def __init__(self, stream, parent):
         OnDemandFilter.__init__(self, "sprite", "Sprite", stream, parent, "<")
         name = parent.name
-        self.read("palette", "Palette", (Palette, 81))
         self.read("header116", "Header 116", (FormatChunk, "uint8"))
         assert self["header116"] == 116 
 
@@ -100,7 +98,7 @@ class Sprite(OnDemandFilter):
                 self.read("mysterious[]", "Mysterious header", (MysteriousHeader,))
         else:
             self.read("n", "Type?", (FormatChunk, "uint16"))
-            self.read("m", "Type?", (FormatChunk, "uint16"))
+            self.read("zero", "Zero?", (FormatChunk, "uint16"))
             for i in range(0, self["n"]):
                 self.read("mysterious[]", "Mysterious header", (MysteriousHeader,))
             
@@ -126,33 +124,16 @@ class Sprite(OnDemandFilter):
 class Font(OnDemandFilter):
     def __init__(self, stream, parent):
         OnDemandFilter.__init__(self, "font", "Font", stream, parent, "<")
-        self.read("palette", "Palette", (Palette, 81))
 
         self.read("header116", "Header 116", (FormatChunk, "uint8"))
 
         #--- Ugly header ---
-        size = 32+2-1
+        size = 33
         self.read("zero[]", "???", (FormatChunk, "string[%u]" % size))
-        size = 32 
-        self.read("charset", "???", (FormatChunk, "string[%u]" % size))
-        size = 25+2-1 
-        self.read("iter", "???", (FormatChunk, "string[%u]" % size))
-        size = 6 
-        self.read("charset2", "???", (FormatChunk, "string[%u]" % size))
-        size = 6
-        self.read("iter2", "???", (FormatChunk, "string[%u]" % size))
-        size = 24
-        self.read("charset3", "???", (FormatChunk, "string[%u]" % size))
-        size = 32
-        self.read("zero", "???", (FormatChunk, "string[%u]" % size))
-        self.read("a", "???", (FormatChunk, "uint16"))
-        self.read("b", "???", (FormatChunk, "uint16"))
-        self.read("c", "???", (FormatChunk, "uint16"))
-        size = 27
-        self.read("zero", "???", (FormatChunk, "string[%u]" % size))
-        size = 64 
-        self.read("charset4", "???", (StringChunk, "Fixed"), {"size": size, "charset": "iso-8859-1"})
-        self.read("d", "???", (FormatChunk, "uint16"))
+        size = 256 - stream.tell()
+        self.read("xxx", "???", (FormatChunk, "string[%u]" % size))
+        self.read("nb_char8bit", "???", (FormatChunk, "uint8"))
+        self.read("align", "Next factor of four to height?", (FormatChunk, "uint16"))
 
         # Read images
         self.read("nb_char", "Number of characters", (FormatChunk, "uint16"))
@@ -194,6 +175,8 @@ class Resource(OnDemandFilter):
             
             size = pos + size + 1 - stream.tell()
             if self.tag in Resource.handler:
+                self.read("palette", "Palette", (Palette, 81))
+                size = size-81*3
                 #sub = stream.createLimited(size=size)
                 sub = stream.createSub(size=size)
                 self.read("data", "Data", (Resource.handler[self.tag],), {"stream": sub})

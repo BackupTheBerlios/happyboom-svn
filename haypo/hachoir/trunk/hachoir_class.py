@@ -131,7 +131,7 @@ class Hachoir:
             compiled = compile(script, self.script, 'exec')
             exec compiled
         except Exception, msg:
-            error("Exception while loading script \"%s\":\n%s\n%s" \
+            error("Exception while loading script \"%s\":\n%s" \
                 % (filename, msg))
 
     def run(self, filename):

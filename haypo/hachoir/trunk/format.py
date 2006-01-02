@@ -79,6 +79,10 @@ def formatIsInteger(format):
     cache = FormatCache.getInstance()[format]
     return cache[3] in "bBhHlL"
 
+def getFormatEndian(format):
+    cache = FormatCache.getInstance()[format]
+    return cache[1]   
+
 def getFormatSize(format):
     cache = FormatCache.getInstance()[format]
     return cache[4]   

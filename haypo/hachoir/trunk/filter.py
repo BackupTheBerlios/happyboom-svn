@@ -99,7 +99,7 @@ class BasicFilter(object):
 
     def addPadding(self):
         size = self._stream.getLastPos() - self._stream.tell()
-        if size != 0:
+        if 0 < size:
             self.read("end", "Raw end", (FormatChunk, "string[%u]" % size))
 
     # --- Pure virtual methods -----------

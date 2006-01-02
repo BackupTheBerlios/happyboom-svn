@@ -1,10 +1,58 @@
 from stream.file import FileStream
 from plugins.worms2 import Worms2_Dir_File
 from plugins.gzip import GzipFile
-from format import getFormatSize
+from format import getFormatSize, getFormatEndian
 from bits import countBits, long2bin, str2hex
+from error import error, warning
+from chunk import FormatChunk
+from default import EmptyFilter
+import config
 import sys
 
+class Pattern:
+    def check(self, stream):
+        return False
+    
+class FirstPattern(Pattern):
+    def __init__(self, header_size, chunk_size_format, chunk_size_delta):
+        self.header_size = header_size
+        self.chunk_size_format = chunk_size_format
+        self.chunk_size_delta = chunk_size_delta
+
+    def check(self, stream, min_ok=2):
+        count, done = self._createFilter(stream, True)
+        return done or min_ok <= count
+
+    def testFilter(self, stream):
+        return self._createFilter(stream, False)
+        
+    def _createFilter(self, stream, check):
+        count = 0
+        done = False
+        try:
+            stream.seek(0)
+            filter = EmptyFilter(stream, None)
+            if 0 < self.header_size:
+                filter.read("header", "Header", (FormatChunk, "string[%u]" % self.header_size))
+            last_ok = stream.tell()                
+            while not stream.eof():
+                last_ok = stream.tell()                
+                size = filter.doRead("chunk_size[]", "Chunk size", (FormatChunk, self.chunk_size_format)).value
+                size += self.chunk_size_delta
+                filter.read("chunk_data[]", "Chunk data", (FormatChunk, "string[%u]" % size))
+                count = count + 1
+            last_ok = stream.tell()                
+            done = True
+        except Exception, msg:
+            if config.debug:
+                warning("Error when testing a pattern: %s" % msg)
+        if check:
+            return (count, done) 
+        else:
+            stream.seek(last_ok)
+            filter.addPadding()
+            return filter
+        
 class IntValues:
     def __init__(self, data=None):
         self.items = None
@@ -110,15 +158,25 @@ class IntValues:
                 item = self.items[index]
                 if item == new:
                     return
-                if new < item:
+                if isinstance(item, int) and new < item:
                     self.items.insert(index-1, new)
                     return
- #               if isinstance(item, tuple):
-#                    ...
+                if isinstance(item, tuple) and (new-item[1])==1:
+                    self.items[index] = (item[0], new)
+                    return
+
+            # Can create an interval?
+            item = self.items[-1]
+            if isinstance(item, int) and (new-item) == 1:
+                self.items[-1] = (item, new)
+                return
+
             if isinstance(new, list):
+                # Extend current vector
                 for item in new:
                     self.add(item)
             else:
+                # Just append value to vector
                 self.items.append(new)
         elif self.items != None:        
             if isinstance(self.items, int) and isinstance(new, int):
@@ -137,15 +195,19 @@ class IntValues:
         first = set( self.values() ) 
         second = set( second.values() )
         result = first.intersection(second)
-        result = list(result)
+        if 0 < len(result):
+            result = list(result)
+        else:
+            result = None
         return IntValues(result)
 
 class Field:
-    def __init__(self, id):
+    def __init__(self, id, type):
         self.id = id    
         self.values = {}
         self.values_list = {}
         self.streams = {}
+        self.type = type
 
     def getStreamsByValue(self, value):
         return self.streams.get(hash(value), [])
@@ -163,8 +225,7 @@ class Field:
         return self.values_list.values()
 
     def addValue(self, stream, value):
-        if not isinstance(value, IntValues):
-            value = IntValues(value)
+        assert type(value) == self.type
         self.values[stream] = value
         if hash(value) not in self.streams:
             self.streams[hash(value)] = []
@@ -176,31 +237,6 @@ class Reverse:
     def __init__(self):
         self.fields = {}
         self.streams = []
-        
-        # Feeded after analyse
-        self.started = False
-        self.min_size, self.max_size = None, None
-        self.data_range = None
-        self.cst_list = None
-        self.data_list = None
-
-    def _initAnalyse(self, data_range):
-        if self.started:
-            assert data_range == self.data_range
-            return
-        assert 0 < len(self.streams)
-        self.started = True        
-        self.data_range = data_range
-
-        # Find mimimum/maximum stream size
-        self.min_size = self.max_size = self.streams[0].getSize()
-        for stream in self.streams[1:]:
-            size = stream.getSize()
-            if size < self.min_size:
-                self.min_size = size
-            if size > self.max_size:
-                self.max_size = size            
-        assert 1 <= self.min_size                
 
     def _findConstant(self, streams, data_range):
         assert 2 <= len(streams)
@@ -267,33 +303,17 @@ class Reverse:
             data = " ".join(data)
             print "Data %u: %s" % (addr, data)
 
-    def OLDfindField(self, id, data_range):
-        self.cst_list, self.data_list = self._findConstant(self.streams, data_range)
-        field = self.fields[id]
-        values = field.getValues()
-        addr = IntValues()
-        possible_addr = self.data_list
-        first = True
-        for value in values:
-            streams = field.getStreamsByValue(value)
-            if 1<len(streams):
-                cst_list, data_list = self._findConstant(streams, self.data_list)
-            else:
-                cst_list = self.data_list
-            if first:
-                addr.add(cst_list)
-                first = False
-            else:
-                addr = addr.intersection(cst_list)
-            if addr.isEmpty():
-                break            
-        return (addr, possible_addr)
-
-    def findInteger(self, stream, value, range, size_bits):
+    def findInteger(self, stream, value, range, size_bits, endian=None):
         assert size_bits <= 32
-        formats = ["<uint32", ">uint32"]
+        if endian == None:
+            formats = ["<uint32", ">uint32"]
+        else:            
+            formats = [endian+"uint32"]
         if size_bits <= 16:
-            formats.extend(["<uint16", ">uint16"])
+            if endian == None:
+                formats.extend(["<uint16", ">uint16"])
+            else:
+                formats.append(endian+"uint16")
         if size_bits <= 8:
             formats.append("uint8")
         ok = IntValues()
@@ -306,8 +326,50 @@ class Reverse:
                     read = int( stream.getFormat(format, False) )
                     if value.hasValue(read):
                         ok.add(addr)
-                        break
-        return ok                    
+        return ok       
+
+    def guessPattern(self, stream, min_ok):
+        """
+        Try differents parameters to obtain pattern like:
+           (header, size1, data1, size2, data2, ...)
+        
+        Notes:
+        - header is optionnal
+        - sizes may be shifted (ex: size+4) to get data size
+        """
+        filter = self.guessPatternFormat(stream, "<uint32", min_ok)
+        if filter == None:
+            filter = self.guessPatternFormat(stream, ">uint32", min_ok)
+        if filter == None:
+            filter = self.guessPatternFormat(stream, "<uint16", min_ok)
+        if filter == None:
+            filter = self.guessPatternFormat(stream, ">uint16", min_ok)
+        return filter            
+
+    def guessPatternFormat(self, stream, chunk_size_format, min_ok):
+        """
+        See guessPattern().
+        """
+        # Config
+        max_header_size = 64 
+        chunk_size_deltas = IntValues((-20,20))
+
+        # Find possible header sizes
+        range = IntValues((0, max_header_size))
+        size_bits = getFormatSize(chunk_size_format)*8
+        value = IntValues((0, stream.getSize() - size_bits/8))
+        endian = getFormatEndian(chunk_size_format)
+        header_sizes = self.findInteger(stream, value, range, size_bits, endian)
+        print "Possible header sizes: %s" % header_sizes
+
+        # Find chunk size delta
+        for header_size in header_sizes.values():
+            for chunk_size_delta in chunk_size_deltas.values(): 
+                # Try a pattern ...
+                pattern = FirstPattern(header_size, chunk_size_format, chunk_size_delta)
+                if pattern.check(stream, min_ok):
+                    print "Found filter -> header size=%s, chunk size delta=%s (format \"%s\")" % (header_size, chunk_size_delta, chunk_size_format)
+                    return pattern.testFilter(stream)
 
     def findField(self, id, data_range):
         field = self.fields[id]
@@ -320,130 +382,15 @@ class Reverse:
             value = field.getValueByStream(stream)
             addr = self.findInteger(stream, value, data_range, size_bits)
             ok = ok.intersection(addr)
+            if ok.isEmpty():
+                break
             i += 1
         return ok            
 
     def addSource(self, stream, fields={}):
-        assert not self.started
         self.streams.append(stream)
         for id in fields:
+            value = fields[id]
             if id not in self.fields:
-                self.fields[id] = Field(id)
-            self.fields[id].addValue(stream, fields[id])
-
-def loadGZ(filename):
-    f = open(filename, 'r')
-    input = FileStream(f, filename)
-    return GzipFile(input, None) 
-
-def gzip_size():
-    reverse = Reverse()
-    for filename in sys.argv[1:]:
-        g = loadGZ(filename)
-        stream = g.getStream()
-        sub = stream.createSub(start=stream.getSize()-50)
-        size = int(g["size"])
-        size = IntValues( (size-30, size+30) )
-        reverse.addSource(sub, {"size": size})
-    header = IntValues( (0,49) )
-#    reverse.displayConstant(header)
-    addr = reverse.findField("size", header)
-    print "Address of field n: %s" % addr 
-
-def int16Bits(value):
-    v = []
-    for i in range(0,16):
-        mask = 1 << i
-        if (value & mask) == mask:
-            v.append(1)
-        else:
-            v.append(0)  
-    return v
-
-def guessBits(d):    
-    for n in d:
-        val = d[n]
-        data = val[0]
-        print "====== n=%u, data set=%u items" % (n, len(val))
-        if 1<len(val):
-            for i in range(0, 11):
-                cst = True
-                for bits in val[1:]:
-                    if bits[i] != data[i]:
-                        cst = False
-                        break
-                if cst:
-                    print "bit %u: const=%s" % (i, data[i])
-        else:
-            print "(not enough data)"
-   
-def worms2_sprite(res):    
-    #sprite_range = IntValues( (0,73) )
-    #sprite_range = IntValues( (0,100) )
-    sprite_range = IntValues( (0,100) )
-    d = {}
-    for i in sprite_range.values():
-        sprite = res["res[%u]" % i]["data"]
-        flags = sprite["flags_b"]
-        w,h = sprite["width[0]"],sprite["height[0]"]
-        if w < 10 or 1000<w or h<10 or 1000<h:
-            print "res[%u] errone" % i
-        else:
-            n = sprite.n
-            stream = sprite.getStream()
-            stream.seek(81*3+1) ; m = stream.getFormat("uint8")-1
-            #stream.seek(258) ;  data = stream.getN(14)
-            stream.seek(81*3) ;  data = stream.getN(272-243)
-            if n not in d:
-                d[n] = []
-#            d[n].append( (sprite["type"],int16Bits(flags),sprite["width[0]"],sprite["height[0]"],i) )
-            d[n].append( (i, m, data) )
-#    guessBits(d)        
-#    return
-        
-    for n in d:
-        print "======== %s =========" % n
-        for data in d[n]:
-            print "% 3s] n=% 2s m=% 2s %s" % (data[0], n, data[1], str2hex(data[2]))
-#            xxx = "".join(map(str,bits[1]))
-#            print "%s] %s (%ux%u), id=res[%u]" % (bits[0], xxx, bits[2], bits[3], bits[4])
-
-def worms2_n(res):
-    reverse = Reverse()
-    sprite_range = IntValues( (0,72) )
-    for i in sprite_range.values():
-        sprite = res["res[%u]" % i]["data"]
-        #stream = sprite.getStream().createSub(start=sprite.getAddr(), size=sprite.getSize())
-        reverse.addSource(stream, {"n": sprite.n})
-    header = IntValues( (243, 258) )
-    print "Find field in range %s" % header
-#    reverse.displayData(header)        
-#     reverse.displayConstant(header)
-    addr = reverse.findField("n", header)
-    print "Address of field n: %s\n(or in %s)" % (addr[0], addr[1])
-
-def worms2_font(res):
-    reverse = Reverse()
-    sprite_range = IntValues( (713,739) )
-    for i in sprite_range.values():
-        font = res["res[%u]" % i]["data"]
-        reverse.addSource(font.getStream(), {"nb": font["nb_char"]})
-    header = IntValues( (0, 600) )
-    print "Find field in range %s" % header
-#    reverse.displayData(header)        
-#     reverse.displayConstant(header)
-    addr = reverse.findField("nb", header)
-    print "Address of field n: %s" % (addr)
-#    print "Address of field n: %s\n(or in %s)" % (addr[0], addr[1])
-
-def worms2():
-    f = open('/home/haypo/worms/Gfx.dir', 'r')
-    input = FileStream(f, None)
-    res = Worms2_Dir_File(input, None)["resources"]
-#    worms2_sprite(res)
-#    worms2_n(res)
-    worms2_font(res)
- 
-if __name__=="__main__":
-    worms2()
-#    gzip_size()
+                self.fields[id] = Field(id, type(value))
+            self.fields[id].addValue(stream, value)
