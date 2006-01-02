@@ -21,7 +21,7 @@ def usage(defval):
     print "Usage: %s [options] file" % (sys.argv[0])
     print ""
     print "Options:"
-    print "\t--script file.py  : Load python script"
+    print "\t--script file.py  : Load python script after loading file (if any specified)"
     print "\t--no-ui           : Don't load user interface"
     print "\t--use-profiler    : Use profiler"
     print "\t--version         : Show the program version"

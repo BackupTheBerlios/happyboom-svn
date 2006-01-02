@@ -371,16 +371,17 @@ class Reverse:
                     print "Found filter -> header size=%s, chunk size delta=%s (format \"%s\")" % (header_size, chunk_size_delta, chunk_size_format)
                     return pattern.testFilter(stream)
 
-    def findField(self, id, data_range):
+    def findField(self, id, data_range, size_bits=None, endian=None):
         field = self.fields[id]
         ok = data_range
-        size_bits = field.getBitSize()
+        if size_bits == None:
+            size_bits = field.getBitSize()
         print "Find integer field \"%s\" (at least %u bits long) ..." % (id, size_bits)
         i = 1
         for stream in self.streams:
             print "  find in stream %u/%u ..." % (i, len(self.streams))
             value = field.getValueByStream(stream)
-            addr = self.findInteger(stream, value, data_range, size_bits)
+            addr = self.findInteger(stream, value, data_range, size_bits, endian)
             ok = ok.intersection(addr)
             if ok.isEmpty():
                 break
@@ -391,6 +392,8 @@ class Reverse:
         self.streams.append(stream)
         for id in fields:
             value = fields[id]
+            if isinstance(value, int) or isinstance(value, tuple):
+                value = IntValues(value)
             if id not in self.fields:
                 self.fields[id] = Field(id, type(value))
             self.fields[id].addValue(stream, value)

@@ -185,13 +185,15 @@ class LimitedStream(Stream):
         return self._seed
 
     def seek(self, pos, where=0):
+        oldpos = pos
         if where == 2:
             pos = self.getLastPos() - pos
         elif where == 0:
             pos = pos
         elif where == 1:
             pos = self._seed + pos
-        assert self._start <= pos and pos <= self._end
+        if not(self._start <= pos and pos <= self._end):
+            raise StreamError("Error in a limited stream: can't seek to (%i,%u)." % (oldpos, where))
         self._seed = pos
         
     def getSize(self):
@@ -216,13 +218,15 @@ class SubStream(LimitedStream):
         return pos
                
     def seek(self, pos, where=0):
+        oldpos = pos
         if where == 2:
             pos = self.getLastPos() - pos
         elif where == 0:
             pos = self._start + pos
         elif where == 1:
             pos = self._seed + pos
-        assert self._start <= pos and pos <= self._end
+        if not(self._start <= pos and pos <= self._end):
+            raise StreamError("Error in a sub-stream: can't seek to (%i,%u)." % (oldpos, where))
         self._seed = pos
 
     def tell(self):

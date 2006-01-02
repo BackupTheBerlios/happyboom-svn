@@ -15,7 +15,7 @@ class JpegChunkApp0(OnDemandFilter):
         self.read("jfif", "JFIF string", (FormatChunk, "string[5]"))
         self.read("ver_maj", "Major version", (FormatChunk, "uint8"))
         self.read("ver_min", "Minor version", (FormatChunk, "uint8"))
-        self.read("units", "Units (=0)", (FormatChunk, "uint8"))
+        self.read("units", "Units", (FormatChunk, "uint8"))
         if self["units"] == 0:
             self.read("aspect_x", "Aspect ratio (X)", (FormatChunk, "uint16"))
             self.read("aspect_y", "Aspect ratio (Y)", (FormatChunk, "uint16"))

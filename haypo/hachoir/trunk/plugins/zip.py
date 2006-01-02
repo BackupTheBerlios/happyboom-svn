@@ -12,6 +12,8 @@ from chunk import FormatChunk, StringChunk, BitsChunk, BitsStruct, EnumChunk
 from error import error
 from text_handler import humanFilesize, hexadecimal, msdosDatetime
 
+# TODO: Merge ZipCentralDirectory and FileEntry (looks very similar)
+
 class ZipCentralDirectory(OnDemandFilter):
     def __init__(self, stream, parent):
         OnDemandFilter.__init__(self, "zip_central_dir", "ZIP central directory", stream, parent, "<")
@@ -77,11 +79,9 @@ class FileEntry(OnDemandFilter):
             (6, "unused", "Unused bits"),
             (4, "pkware", "Reserved by PKWARE"))
         flags = self.doRead("flags", "Flags", (BitsChunk, BitsStruct(bits)))
-#        self.read("flags", "Flags", (FormatChunk, "uint16"))
         self.read("compression", "Compression method", (EnumChunk, "uint16", FileEntry.compression_name))
-        self.read("last_mod_time", "Last modification time", (FormatChunk, "uint16"))
-        self.read("last_mod_date", "Last modification date", (FormatChunk, "uint16"))
-        self.read("crc32", "Checksum (CRC32)", (FormatChunk, "uint32"))
+        self.read("last_mod", "Last modification time", (FormatChunk, "uint32"), {"post": msdosDatetime})
+        self.read("crc32", "Checksum (CRC32)", (FormatChunk, "uint32"), {"post": hexadecimal})
         self.read("compressed_size", "Compressed size (bytes)", (FormatChunk, "uint32"), {"post": humanFilesize})
         self.read("uncompressed_size", "Uncompressed size (bytes)", (FormatChunk, "uint32"), {"post": humanFilesize})
         self.read("filename_length", "Filename length", (FormatChunk, "uint16"))
@@ -90,9 +90,9 @@ class FileEntry(OnDemandFilter):
         self.read("extra", "Extra", (FormatChunk, "string[%u]" % self["extra_length"]))
         self.read("compressed_data", "Compressed data", (FormatChunk, "string[%u]" % self["compressed_size"]))
         if flags["use_data_desc"]:
-            self.read("file_crc32", "Checksum (CRC32)", (FormatChunk, "uint32"))
-            self.read("file_compressed_size", "Compressed size (bytes)", (FormatChunk, "uint32"))
-            self.read("file_uncompressed_size", "Uncompressed size (bytes)", (FormatChunk, "uint32"))
+            self.read("file_crc32", "Checksum (CRC32)", (FormatChunk, "uint32"), {"post": hexadecimal})
+            self.read("file_compressed_size", "Compressed size (bytes)", (FormatChunk, "uint32"), {"post": humanFilesize})
+            self.read("file_uncompressed_size", "Uncompressed size (bytes)", (FormatChunk, "uint32"), {"post": humanFilesize})
 
     def updateParent(self, chunk):
         size = self.getChunk("compressed_size").display

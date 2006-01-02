@@ -36,6 +36,9 @@ class ExifEntry(OnDemandFilter):
         10: "SRATIONTAL (two SLONGs)"
     }
 
+    OFFSET_JPEG_SOI = 0x0201
+    EXIF_IFD_POINTER = 0x8769
+
     tag_name = {    
         0x0100: "Image width",
         0x0101: "Image height",
@@ -167,8 +170,10 @@ class ExifIFD(OnDemandFilter):
             if next in (0, 0xF0000000):
                 break
             entry = self.doRead("entry[]", "Entry", (ExifEntry, self._endian))
-            if entry["tag"] in (0x8769, 0x0201):
+            if entry["tag"] in (ExifEntry.EXIF_IFD_POINTER, ExifEntry.OFFSET_JPEG_SOI):
                 next_chunk_offset = entry["value"]+offset_diff
+                if entry["tag"] == ExifEntry.OFFSET_JPEG_SOI:
+                   parent.jpeg_soi = next_chunk_offset
                 break
             if 4 < entry.size:
                 entries.append(entry)
@@ -180,11 +185,17 @@ class ExifIFD(OnDemandFilter):
             if 0 < padding:
                 self.read("padding[]", "Padding (?)", (FormatChunk, "string[%u]" % padding))
             assert offset == stream.tell()
-            self.read("entry_value[]", "Value of %s" % entry.getId(), (FormatChunk, entry.format))
+            id = self.read("entry_value[]", "Value of %s" % entry.getId(), (FormatChunk, entry.format))
         if next_chunk_offset != None:
             padding = next_chunk_offset - stream.tell()
             if 0 < padding:
                 self.read("padding[]", "Padding", (FormatChunk, "string[%u]" % padding))
+        size = self.getSize()
+        if (size % 4) != 0:
+            if parent.jpeg_soi != None and parent.jpeg_soi <= stream.tell():
+                return
+            padding = 4 - (size % 4)
+            self.read("padding[]", "Padding to be aligned to 4", (FormatChunk, "string[%u]" % padding))
 
     def updateParent(self, chunk):
         chunk.description = "Exif IFD (id %s)" % self["id"]
@@ -194,6 +205,7 @@ class ExifFilter(OnDemandFilter):
         OnDemandFilter.__init__(self, "exif", "Exif", stream, parent, None)
 
         # Headers
+        self.jpeg_soi = None
         self.read("header", "Header (Exif\\0\\0)", (FormatChunk, "string[6]"))
         assert self["header"] == "Exif\0\0"
         self.read("byte_order", "Byte order", (FormatChunk, "string[2]"))
@@ -215,8 +227,6 @@ class ExifFilter(OnDemandFilter):
                 break
             elif tag == 0xFFFF:
                 break
-            id = self.read("ifd[]", "IFD", (ExifIFD, self._endian, 6))
-        size = stream.getSize() - stream.tell()
-        if 0 < size:
-            self.read("end", "End", (FormatChunk, "string[%u]" % size))
+            self.read("ifd[]", "IFD", (ExifIFD, self._endian, 6))
+        self.addPadding()            
         assert self.getSize() == stream.getSize()
