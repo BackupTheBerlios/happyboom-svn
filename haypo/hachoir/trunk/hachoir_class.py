@@ -21,6 +21,9 @@ class Hachoir:
         self.script = None
         self.load_ui = True
 
+    def getMainFilter(self):
+        return self._main_filter
+
     def getFilter(self):
         return self._filter
 
@@ -135,10 +138,10 @@ class Hachoir:
                 % (filename, msg))
 
     def run(self, filename):
+        if filename != None:
+            self.loadFile(filename)
         if self.script:
             self.loadScript(self.script)
-        elif filename != None:
-            self.loadFile(filename)
         if self.load_ui:
             print "Run user interface ..."
             self.ui.run()      

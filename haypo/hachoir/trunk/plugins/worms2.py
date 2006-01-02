@@ -8,12 +8,9 @@ Author: Victor Stinner
 from plugin import registerPlugin 
 from filter import OnDemandFilter
 from plugin import registerPlugin
-from tools import humanFilesize
 from chunk import FormatChunk, StringChunk, EnumChunk, BitsChunk, BitsStruct
 from generic.image import Palette
-
-# Only for debug purpose
-from text_handler import binary
+from text_handler import humanFilesize
 
 class ImageData(OnDemandFilter):
     def __init__(self, stream, parent):
@@ -23,8 +20,7 @@ class ImageData(OnDemandFilter):
         self.width = self.doRead("width", "Width", (FormatChunk, "uint16")).value
         self.height = self.doRead("height", "Height", (FormatChunk, "uint16")).value
         size = (self.width-self.x) * (self.height-self.y)
-#        self.read("data", "Image content", (FormatChunk, "string[%u]" % size))
-        self.addPadding()
+        self.read("data", "Image content", (FormatChunk, "string[%u]" % size))
 
     def getStaticSize(stream, args):
         oldpos = stream.tell()
@@ -85,20 +81,10 @@ class Sprite(OnDemandFilter):
     def __init__(self, stream, parent):
         OnDemandFilter.__init__(self, "sprite", "Sprite", stream, parent, "<")
         name = parent.name
-        if False:
-            self.read("n", "Type?", (FormatChunk, "uint8"))
-            self.read("zero[]", "???", (FormatChunk, "string[9]"))
-            self.read("flags_a", "???", (FormatChunk, "uint16"), {"post": binary})
-            self.read("zero[]", "???", (FormatChunk, "uint16"))
-            flags_b = self.doRead("flags_b", "???", (FormatChunk, "uint16"), {"post": binary}).value
-            for i in range(0, self["n"]-1):
-                self.read("mysterious[]", "Mysterious header", (MysteriousHeader,))
-        else:
-            self.read("n", "Type?", (FormatChunk, "uint16"))
-            self.read("zero", "Zero?", (FormatChunk, "uint16"))
-            for i in range(0, self["n"]):
-                self.read("mysterious[]", "Mysterious header", (MysteriousHeader,))
-            
+        self.read("n", "Type?", (FormatChunk, "uint16"))
+        self.read("zero", "Zero?", (FormatChunk, "uint16"))
+        for i in range(0, self["n"]):
+            self.read("mysterious[]", "Mysterious header", (MysteriousHeader,))
         self.read("x", "Offset X", (FormatChunk, "uint16"))
         self.read("y", "Offset Y", (FormatChunk, "uint16"))
         self.read("width", "Width", (FormatChunk, "uint16"))
@@ -164,22 +150,31 @@ class Resource(OnDemandFilter):
         pos = stream.tell()
         self.tag = self.doRead("tag", "Type", (EnumChunk, "string[3]", Resource.name)).value
         self.read("tag_end", "Type end", (FormatChunk, "string[1]"))
-        size = self.doRead("size", "Size", (FormatChunk, "uint32")).value
         if self.tag != "DIR":
+            size = self.doRead("size", "Size", (FormatChunk, "uint32")).value
+            # Read resource name
             self.name = self.doRead("name", "Name", (StringChunk, "C")).value
+            size += (pos - stream.tell() + 1)
             
-            size = pos + size + 1 - stream.tell()
+            # Read informations about colors
             self.read("bpp", "Bits / pixel", (FormatChunk, "uint8"))
             self.read("xxx", "???", (FormatChunk, "uint8"))
             nb_color = self.doRead("nb_color", "Number of colors", (FormatChunk, "uint16")).value
             self.read("palette", "Palette", (Palette, nb_color))
-            size -= (4 + nb_color*3)
-            if self.tag in Resource.handler:
+            size -= (4 + nb_color*3 + 1)
+            
+            if self.tag in Resource.handler:    
+                # Data content handler
                 sub = stream.createSub(size=size)
                 self.read("data", "Data", (Resource.handler[self.tag],), {"stream": sub})
             else:
                 self.read("data", "Data", (FormatChunk, "string[%u]" % size))
+
+            # Separator
+            self.read("separator", "Separator (0x1A = 26)", (FormatChunk, "uint8"))
+            assert self["separator"] == 0x1A
         else:
+            self.read("filesize", "File size", (FormatChunk, "uint32"), {"post": humanFilesize})
             self.name = "(directory)"
             end = self.doRead("last_pos", "Last position", (FormatChunk, "uint32")).value
             while stream.tell() < end:
@@ -201,9 +196,7 @@ class Resource(OnDemandFilter):
         if self["tag"] != "DIR":
             chunk.description = "[%s] %s" % (self.name, self["data"].getDescription())
         else:
-            tag = self.getChunk("tag").getDisplayData()
-            size = humanFilesize(self["size"])
-            chunk.description = tag+": %s (size=%s)" % (self.name, size)
+            chunk.description = "Directory" 
 
 class Worms2_Dir_File(OnDemandFilter):
     def __init__(self, stream, parent):
