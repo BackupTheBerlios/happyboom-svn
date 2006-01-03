@@ -42,7 +42,7 @@ class Tachatter:
         self.encode_number = True
         self.encode_string = True
         self.encode_syntax = False 
-        self.mode = "words"
+        self.mode = "tachatte"
         self.eat_comments = False 
         self.eat_spaces = False 
         self.sort_thesaurus = False # most used names are shorter
@@ -352,7 +352,8 @@ def usage():
     print "Options :"
     print "\t--help            : Print this help"
     print "\t--version         : Print the software version"
-    print "\t--mode=MODE       : Mode (words, moo, tachatte, letter or shit)"
+    print "\t--mode=MODE       : Mode=words, moo, tachatte, letter or shit."
+    print "\t                    (default: tachatte)"
     print "\t--random          : Shuffle thesaurus (default: off)"
     print "\t--eat-comments    : Eat comments (default: off)"
     print "\t--eat-spaces      : Eat white spaces (default: off)"
