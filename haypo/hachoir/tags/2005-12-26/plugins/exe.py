@@ -107,7 +107,7 @@ class PE_OptionnalHeader(Filter):
         self.readArray("directories", PE_Directory, "PE directories", self.checkEndOfDir)
 
     def checkEndOfDir(self, stream, array, dir):
-        return len(array) == self.nb_directories
+        return len(array) == self["nb_directories"]
 
 class PE_Filter(Filter):
     def __init__(self, stream, parent):
@@ -181,7 +181,7 @@ class ExeFile(Filter):
             for section in self["pe_sections"]:
                 section = section.getFilter()
                 if section.name == ".rsrc":
-                    offset_res_section = section.file_offset
+                    offset_res_section = section["file_offset"]
                     self.getStream().seek( offset_res_section )
                     break
             if offset_res_section != None:
@@ -193,4 +193,4 @@ class ExeFile(Filter):
     def checkEndOfSections(self, stream, array, section):
         return len(array) == self["pe"]["nb_sections"]
 
-registerPlugin(ExeFile, "application/x-dosexec")
+registerPlugin(ExeFile, ["application/x-dosexec", "application/x-ms-dos-executable"])
