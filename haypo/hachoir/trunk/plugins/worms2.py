@@ -49,43 +49,47 @@ class Image(OnDemandFilter):
         chunk.description = "Image: %ux%u pixels" % \
             (self["width"], self["height"])
 
-class MysteriousHeader(OnDemandFilter):
+class Step(OnDemandFilter):
     def __init__(self, stream, parent):
         OnDemandFilter.__init__(self, "sprite_item", "Sprite item", stream, parent, "<")
         self.read("a", "???", (FormatChunk, "uint16"))
         self.read("b", "???", (FormatChunk, "uint16"))
         self.read("c", "???", (FormatChunk, "uint16"))
-        self.read("d", "???", (FormatChunk, "uint16"))
+        self.read("size", "Size in byte", (FormatChunk, "uint16"))
         self.read("e", "???", (FormatChunk, "uint16"))
-        self.read("f", "???", (FormatChunk, "uint16"))
+        self.read("f1", "???", (FormatChunk, "uint8"))
+        self.read("f2", "???", (FormatChunk, "uint8"))
         
     def updateParent(self, chunk):            
-        chunk.description = "Mysterious: d=%s f=%s a=%s b=%s c=%s e=%s" % \
-            (self["d"],self["f"],self["a"],self["b"],self["c"],self["e"])
+        chunk.description = "Step: size=%s f1=%s f2=%s a=%s b=%s c=%s e=%s" % \
+            (self["size"],self["f1"],self["f2"],self["a"],self["b"],self["c"],self["e"])
 
 class SpriteFrame(OnDemandFilter):
     def __init__(self, stream, parent):
         OnDemandFilter.__init__(self, "frame", "Sprite frame", stream, parent, "<")
-        self.read("a", "???", (FormatChunk, "uint8"))
-        self.read("b", "???", (FormatChunk, "uint16"))
-        self.read("c", "???", (FormatChunk, "uint8"))
+        self.read("offset", "???", (FormatChunk, "uint16"))
+        self.read("zero", "???", (FormatChunk, "uint8"))
+        assert self["zero"] == 0
+        self.read("step", "???", (FormatChunk, "uint8"))
         self.read("x", "Offset X", (FormatChunk, "uint16"))
         self.read("y", "Offset Y", (FormatChunk, "uint16"))
         self.read("width", "Width", (FormatChunk, "uint16"))
         self.read("height", "Height", (FormatChunk, "uint16"))
 
     def updateParent(self, chunk):            
-        chunk.description = "Frame: a=%s b=%s c=%s %ux%u pixels at (%u,%u)" % \
-            (self["a"], self["b"], self["c"], self["width"], self["height"], self["x"], self["y"])
+        w = self["width"] - self["x"]
+        h = self["height"] - self["y"]
+        chunk.description = "Frame: %ux%u bytes - %ux%u pixels at (%u,%u) offset=%s step=%s" % \
+            (w, h, self["width"], self["height"], self["x"], self["y"], self["offset"], self["step"])
 
 class Sprite(OnDemandFilter):
     def __init__(self, stream, parent):
         OnDemandFilter.__init__(self, "sprite", "Sprite", stream, parent, "<")
         name = parent.name
-        self.read("n", "Type?", (FormatChunk, "uint16"))
+        self.read("nb_step", "Number of steps", (FormatChunk, "uint16"))
         self.read("zero", "Zero?", (FormatChunk, "uint16"))
-        for i in range(0, self["n"]):
-            self.read("mysterious[]", "Mysterious header", (MysteriousHeader,))
+        for i in range(0, self["nb_step"]):
+            self.read("step[]", "Step", (Step,))
         self.read("x", "Offset X", (FormatChunk, "uint16"))
         self.read("y", "Offset Y", (FormatChunk, "uint16"))
         self.read("width", "Width", (FormatChunk, "uint16"))
@@ -102,8 +106,8 @@ class Sprite(OnDemandFilter):
         self.addPadding()
 
     def updateParent(self, chunk):            
-        chunk.description = "Animation: %ux%u pixels, %u mysterious, %u frame(s)" % \
-            (self["width"], self["height"], self["n"], self["count"])
+        chunk.description = "Animation: %ux%u pixels, %u step(s), %u frame(s)" % \
+            (self["width"], self["height"], self["nb_step"], self["count"])
 
 class Font(OnDemandFilter):
     def __init__(self, stream, parent):

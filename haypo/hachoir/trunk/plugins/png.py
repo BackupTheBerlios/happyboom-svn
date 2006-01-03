@@ -70,9 +70,13 @@ class Gamma(OnDemandFilter):
 class Text(OnDemandFilter):
     def __init__(self, stream, parent):
         OnDemandFilter.__init__(self, "text", "Text", stream, parent)
-        chunk = self.read("keyword", "Keyword", (StringChunk, "C"))
+        chunk = self.doRead("keyword", "Keyword", (StringChunk, "C"))
         lg = stream.getSize() - chunk.size
         self.read("text", "Text", (FormatChunk, "string[%u]" % lg))
+
+    def updateParent(self, chunk):
+        text = self.getChunk("text").getValue(40)
+        chunk.description = "Text: \"%s\"" % text        
 
 class Time(OnDemandFilter):
     def __init__(self, stream, parent):
@@ -134,9 +138,9 @@ class Chunk(OnDemandFilter):
         else:
             type = "Unknow (%s)" % type
         if self.data:            
-            desc = "[Chunk] %s" % self.data.getDescription()
+            desc = self.data.getDescription()
         else:
-            desc = "[Chunk] %s" % type
+            desc = "Chunk %s" % type
             type = self["type"]
             if type == "IEND":
                 desc += ": end of file"

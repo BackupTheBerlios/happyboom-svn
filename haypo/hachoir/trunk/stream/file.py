@@ -103,9 +103,6 @@ class FileStream(Stream):
             self._seed = self._seed + len(data)
         return data            
 
-    def clone(self):
-        return FileStream(self._file, self.filename, copy=self)
-
     def seek(self, pos, where=0):
         """ Read file seek document to understand where. """
         if where==0:

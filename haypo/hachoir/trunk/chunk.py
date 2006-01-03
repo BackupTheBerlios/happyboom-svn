@@ -23,9 +23,6 @@ class Chunk(object):
         return None
     getStaticSize = staticmethod(getStaticSize)
 
-    def clone(self):
-        raise Exception("%s doesn't implement clone() method!" % self)
-
     def postProcess(self):        
         if self.post_process != None:
             self.display = self.post_process(self)
@@ -275,11 +272,6 @@ class FormatChunk(Chunk):
         self._size = getFormatSize(self._format)
         self._value = {}
        
-    def clone(self, addr=None):
-        if addr == None:
-            addr = self._addr
-        return FormatChunk(self.id, self.description, self._stream, addr, self._format, self._parent)
-
     def getFormat(self):
         return self.__class__.__name__ + " (%s)" % self._format
 

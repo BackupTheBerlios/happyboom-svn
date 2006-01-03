@@ -291,12 +291,12 @@ class OnDemandFilter(BasicFilter, Cache):
                     filter_stream.seek(desc[2])
                 else:
                     self._stream.seek(addr)
-                assert isinstance(size, int)
-                self._chunks_dict[id][4] = (FormatChunk, id, description, filter_stream, "string[%u]" % size, self)
-                self._chunks_dict[id][5] = None
-                self._chunks_dict[id][6] = {}
-                self.updateChunkDisplay(id)
-                return self._createInstance(id)
+                if isinstance(size, int) or isinstance(size, long):
+                    self._chunks_dict[id][4] = (FormatChunk, id, description, filter_stream, "string[%u]" % size, self)
+                    self._chunks_dict[id][5] = None
+                    self._chunks_dict[id][6] = {}
+                    self.updateChunkDisplay(id)
+                    return self._createInstance(id)
         self._stream.seek(oldpos)
         return chunk
 

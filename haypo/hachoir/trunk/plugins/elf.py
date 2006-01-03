@@ -141,8 +141,7 @@ class ElfFile(OnDemandFilter):
 #            i = i + 1
             
         size = elf["shoff"] - stream.tell()
-        newstream = stream.clone()
-        chunk = self.doRead("data", "Data", (DeflateFilter, newstream, size, Sections, sections))
+        chunk = self.doRead("data", "Data", (DeflateFilter, stream, size, Sections, sections))
         chunk.description = "Sections (use an evil hack to manage share same data on differents parts)"
         assert stream.tell() == elf["shoff"]
 

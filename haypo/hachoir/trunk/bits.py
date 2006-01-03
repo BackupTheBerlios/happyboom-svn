@@ -1,5 +1,5 @@
 def str2hex(value):
-    text = "(hex) "
+    text = ""
     for character in value:
         if text != "":
             text += " "
