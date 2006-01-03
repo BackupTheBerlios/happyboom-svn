@@ -11,6 +11,7 @@ from plugin import registerPlugin
 from chunk import FormatChunk, StringChunk, EnumChunk, BitsChunk, BitsStruct
 from generic.image import Palette
 from text_handler import humanFilesize
+from tools import alignValue
 
 class ImageData(OnDemandFilter):
     def __init__(self, stream, parent):
@@ -74,8 +75,8 @@ class SpriteFrame(OnDemandFilter):
         self.read("height", "Height", (FormatChunk, "uint16"))
 
     def updateParent(self, chunk):            
-        chunk.description = "Frame: %ux%u pixels at (%u,%u)" % \
-            (self["width"], self["height"], self["x"], self["y"])
+        chunk.description = "Frame: a=%s b=%s c=%s %ux%u pixels at (%u,%u)" % \
+            (self["a"], self["b"], self["c"], self["width"], self["height"], self["x"], self["y"])
 
 class Sprite(OnDemandFilter):
     def __init__(self, stream, parent):
@@ -177,8 +178,10 @@ class Resource(OnDemandFilter):
             self.read("filesize", "File size", (FormatChunk, "uint32"), {"post": humanFilesize})
             self.name = "(directory)"
             end = self.doRead("last_pos", "Last position", (FormatChunk, "uint32")).value
+            self.count = 0
             while stream.tell() < end:
                 self.read("res[]", "Resource", (Resource,))
+                self.count += 1
 
     def getStaticSize(stream, args):
         oldpos = stream.tell()
@@ -196,11 +199,55 @@ class Resource(OnDemandFilter):
         if self["tag"] != "DIR":
             chunk.description = "[%s] %s" % (self.name, self["data"].getDescription())
         else:
-            chunk.description = "Directory" 
+            chunk.description = "Directory: %u resources" % self.count 
+
+class File(OnDemandFilter):
+    def __init__(self, stream, parent):
+        OnDemandFilter.__init__(self, "fs", "File system", stream, parent, "<")
+        self.read("position", "Position in file", (FormatChunk, "uint32"))
+        self.read("size", "File size (in bytes)", (FormatChunk, "uint32"), {"post": humanFilesize})
+        size = self.doRead("name", "Name", (StringChunk,"C")).size
+        padding = 4 + alignValue(size, 4) - size
+        max = stream.getLastPos() - stream.tell() + 1
+        if max<padding:
+            padding = max
+        self.read("padding", "Padding", (FormatChunk,"string[%u]" % padding))
+        
+    def updateParent(self, chunk):
+        size = self.getChunk("size").getDisplayData()
+        chunk.description = "File: %s (%s)" \
+            % (self["name"], size)
+
+class XXX(OnDemandFilter):
+    def __init__(self, stream, parent, count):
+        OnDemandFilter.__init__(self, "fs", "File system", stream, parent, "<")
+        self.count = count
+        for i in range(0, self.count):
+            self.read("value32[]", "?", (FormatChunk, "uint32"))
+        
+    def updateParent(self, chunk):
+        chunk.description = "XXX: %u integers (uint32)" % (self.count)
+
+class FileSystem(OnDemandFilter):
+    def __init__(self, stream, parent):
+        OnDemandFilter.__init__(self, "fs", "File system", stream, parent, "<")
+        self.count = 0 
+        while not stream.eof():
+            self.read("file[]", "File", (File,))
+            self.count += 1
+        
+    def updateParent(self, chunk):
+        chunk.description = "File system: %u files" % (self.count)
 
 class Worms2_Dir_File(OnDemandFilter):
     def __init__(self, stream, parent):
         OnDemandFilter.__init__(self, "worms2_dir_file", "Worms2 directory (.dir) file", stream, parent, "<")
-        self.read("resources", "Directory of resources", (Resource,))
+        self.read("resources", "Directory", (Resource,))
+        if True:
+            count = 1026
+            self.read("xxx", "XXX", (XXX,count), {"size": count*4})
+        
+            size = stream.getRemainSize()
+            self.read("fs", "File system", (FileSystem,), {"size": size})
          
 registerPlugin(Worms2_Dir_File, "hachoir/worms2")

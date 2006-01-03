@@ -7,7 +7,25 @@ from error import error, warning
 from chunk import FormatChunk
 from default import EmptyFilter
 import config
-import sys
+import sys, math
+
+def entropy(raw):
+    assert 0<len(raw)
+    assert isinstance(raw, str)
+    # Create list of 
+    count = [ 0 for i in range(0, 256) ]
+    length = len(raw)        
+    p = []
+    for i in raw:
+        count[ord(i)] += 1
+    for i in range(0,256):
+        if count[i] != 0:
+            p.append( float(count[i]) / length )
+    h = 0
+    n = len(p)
+    for p_i in p:
+        h += p_i * math.log(p_i, 2)
+    return -h
 
 class Pattern:
     def check(self, stream):

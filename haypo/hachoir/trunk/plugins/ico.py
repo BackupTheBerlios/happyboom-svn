@@ -26,10 +26,7 @@ class IconData(OnDemandFilter):
         # Read pixels
         size = header["width"] * header["height"] * header["bpp"] / 8
         self.read("pixels", "Image pixels", (FormatChunk, "string[%u]" % size))
-
-        padding = stream.getLastPos() - stream.tell() + 1
-        if 0 < padding:
-            self.read("padding", "(padding)", (FormatChunk, "string[%u]" % padding))
+        self.addPadding()
 
 class IconHeader(OnDemandFilter):
     def __init__(self, stream, parent):

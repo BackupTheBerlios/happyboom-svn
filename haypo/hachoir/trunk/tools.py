@@ -1,5 +1,11 @@
 import traceback, sys, string, re
 
+def alignValue(value, align):
+    if value % align != 0:
+        return value + align - (value % align)
+    else:
+        return value        
+
 def _regexMaxLength(pattern, in_parenthesis=False):
     """
     Don't use this function directly, use regexMagLength!

@@ -99,7 +99,7 @@ class BasicFilter(object):
     endian = property(_getEndian)
 
     def addPadding(self):
-        size = self._stream.getLastPos() - self._stream.tell()
+        size = self._stream.getRemainSize()
         if 0 < size:
             self.read("end", "Raw end", (FormatChunk, "string[%u]" % size))
 
