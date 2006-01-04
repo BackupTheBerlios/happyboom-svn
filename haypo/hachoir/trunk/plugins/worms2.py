@@ -16,23 +16,24 @@ from tools import alignValue
 class ImageData(OnDemandFilter):
     def __init__(self, stream, parent, use_bank):
         OnDemandFilter.__init__(self, "image_data", "Image data (uncompressed)", stream, parent, "<")
-        self.x = self.doRead("x", "Offset X", (FormatChunk, "uint16")).value
-        self.y = self.doRead("y", "Offset Y", (FormatChunk, "uint16")).value
-        self.width = self.doRead("width", "Width", (FormatChunk, "uint16")).value
-        self.height = self.doRead("height", "Height", (FormatChunk, "uint16")).value
+        self.read("x", "X", (FormatChunk, "uint16"))
+        self.read("y", "Y", (FormatChunk, "uint16"))
+        self.read("width", "Width", (FormatChunk, "uint16"))
+        self.read("height", "Height", (FormatChunk, "uint16"))
         self.use_bank = use_bank
         if use_bank:
             self.read("offset", "Offset", (FormatChunk, "uint32"))
         else:
-            size = (self.width-self.x) * (self.height-self.y)
+            size = (self["width"]-self["x"]) * (self["height"]-self["y"])
             self.read("data", "Image content", (FormatChunk, "string[%u]" % size))
 
     def getStaticSize(stream, args):
         if args[0] == True:
             return 12 
         oldpos = stream.tell()
-        x, y = stream.getFormat("<uint16"), stream.getFormat("<uint16")
-        w, h = stream.getFormat("<uint16"), stream.getFormat("<uint16")
+        x, y, w, h, = stream.getFormat("<uint16[4]")
+        #x, y = stream.getFormat("<uint16"), stream.getFormat("<uint16")
+        #w, h = stream.getFormat("<uint16"), stream.getFormat("<uint16")
         size = 2*4 + (w-x) * (h-y)
         stream.seek(oldpos)
         return size
@@ -43,7 +44,7 @@ class ImageData(OnDemandFilter):
         if self.use_bank:
             desc += "offset=%u " % self["offset"]
         chunk.description = desc+"%ux%u pixels at (%u,%u)" \
-            % (self.width, self.height, self.x, self.y)
+            % (self["width"], self["height"], self["x"], self["y"])
 
 class Image(OnDemandFilter):
     def __init__(self, stream, parent, use_bank):
@@ -62,35 +63,34 @@ class Image(OnDemandFilter):
 class Step(OnDemandFilter):
     def __init__(self, stream, parent):
         OnDemandFilter.__init__(self, "sprite_item", "Sprite item", stream, parent, "<")
-        self.read("a", "???", (FormatChunk, "uint16"))
-        self.read("b", "???", (FormatChunk, "uint16"))
-        self.read("c", "???", (FormatChunk, "uint16"))
+        self.read("zero1", "???", (FormatChunk, "string[6]"))
+        assert self["zero1"] == "\0" * 6
         self.read("size", "Size in byte", (FormatChunk, "uint16"))
-        self.read("e", "???", (FormatChunk, "uint16"))
+        self.read("zero2", "???", (FormatChunk, "uint16"))
+        assert self["zero2"] == 0
         self.read("f1", "???", (FormatChunk, "uint8"))
         self.read("f2", "???", (FormatChunk, "uint8"))
         
     def updateParent(self, chunk):            
-        chunk.description = "Step: size=%s f1=%s f2=%s a=%s b=%s c=%s e=%s" % \
-            (self["size"],self["f1"],self["f2"],self["a"],self["b"],self["c"],self["e"])
+        chunk.description = "Step: size=%s f1=%s f2=%s" % \
+            (self["size"],self["f1"],self["f2"])
 
 class SpriteFrame(OnDemandFilter):
     def __init__(self, stream, parent):
         OnDemandFilter.__init__(self, "frame", "Sprite frame", stream, parent, "<")
-        self.read("offset", "???", (FormatChunk, "uint16"))
-        self.read("zero", "???", (FormatChunk, "uint8"))
-#        assert self["zero"] == 0
-        self.read("step", "???", (FormatChunk, "uint8"))
-        self.read("x", "Offset X", (FormatChunk, "uint16"))
-        self.read("y", "Offset Y", (FormatChunk, "uint16"))
+        self.read("offset", "Offset in data", (FormatChunk, "uint16"))
+        self.read("xxx", "Null or equals to 0, 1, 2, ... in Level.dir", (FormatChunk, "uint8"))
+        self.read("step", "Step", (FormatChunk, "uint8"))
+        self.read("x", "X", (FormatChunk, "uint16"))
+        self.read("y", "Y", (FormatChunk, "uint16"))
         self.read("width", "Width", (FormatChunk, "uint16"))
         self.read("height", "Height", (FormatChunk, "uint16"))
         self.real_width = self["width"] - self["x"]
         self.real_height = self["height"] - self["y"]
 
     def updateParent(self, chunk):            
-        chunk.description = "Frame: zero=%s %ux%u bytes - %ux%u pixels at (%u,%u) offset=%s step=%s" % \
-            (self["zero"], self.real_width, self.real_height, self["width"], self["height"], self["x"], self["y"], self["offset"], self["step"])
+        chunk.description = "Frame: %ux%u bytes, %ux%u pixels at (%u,%u), offset=%s step=%s" % \
+            (self.real_width, self.real_height, self["width"], self["height"], self["x"], self["y"], self["offset"], self["step"])
 
 class Sprite(OnDemandFilter):
     def __init__(self, stream, parent, use_bank):
@@ -101,8 +101,8 @@ class Sprite(OnDemandFilter):
             self.read("zero", "Zero?", (FormatChunk, "uint16"))
             for i in range(0, self["nb_step"]):
                 self.read("step[]", "Step", (Step,))
-        self.read("x", "Offset X", (FormatChunk, "uint16"))
-        self.read("y", "Offset Y", (FormatChunk, "uint16"))
+        self.read("x", "X", (FormatChunk, "uint16"))
+        self.read("y", "Y", (FormatChunk, "uint16"))
         self.read("width", "Width", (FormatChunk, "uint16"))
         self.read("height", "Height", (FormatChunk, "uint16"))
         self.read("count", "Frame count", (FormatChunk, "uint16"))
@@ -130,9 +130,9 @@ class Sprite(OnDemandFilter):
             desc += ", %u step(s)" % (self["nb_step"])
         chunk.description = desc
 
-class TextRes(OnDemandFilter):
+class INF(OnDemandFilter):
     def __init__(self, stream, parent):
-        OnDemandFilter.__init__(self, "textres", "Text resource", stream, parent, "<")
+        OnDemandFilter.__init__(self, "inf", "INF resource", stream, parent, "<")
         for i in range(0, 6):
             self.read("line[]", "Line", (StringChunk, "WindowsLine"))
         self.read("name", "File name", (StringChunk, "WindowsLine"))
@@ -144,9 +144,9 @@ class TextRes(OnDemandFilter):
     def updateParent(self, chunk):
         chunk.description = "INF: %s" % (self["name"])
 
-class TextIndex(OnDemandFilter):
+class StringIndex(OnDemandFilter):
     def __init__(self, stream, parent, use_bank):
-        OnDemandFilter.__init__(self, "text_idx", "Text index", stream, parent, "<")
+        OnDemandFilter.__init__(self, "str_idx", "String index", stream, parent, "<")
         self.count = 0
         while True:
             name = self.doRead("name[]", "Name", (StringChunk, "WindowsLine")).value
@@ -157,13 +157,13 @@ class TextIndex(OnDemandFilter):
         self.read("separator", "Separator (26)", (FormatChunk, "uint8"))
 
     def updateParent(self, chunk):
-        chunk.description = "Index: %s items" % (self.count)
+        chunk.description = "String index: %s strings" % (self.count)
 
 class BankItem(OnDemandFilter):
     def __init__(self, stream, parent):
         OnDemandFilter.__init__(self, "bank_item", "Bank item", stream, parent, "<")
-        self.x = self.doRead("x", "Offset X", (FormatChunk, "uint16")).value
-        self.y = self.doRead("y", "Offset Y", (FormatChunk, "uint16")).value
+        self.x = self.doRead("x", "X", (FormatChunk, "uint16")).value
+        self.y = self.doRead("y", "Y", (FormatChunk, "uint16")).value
         self.width = self.doRead("width", "Width", (FormatChunk, "uint16")).value
         self.height = self.doRead("height", "Height", (FormatChunk, "uint16")).value
         self.read("offset", "Offset?", (FormatChunk, "uint16"))
@@ -349,9 +349,9 @@ class Resource(OnDemandFilter):
             has_separator = True
             if guess == "1\r\n":
                 while guess == "1\r\n":
-                    self.read("res[]", "Resource", (TextRes,))
+                    self.read("res[]", "INF", (INF,))
                     guess = stream.getN(3, False)
-                self.read("res[]", "Index", (TextIndex, use_bank))
+                self.read("res[]", "String index", (StringIndex, use_bank))
             elif guess == "BNK":
                 use_bank = True
                 has_name = False
