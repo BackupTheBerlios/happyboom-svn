@@ -98,10 +98,10 @@ class BasicFilter(object):
     def _getEndian(self): return self._endian
     endian = property(_getEndian)
 
-    def addPadding(self):
+    def addPadding(self, id="end", description="Raw end"):
         size = self._stream.getRemainSize()
         if 0 < size:
-            self.read("end", "Raw end", (FormatChunk, "string[%u]" % size))
+            self.read(id, description, (FormatChunk, "string[%u]" % size))
 
     # --- Pure virtual methods -----------
     def getSize(self): todoWriteMethod(self, "getSize") 
@@ -161,6 +161,9 @@ class OnDemandFilter(BasicFilter, Cache):
         self._chunks_cache = {}
         
     def read(self, id, description, info, optionnal={}): 
+        self._read(id, description, info, optionnal, False)
+
+    def _read(self, id, description, info, optionnal, instanciate):
         chunk_class = info[0]
         id = self.getUniqChunkId(id)
         addr = self._stream.tell()
@@ -169,9 +172,9 @@ class OnDemandFilter(BasicFilter, Cache):
             size = optionnal.get("size", None)
             filter_addr = filter_stream.tell()
             args = info[1:]
-            if size == None:
+            if not instanciate and size == None:
                 size = chunk_class.getStaticSize(self._stream, info[1:])
-            if size == None:
+            if instanciate or size == None:
                 filter = chunk_class(filter_stream, self, *args)
                 description = filter.getDescription()
                 filter.setId(id)
@@ -191,8 +194,6 @@ class OnDemandFilter(BasicFilter, Cache):
                 self._chunks_cache[id] = chunk
             self._size = self._size + size
             self._stream.seek(addr + size)
-            return id
-
         else:
             post = optionnal.get("post", None)
             if "post" in optionnal:
@@ -203,7 +204,10 @@ class OnDemandFilter(BasicFilter, Cache):
                 args = [ i for i in info[1:] ]
             instance_info = [info[0], id, description, self._stream]+args+[self]
 
-            size = chunk_class.getStaticSize(self._stream, info[1:])
+            if not instanciate:
+                size = chunk_class.getStaticSize(self._stream, info[1:])
+            else:
+                size = None
             if size != None:
                 self._stream.seek(size, 1)
             else:
@@ -217,11 +221,13 @@ class OnDemandFilter(BasicFilter, Cache):
             self._chunks_dict[id] = chunk_info
             self._chunks.append(id)
             self._size = self._size + size
+        if instanciate:
+            return chunk
+        else:
             return id
 
     def doRead(self, id, description, info, optionnal={}):
-        id = self.read(id, description, info, optionnal)
-        chunk = self.getChunk(id)
+        chunk = self._read(id, description, info, optionnal, True)
         if isinstance(chunk, FilterChunk):
             return chunk.getFilter()
         else:
