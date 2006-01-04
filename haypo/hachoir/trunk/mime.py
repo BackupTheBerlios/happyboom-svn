@@ -71,11 +71,16 @@ def getStreamMime(stream, filename):
 def getAnotherBufferMime(buffer):    
     if buffer[:2] == "\x4d\x4d" and buffer[6:12]=="\x02\0\x0A\0\0\0":
         return "image/x-3ds"
+
     if 2<=len(buffer) and ord(buffer[0])==31 and ord(buffer[1])==139:
         return "application/x-gzip"
-    if buffer[:4] == "%PDF":
+
+    # Text
+    if buffer[0:4] == "%PDF":
         return "application/pdf"
-    if buffer[:14] == "gimp xcf file\0":
+
+    # Pictures
+    if buffer[0:14] == "gimp xcf file\0":
         return "image/x-xcf"
 
     if buffer[0:2] == "\0\0" \
@@ -87,14 +92,12 @@ def getAnotherBufferMime(buffer):
     and buffer[1] in "\x00\x02\x03\x04\x05" \
     and buffer[64] == "\0":
         return "image/x-pcx"
-        
+
+    # File system        
     if 4096<=len(buffer) \
     and buffer[1080:1082]=="\x53\xEF" \
     and buffer[1116:1120]=="\x04\x00\x00\x00":
         return "hachoir/fs-ext2"
-        
-    if buffer[0:3] == "DIR":
-        return "hachoir/worms2"
         
     if 512<=len(buffer) \
     and buffer[0] in "\xEB\xFA" \
@@ -104,6 +107,16 @@ def getAnotherBufferMime(buffer):
     and buffer[446+16*2] in "\x00\x80" \
     and buffer[446+16*3] in "\x00\x80":
         return "hachoir/master-boot-record"
+    
+    # Worms2 files
+    if buffer[0:4] == "IMG\x1A":
+        return "hachoir/worms2-image"
+    if buffer[0:4] == "SPR\x1A":
+        return "hachoir/worms2-sprite"
+    if buffer[0:4] == "FNT\x1A":
+        return "hachoir/worms2-font"
+    if buffer[0:4] == "DIR\x1A":
+        return "hachoir/worms2-directory"
     return None        
 
 def splitMimes(mimes):

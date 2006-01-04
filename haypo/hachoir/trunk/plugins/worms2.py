@@ -95,7 +95,6 @@ class SpriteFrame(OnDemandFilter):
 class Sprite(OnDemandFilter):
     def __init__(self, stream, parent, use_bank):
         OnDemandFilter.__init__(self, "sprite", "Sprite", stream, parent, "<")
-        name = parent.name
         self.read("nb_step", "Number of steps", (FormatChunk, "uint16"))
         if 0 < self["nb_step"]:
             self.read("zero", "Zero?", (FormatChunk, "uint16"))
@@ -294,7 +293,7 @@ class Resource(OnDemandFilter):
         "BNK": Bank
     }
 
-    def __init__(self, stream, parent, has_name, use_bank, has_separator):
+    def __init__(self, stream, parent, has_name=True, use_bank=False, has_separator=False):
         OnDemandFilter.__init__(self, "worms2_res", "Worms2 resource", stream, parent, "<")
         guess = stream.getN(3, False)
         if guess not in Resource.tag_name:
@@ -343,16 +342,17 @@ class Resource(OnDemandFilter):
             self.name = "(directory)"
             end = self.doRead("last_pos", "Last position", (FormatChunk, "uint32")).value
             self.count = 0
-            guess = stream.getN(3, False)
             has_name = True
             use_bank = False
             has_separator = True
-            if guess == "1\r\n":
-                while guess == "1\r\n":
+            guess = stream.getN(5, False)
+            if "\r" in guess:
+                while "\r" in guess:
                     self.read("res[]", "INF", (INF,))
-                    guess = stream.getN(3, False)
+                    guess = stream.getN(5, False)
                 self.read("res[]", "String index", (StringIndex, use_bank))
-            elif guess == "BNK":
+                return
+            elif guess.startswith("BNK"):
                 use_bank = True
                 has_name = False
             while stream.tell() < end:
@@ -414,8 +414,8 @@ class File(OnDemandFilter):
         
     def updateParent(self, chunk):
         size = self.getChunk("size").getDisplayData()
-        chunk.description = "File: %s (%s)" \
-            % (self["name"], size)
+        chunk.description = "File: %s (%s), position=%s" \
+            % (self["name"], size, self["position"])
 
 class Numbers(OnDemandFilter):
     def __init__(self, stream, parent, count):
@@ -449,4 +449,5 @@ class Worms2_Dir_File(OnDemandFilter):
             size = stream.getRemainSize()
             self.read("fs", "File system", (FileSystem,), {"size": size})
          
-registerPlugin(Worms2_Dir_File, "hachoir/worms2")
+registerPlugin(Resource, ["hachoir/worms2-font", "hachoir/worms2-image", "hachoir/worms2-sprite"])
+registerPlugin(Worms2_Dir_File, "hachoir/worms2-directory")

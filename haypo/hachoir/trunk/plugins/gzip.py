@@ -58,7 +58,7 @@ class GzipFile(OnDemandFilter):
         self.read("os", "Operating system", (EnumChunk, "uint8", GzipFile.os_name))
 
         # Optionnal fields
-        if flags["extra"] & 4 == 4:
+        if flags["extra"]:
             self.read("extra_length", "Extra length", (FormatChunk, "uint16"))
             self.read("extra", "Extra", (FormatChunk, "string[%u]"  % self["extra_length"]))
         if flags["filename"]:

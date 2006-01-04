@@ -67,6 +67,9 @@ class MainWindow:
         self.window.connect("key-press-event", self.onKeyUp)
         self.table.connect("button_press_event", self.on_treeview_button_press_event)
         self.window.set_size_request(600,560)
+
+        self.field_show_format = False 
+        self.row_chunk_id = None
         self.build_table()
         
     def onChunkCopy(self, event):
@@ -109,7 +112,7 @@ class MainWindow:
         self.menu_close.set_sensitive(file_present)
 
     def getTableChunk(self, col):
-        chunk_id = self.table_store[col][3]
+        chunk_id = self.table_store[col][self.row_chunk_id]
         if chunk_id == None: return None
         return self.ui.hachoir.getFilter().getChunk(chunk_id)
 
@@ -133,7 +136,7 @@ class MainWindow:
 
     def clear_table(self):
         self.table_store.clear()
-        self.table_store.set_sort_column_id(-1, gtk.SORT_ASCENDING)
+#        self.table_store.set_sort_column_id(-1, gtk.SORT_ASCENDING)
         self.table.columns_autosize()
 
     def set_table_value(self, iter, column, value):
@@ -141,19 +144,31 @@ class MainWindow:
         row[column] = value
        
     def add_table_child(self, parent, addr, size, format, id, description):
-        return self.table_store.append(parent, (addr, format, size, None, id, description, None,))
+        if self.field_show_format:
+            data = (addr, format, size, None, id, description, None,)
+        else:
+            data = (addr, size, None, id, description, None,)
+        return self.table_store.append(parent, data)
        
     def update_table(self, filter, ROW, parent, addr, size, format, id, description, value):
         if filter != self.ui.hachoir.getFilter():
             return
         addr = str(addr)
         size = str(size)
-        self.table_store[ROW] = (addr, format, size, id, value, description)
+        if self.field_show_format:
+            data = (addr, format, size, id, value, description)
+        else:
+            data = (addr, size, id, value, description)
+        self.table_store[ROW] = data 
 
     def add_table(self, parent, addr, size, format, id, description, value):
         addr = str(addr)
         size = str(size)
-        return self.table_store.append(parent, (addr, format, size, id, value, description, ))
+        if self.field_show_format:
+            data = (addr, format, size, id, value, description, )
+        else:
+            data = (addr, size, id, value, description, )
+        return self.table_store.append(parent, data)
 
     def onKeyUp(self, widget, key, data=None):
         if key.keyval == gtk.keysyms.Escape:
@@ -161,14 +176,14 @@ class MainWindow:
         
     def onTableRowActivate(self, widget, iter, data=None):
         row = self.table_store[iter]
-        self.ui.on_row_click(row[3])
+        self.ui.on_row_click(row[self.row_chunk_id])
         
     def getActiveChunk(self):
         select = self.table.get_selection()
         iter = select.get_selected()[1]
         if iter != None:
             row = self.table_store[iter]
-            return self.ui.hachoir.getFilter().getChunk(row[3])
+            return self.ui.hachoir.getFilter().getChunk(row[self.row_chunk_id])
         else:
             return None 
 
@@ -177,19 +192,28 @@ class MainWindow:
         self.info.updateChunk(chunk)
 
     def build_table(self):
-        self.table_store = gtk.TreeStore(str, str, str, str, str, str)
+        types = [str, str, str, str, str]
+        if self.field_show_format:
+            types.append(str)
+        self.table_store = gtk.TreeStore(*types)
         self.table.set_model(self.table_store)
         self.table.connect("cursor-changed", self.onTableClick)
         self.table.connect("row-activated", self.onTableRowActivate)
-        self.treeview_add_column(self.table, "Address", 0)
-        self.table_store.set_sort_func(0, self.cmpColumnsLong, 0)
-        self.treeview_add_column(self.table, "Format", 1)
-        self.treeview_add_column(self.table, "Size", 2)
-        self.table_store.set_sort_func(2, self.cmpColumnsLong, 2)
-        self.treeview_add_column(self.table, "Name", 3)
-        self.treeview_add_column(self.table, "Value", 4)
-        self.treeview_add_column(self.table, "Description", 5)
-        self.table_store.set_default_sort_func(self.cmpDefault)
+
+        i = 0
+        self.treeview_add_column(self.table, "Address", i)
+#        self.table_store.set_sort_func(0, self.cmpColumnsLong, i)
+        i += 1
+        if self.field_show_format:
+            i = self.treeview_add_column(self.table, "Format", i)
+        self.treeview_add_column(self.table, "Size", i)
+#        self.table_store.set_sort_func(i, self.cmpColumnsLong, i)
+        i += 1
+        self.row_chunk_id = i
+        i = self.treeview_add_column(self.table, "Name", i)
+        i = self.treeview_add_column(self.table, "Value", i)
+        i = self.treeview_add_column(self.table, "Description", i)
+#        self.table_store.set_default_sort_func(self.cmpDefault)
         self.table.columns_autosize()
 
     def cmpDefault(self, model, a, b):
@@ -211,6 +235,7 @@ class MainWindow:
         col.add_attribute(cell, 'text', num)
         treeview.set_search_column(num)
         col.set_sort_column_id(num)
+        return num+1
 
     def on_toolbutton_purge_cache(self, widget, data=None):
         from cache import CacheList

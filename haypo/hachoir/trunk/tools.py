@@ -64,7 +64,6 @@ def _regexMaxLength(pattern, in_parenthesis=False):
             m = re_min_repetition.match(pattern)
             if m != None:
                 repetition = int(m.group(1))
-                print "(rep=%sx%s)" % (atom_size, repetition)
                 pattern = m.group(2)
                 atom_size = atom_size * repetition
             else:
@@ -158,25 +157,16 @@ def convertDataToPrintableString(data, keep_n=False):
                 "\r": "\\r",
                 "\t": "\\t",
                 "\0": "\\0"}
-            if c in know:
-                if not keep_n or c != "\n":
-                    display = display + know[c]
-                else:
-                    display = display + c
+            if c == "\n" and keep_n:                
+                display = display + "\\n\n"
+            elif c in know:
+                display = display + know[c]
             else:
                 display = display + "."
+        elif c == "\"":
+            display = display + "\\\""
         else:
             display = display + c
-#            if is_8bit:
-#                if ord(c) != 0xFF:
-#                    display = display + c
-#                else:
-#                    display = display + "."
-#            else:                    
-#                if c in string.printable:
-#                    display = display + c
-#                else:
-#                    display = display + "."
     return u"\"%s\"" % display
 
 def getBacktrace():
