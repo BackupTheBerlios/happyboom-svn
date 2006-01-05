@@ -7,7 +7,7 @@ Author: Victor Stinner
 from filter import OnDemandFilter
 from plugin import registerPlugin
 from chunk import FormatChunk, EnumChunk, BitsChunk, BitsStruct
-from error import warning
+from error import warning, error
 from generic.image import Palette
 
 class Image(OnDemandFilter):
@@ -19,11 +19,10 @@ class Image(OnDemandFilter):
         self.read("height", "Height", (FormatChunk, "uint16"))
 
         bits = (
-            (1, "local_color", "Local color table"),
-            (1, "interlace", "Interlaced?"),
-            (1, "sort", "Sort"),
-            (2, "reserved", "Reserved"),
-            (3, "size_local", "Size of local color"))
+            (3, "bpp", "Bits / pixel minus one"),
+            (3, "nul", "Nul bits (0)"),
+            (1, "interlaced", "Interlaced?"),
+            (1, "local_map", "Use local color map?"))
         self.flags = self.doRead("flags", "Flags", (BitsChunk, BitsStruct(bits)))
 
         return
@@ -59,10 +58,10 @@ class ScreenDescriptor(OnDemandFilter):
         self.read("height", "Height", (FormatChunk, "uint16"))
 
         bits = (
-            (1, "global_map", "Has global map?"),
             (3, "bpp", "Bits per pixel minus one"),
+            (1, "nul", "Nul bit (0)"),
             (3, "color_res", "Color resolution minus one"),
-            (1, "xxx", "???"))
+            (1, "global_map", "Has global map?"))
         self.flags = self.doRead("flags", "Flags", (BitsChunk, BitsStruct(bits)))
         self.bits_per_pixel = 1 + self.flags["bpp"]
 
@@ -106,9 +105,10 @@ class GifFile(OnDemandFilter):
                 return
             elif code == ";":
                 # GIF Terminator
-                return
+                break
             else:
-                raise Exception("Wrong GIF image separator: ASCII %02X." % ord(code))
-                
+                error("Wrong GIF image separator: ASCII %02X." % ord(code))
+                break
+        self.addPadding()                
 
 registerPlugin(GifFile, "image/gif")

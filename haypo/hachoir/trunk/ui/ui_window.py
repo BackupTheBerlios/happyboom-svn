@@ -70,6 +70,7 @@ class MainWindow:
 
         self.field_show_format = False 
         self.row_chunk_id = None
+        self.sort_column_as_long = True
         self.build_table()
         
     def onChunkCopy(self, event):
@@ -136,7 +137,8 @@ class MainWindow:
 
     def clear_table(self):
         self.table_store.clear()
-#        self.table_store.set_sort_column_id(-1, gtk.SORT_ASCENDING)
+        if self.sort_column_as_long:
+            self.table_store.set_sort_column_id(-1, gtk.SORT_ASCENDING)
         self.table.columns_autosize()
 
     def set_table_value(self, iter, column, value):
@@ -202,18 +204,21 @@ class MainWindow:
 
         i = 0
         self.treeview_add_column(self.table, "Address", i)
-#        self.table_store.set_sort_func(0, self.cmpColumnsLong, i)
+        if self.sort_column_as_long:
+            self.table_store.set_sort_func(0, self.cmpColumnsLong, i)
         i += 1
         if self.field_show_format:
             i = self.treeview_add_column(self.table, "Format", i)
         self.treeview_add_column(self.table, "Size", i)
-#        self.table_store.set_sort_func(i, self.cmpColumnsLong, i)
+        if self.sort_column_as_long:
+            self.table_store.set_sort_func(i, self.cmpColumnsLong, i)
         i += 1
         self.row_chunk_id = i
         i = self.treeview_add_column(self.table, "Name", i)
         i = self.treeview_add_column(self.table, "Value", i)
         i = self.treeview_add_column(self.table, "Description", i)
-#        self.table_store.set_default_sort_func(self.cmpDefault)
+        if self.sort_column_as_long:
+            self.table_store.set_default_sort_func(self.cmpDefault)
         self.table.columns_autosize()
 
     def cmpDefault(self, model, a, b):

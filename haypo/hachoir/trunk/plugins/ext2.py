@@ -185,7 +185,6 @@ class GroupDescriptor(OnDemandFilter):
         end = start + blocks_per_group 
         chunk.description = "Group descriptor: blocks %s-%s" % (start, end)
     
-
 class SuperBlock(OnDemandFilter):
     error_handling = {
         1: "Continue"
@@ -351,7 +350,6 @@ class Group(OnDemandFilter):
         assert 0 <= size
         if 0 < size:
             self.read("raw[]", "Raw", (FormatChunk, "string[%u]" % size))
-
 
 class EXT2_FS(OnDemandFilter):
     def __init__(self, stream, parent):

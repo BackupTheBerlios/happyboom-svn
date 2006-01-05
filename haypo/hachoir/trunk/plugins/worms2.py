@@ -136,8 +136,8 @@ class INF(OnDemandFilter):
             self.read("line[]", "Line", (StringChunk, "WindowsLine"))
         self.read("name", "File name", (StringChunk, "WindowsLine"))
         self.read("line[]", "Line", (StringChunk, "WindowsLine"))
-        self.read("empty_line[]", "(empty line)", (StringChunk, "WindowsLine"))
-        self.read("empty_line[]", "(empty line)", (StringChunk, "WindowsLine"))
+        while stream.getN(2, False) == "\r\n":
+            self.read("empty_line[]", "(empty line)", (StringChunk, "WindowsLine"))
         self.read("separator", "Separator (26)", (FormatChunk, "uint8"))
 
     def updateParent(self, chunk):
