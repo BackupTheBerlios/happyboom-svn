@@ -204,6 +204,7 @@ class StringChunk(Chunk):
         self._stream.seek(self.addr + self._size)
         
     def _read(self, max_size):
+        oldpos = self._stream.tell()
         self._stream.seek(self.addr)
         if self._str_type == "Pascal32":
             self._stream.seek(4,1)
@@ -230,6 +231,7 @@ class StringChunk(Chunk):
                 self.charset = "ascii"
                 text = StringChunk.regex_not_ascii.sub(".", text)
                 text = unicode(text, "ascii")
+        self._stream.seek(oldpos)
         return text
 
     def getValue(self, max_size=None):

@@ -1,7 +1,7 @@
 import struct
 from error import StreamError
 from tools import regexMaxLength
-from format import getRealFormat, getFormatSize
+from format import getRealFormat, getFormatSize, formatIsArray
 
 class Stream:
     def __init__(self, filename):
@@ -63,7 +63,10 @@ class Stream:
         size = getFormatSize(format)
         real = getRealFormat(format)
         data = self.getN(size, seek)
-        return struct.unpack(real, data)[0]
+        if formatIsArray(format):
+            return struct.unpack(real, data)
+        else:
+            return struct.unpack(real, data)[0]
 
     def searchLength(self, needle, include_str, size_max=None):        
         pos = self.search(needle, size_max)

@@ -12,6 +12,7 @@ from chunk import FormatChunk, StringChunk, EnumChunk, BitsChunk, BitsStruct
 from generic.image import Palette
 from text_handler import humanFilesize
 from tools import alignValue
+import re
 
 class ImageData(OnDemandFilter):
     def __init__(self, stream, parent, use_bank):
@@ -32,8 +33,6 @@ class ImageData(OnDemandFilter):
             return 12 
         oldpos = stream.tell()
         x, y, w, h, = stream.getFormat("<uint16[4]")
-        #x, y = stream.getFormat("<uint16"), stream.getFormat("<uint16")
-        #w, h = stream.getFormat("<uint16"), stream.getFormat("<uint16")
         size = 2*4 + (w-x) * (h-y)
         stream.seek(oldpos)
         return size
@@ -293,6 +292,8 @@ class Resource(OnDemandFilter):
         "BNK": Bank
     }
 
+    regex_filename_inf = re.compile(r"^.*\.inf$")
+
     def __init__(self, stream, parent, has_name=True, use_bank=False, has_separator=False):
         OnDemandFilter.__init__(self, "worms2_res", "Worms2 resource", stream, parent, "<")
         guess = stream.getN(3, False)
@@ -338,43 +339,39 @@ class Resource(OnDemandFilter):
                     self.read("separator", "Separator (0x1A = 26)", (FormatChunk, "uint8"))
                 #assert self["separator"] == 0x1A
         else:
+            self.count = 0
             self.read("filesize", "File size", (FormatChunk, "uint32"), {"post": humanFilesize})
             self.name = "(directory)"
-            end = self.doRead("last_pos", "Last position", (FormatChunk, "uint32")).value
-            self.count = 0
             has_name = True
             use_bank = False
             has_separator = True
-            guess = stream.getN(5, False)
-            if "\r" in guess:
-                while "\r" in guess:
-                    self.read("res[]", "INF", (INF,))
-                    guess = stream.getN(5, False)
-                self.read("res[]", "String index", (StringIndex, use_bank))
-                return
-            elif guess.startswith("BNK"):
+            self.read("size", "Directory size", (FormatChunk, "uint32"))
+            guess = stream.getN(3, False)
+            if guess == "BNK":
                 use_bank = True
                 has_name = False
-            while stream.tell() < end:
-                guess = stream.getN(4, False)
-                if guess[0:4] == "\0\0\0\0":
-                    self.read("padding", "Padding", (FormatChunk, "string[4]"))
-                elif guess[0:3] == "\0\0\0":
-                    self.read("padding", "Padding", (FormatChunk, "string[3]"))
-                elif guess[0:2] == "\0\0":
-                    self.read("padding[]", "Padding", (FormatChunk, "string[2]"))
-                elif guess[0:1] == "\0":
-                    self.read("padding[]", "Padding", (FormatChunk, "string[1]"))
-                size = end - self.getSize()
-                if use_bank and size <= 20:
-                    # TODO: Remove self.addPadding() (shouldn't work so)
-                    self.read("cdrom_str", "cdrom.spr text", (StringChunk, "C"))
-                    self.read("cdrom_a", "", (FormatChunk, "uint32"))
-                    self.read("cdrom_b", "", (FormatChunk, "uint32"))
-                    assert self.getSize() == end
-                    break                
-                self.read("res[]", "Resource", (Resource, has_name, use_bank, has_separator))
-                self.count += 1
+            fs = parent["fs"]
+            last_is_inf = False
+            for index in range(0, fs.count):
+                file = fs["file[%u]" % index]
+                self.seek(file["position"])
+                name = file["name"]
+                
+                if Resource.regex_filename_inf.match(name) != None:
+                    self.read("res[]", "INF resource", (INF,))
+                elif name == "index.txt":
+                    self.read("res[]", "String index", (StringIndex, use_bank))
+                else:
+                    self.read("res[]", "Resource", (Resource, has_name, use_bank, has_separator))
+                self.count += 1                        
+            self.addPadding()
+
+    def seek(self, pos):
+        stream = self.getStream()
+        assert stream.tell() <= pos and pos < stream.getSize()
+        size = pos - stream.tell()
+        if size != 0:
+            self.read("padding[]", "Padding", (FormatChunk, "string[%u]" % size))
 
     def getStaticSize(stream, args):
         oldpos = stream.tell()
@@ -441,7 +438,11 @@ class FileSystem(OnDemandFilter):
 class Worms2_Dir_File(OnDemandFilter):
     def __init__(self, stream, parent):
         OnDemandFilter.__init__(self, "worms2_dir_file", "Worms2 directory (.dir) file", stream, parent, "<")
-        self.read("resources", "Directory", (Resource, True, None, True))
+        stream.seek(8, 1)
+        size = size = stream.getFormat("<uint32", False)
+        stream.seek(-8, 1)
+        sub = stream.createSub(size=size)
+        self.read("resources", "Directory", (Resource, True, None, True), {"stream": sub})
         if True:
             count = 1026
             self.read("numbers", "Numbers?", (Numbers, count), {"size": count*4})
