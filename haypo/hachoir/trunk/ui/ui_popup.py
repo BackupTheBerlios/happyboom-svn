@@ -6,6 +6,7 @@ from ui_new_chunk import NewChunkDialog
 from ui_new_string import NewStringDialog
 from format import splitFormat
 from error import error
+from reverse import entropy
 
 MAX_CHUNK_SIZE=1024 # When copy to clipboard
 
@@ -28,6 +29,13 @@ class TablePopup:
         self.delete_chunk = xml.get_widget("delete_chunk")
         self.copy_clipboard = xml.get_widget("copy_clipboard")
 
+    def onComputeChunkEntropy(self, widget):
+        assert self.chunk != None
+        stream = self.chunk.createSubStream()
+        e = entropy(stream)
+        msg = "Entropy of <i>%s</i> = <b>%.3f</b> bits/symbol" % (self.chunk.id, e)
+        self.ui.window.messageBox(msg)
+ 
     def show(self, path_info, event):
         col = path_info[0][0]
         self.chunk = self.ui.window.getTableChunk(col)
@@ -38,11 +46,11 @@ class TablePopup:
         is_format_chunk = issubclass(self.chunk.__class__, FormatChunk)
         is_string_chunk = issubclass(self.chunk.__class__, StringChunk)
         is_filter_chunk = issubclass(self.chunk.__class__, FilterChunk)
-        self.new_chunk.set_sensitive(is_format_chunk or is_string_chunk)
-        self.new_filter.set_sensitive(is_format_chunk)
-        self.add_string.set_sensitive(is_format_chunk)
-        self.convert.set_sensitive(is_format_chunk or is_filter_chunk)
-        self.set_format.set_sensitive(is_format_chunk)
+#        self.new_chunk.set_sensitive(is_format_chunk or is_string_chunk)
+#        self.new_filter.set_sensitive(is_format_chunk)
+#        self.add_string.set_sensitive(is_format_chunk)
+#        self.convert.set_sensitive(is_format_chunk or is_filter_chunk)
+#        self.set_format.set_sensitive(is_format_chunk)
 
         chunk_parent = self.chunk.getParent()
         if self.chunk.getParent().getParent() != None:
@@ -52,9 +60,9 @@ class TablePopup:
             #can_delete = chunks.index(self.chunk) < (len(chunk_parent)-1) or not is_format_chunk
             can_delete = not is_format_chunk
 
-        self.delete_chunk.set_sensitive(can_delete)
+#        self.delete_chunk.set_sensitive(can_delete)
         can_copy = (self.chunk.size < MAX_CHUNK_SIZE) and not is_filter_chunk
-        self.copy_clipboard.set_sensitive(can_copy)
+#        self.copy_clipboard.set_sensitive(can_copy)
         self.popup.popup( None, None, None, event.button, event.time)
 
     def onDeleteChunk(self, event):

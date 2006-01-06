@@ -9,16 +9,25 @@ from default import EmptyFilter
 import config
 import sys, math
 
-def entropy(raw):
-    assert 0<len(raw)
-    assert isinstance(raw, str)
+def entropy(stream):
+    assert 0 < stream.getSize()
     # Create list of 
-    count = [ 0 for i in range(0, 256) ]
-    length = len(raw)        
+    count = {}
+    for i in range(0, 256):
+        count[ chr(i) ] = 0
     p = []
-    for i in raw:
-        count[ord(i)] += 1
+    if 1024 * 1024 < stream.getSize():
+        warning("Warning: Computing entropy is slow, be patient ...")
+    stream.seek(0)
+    n = 0
+    while not stream.eof():
+        raw = stream.read(config.best_stream_buffer_size)
+        n += len(raw)
+        for i in raw:
+            count[i] = count[i] + 1
+    length = stream.getSize()
     for i in range(0,256):
+        i = chr(i)
         if count[i] != 0:
             p.append( float(count[i]) / length )
     h = 0

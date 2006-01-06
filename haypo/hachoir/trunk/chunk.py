@@ -27,6 +27,9 @@ class Chunk(object):
         if self.post_process != None:
             self.display = self.post_process(self)
 
+    def createSubStream(self):
+        return self._parent.getStream().createSub(start=self.addr, size=self.size)
+
     def getFormat(self):
         return self.__class__.__name__
 

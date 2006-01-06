@@ -72,7 +72,19 @@ class MainWindow:
         self.row_chunk_id = None
         self.sort_column_as_long = True
         self.build_table()
-        
+
+    def messageBox(self, message, markup=True):
+        dlg = gtk.MessageDialog( \
+            parent=self.window,
+            type=gtk.MESSAGE_INFO,
+            buttons=gtk.BUTTONS_OK)
+        if markup:
+            dlg.set_markup(message)
+        else:                
+            dlg.message_format = message
+        dlg.run()
+        dlg.destroy()
+ 
     def onChunkCopy(self, event):
         chunk = self.getActiveChunk()
         assert chunk != None
@@ -118,8 +130,6 @@ class MainWindow:
         return self.ui.hachoir.getFilter().getChunk(chunk_id)
 
     def on_treeview_button_press_event(self, treeview, event):
-        return
-        # TODO: Re-enable popup menu :-)
         if event.button == 3:
             x = int(event.x)
             y = int(event.y)

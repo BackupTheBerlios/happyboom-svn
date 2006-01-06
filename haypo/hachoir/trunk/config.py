@@ -8,5 +8,6 @@ debug = False
 verbose = False
 
 # Size of file cache (for each opened file)
-file_cache_block_size = 4096
-file_cache_block_count = 10
+file_cache_block_size = 4096  # 4 KB
+file_cache_block_count = 10   # Buffer = 10 * 4 KB
+best_stream_buffer_size = 64 * 1024  # 64 KB
