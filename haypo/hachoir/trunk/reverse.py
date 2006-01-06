@@ -6,6 +6,7 @@ from bits import countBits, long2bin, str2hex
 from error import error, warning
 from chunk import FormatChunk
 from default import EmptyFilter
+from tools import humanFilesize
 import config
 import sys, math
 
@@ -17,7 +18,8 @@ def entropy(stream):
         count[ chr(i) ] = 0
     p = []
     if 1024 * 1024 < stream.getSize():
-        warning("Warning: Computing entropy is slow, be patient ...")
+        size = humanFilesize(stream.getSize())
+        warning("Warning: Computing entropy of %s of data is slow, please be patient ..." % size)
     stream.seek(0)
     n = 0
     while not stream.eof():

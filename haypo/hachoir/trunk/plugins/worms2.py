@@ -52,13 +52,17 @@ class Image(OnDemandFilter):
         self.read("height", "Height", (FormatChunk, "uint16"))
         size = self["width"] * self["height"]
         if size <= stream.getRemainSize():
+            self.compressed = False
             self.read("img_data", "Image data: %ux%u pixels in 8 bits/pixels" % (self["width"], self["height"]), (FormatChunk, "string[%u]" % size))
+        else:
+            self.compressed = True
         self.addPadding()
 
     def updateParent(self, chunk):            
-        chunk.description = "Image: %ux%u pixels" % \
-            (self["width"], self["height"])
-
+        desc = "Image: %ux%u pixels" % (self["width"], self["height"])
+        if self.compressed:
+            desc += " (compressed)"
+        chunk.description = desc 
 class Step(OnDemandFilter):
     def __init__(self, stream, parent):
         OnDemandFilter.__init__(self, "sprite_item", "Sprite item", stream, parent, "<")
@@ -268,7 +272,7 @@ class Font(OnDemandFilter):
         if use_bank:
             for i in range(0, self["nb_char"]):
                 image = self["image[%u]" % i]
-                size = image.width * image.height
+                size = image["width"] * image["height"]
                 self.read("image_data[]", "Image data content", (FormatChunk, "string[%u]" % size))
         self.addPadding()
 
