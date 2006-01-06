@@ -96,6 +96,8 @@ class FileStream(Stream):
         
     def read(self, size, seek=True):
         if self._cache != None:
+            if self._size < self._seed + size:
+                size = self._size - self._seed
             data = self._cache.read(self._seed, size)
         else:
             self._file.seek(self._seed) ; data = self._file.read(size)

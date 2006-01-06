@@ -168,6 +168,9 @@ class LimitedStream(Stream):
     def read(self, size, seek=True):
         """ Works like Posix read (can returns less than size bytes. """
         self._stream.seek(self._seed)
+        max = self._end - self._seed
+        if max<size:
+            size = max
         data = self._stream.read(size, seek)
         if seek:
             self._seed += len(data)
