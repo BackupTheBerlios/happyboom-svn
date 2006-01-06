@@ -292,8 +292,6 @@ class Resource(OnDemandFilter):
         "BNK": Bank
     }
 
-    regex_filename_inf = re.compile(r"^.*\.inf$")
-
     def __init__(self, stream, parent, has_name=True, use_bank=False, has_separator=False):
         OnDemandFilter.__init__(self, "worms2_res", "Worms2 resource", stream, parent, "<")
         guess = stream.getN(3, False)
@@ -351,15 +349,14 @@ class Resource(OnDemandFilter):
                 use_bank = True
                 has_name = False
             fs = parent["fs"]
-            last_is_inf = False
             for index in range(0, fs.count):
                 file = fs["file[%u]" % index]
                 self.seek(file["position"])
                 name = file["name"]
                 
-                if Resource.regex_filename_inf.match(name) != None:
+                if name.endswith(".inf"):
                     self.read("res[]", "INF resource", (INF,))
-                elif name == "index.txt":
+                elif name.endswith("index.txt"):
                     self.read("res[]", "String index", (StringIndex, use_bank))
                 else:
                     self.read("res[]", "Resource", (Resource, has_name, use_bank, has_separator))
