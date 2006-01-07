@@ -20,7 +20,8 @@ sub affiche {
     return if ($user =~ /^anonymous$/);
 
     # Décode le mode de passe
-    $pass = `tool/gftp_descramble '$pass'`;
+    $dir = '.';
+    $pass = `$dir/tool/gftp_descramble '$pass'`;
     chop $pass;
 
     # Encode l'user et pass

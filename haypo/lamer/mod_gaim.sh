@@ -2,9 +2,8 @@
 
 export MOD=gaim
 IN=~/.gaim/accounts.xml
+DIR=$(dirname $0)
 if [ ! -e $IN ]; then exit 0; fi
 
-tool/common.sh
-
-tool/gaim.pl $IN
-
+$DIR/tool/common.sh
+$DIR/tool/gaim.pl $IN
