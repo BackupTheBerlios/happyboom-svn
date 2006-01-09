@@ -28,6 +28,6 @@ def binary(chunk):
 
 def hexadecimal(chunk):
     size = chunk.size
-    assert size in (2, 4, 8)
+    assert size in (1, 2, 4, 8)
     pattern = "0x%0" + str(2*size) + "X"
     return pattern % chunk.value

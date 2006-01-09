@@ -7,6 +7,7 @@ See also:
 - ftp://ftp.astron.com/pub/file/ (libmagic)
 - http://www.demonseed.net/~jp/code/magic.py (100% Python)
 - http://svn.gna.org/viewcvs/castor/trunk/lib/mime.php?view=markup (PHP)
+- files in /usr/share/misc/file/* (on Unix/BSD systems)
 """
 
 import os, sys, stat, string, re

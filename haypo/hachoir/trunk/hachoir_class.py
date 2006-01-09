@@ -70,7 +70,7 @@ class Hachoir:
         self._filter = new_filter           
         if parent == None:
             self._main_filter = self._filter
-            self._addPadding()
+            self._main_filter.addPadding()
         else:
             chunk = old_filter.filter_chunk
             chunk.setFilter(self._filter)
@@ -88,13 +88,6 @@ class Hachoir:
         my = UserFilterDescriptor(filter=self._filter)
         my.exportPython(filename)
         
-    def _addPadding(self):
-        filter_size = self._main_filter.getSize()
-        stream_size = self._main_filter.getStream().getSize()
-        diff_size = filter_size - stream_size
-        if diff_size < 0:
-            self._main_filter.read("end", "Raw data", (FormatChunk, "string[%u]" % -diff_size))
-
     def loadFile(self, filename):
         try:
             print "Load file %s" % filename
@@ -123,7 +116,7 @@ class Hachoir:
             stream.seek(0)
             filter = DefaultFilter(stream)
         self._main_filter = filter
-        self._addPadding()
+        self._main_filter.addPadding()
         self.setFilter(filter)
 
     def loadScript(self, filename):

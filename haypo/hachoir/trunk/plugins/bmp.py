@@ -30,7 +30,6 @@ class BitmapFile(OnDemandFilter):
             self.read("vertical_dpi", "Vertical DPI", (FormatChunk, "uint32"))
             self.read("used_colors", "Number of color used", (FormatChunk, "uint32"))
             self.read("important_color", "Number of import colors", (FormatChunk, "uint32"))
-        size = stream.getSize() - stream.tell()            
-        self.read("data", "Image raw data", (FormatChunk, "string[%u]" % size))
+        self.addPadding("data", "Image raw data")
 
 registerPlugin(BitmapFile, "image/x-ms-bmp")
