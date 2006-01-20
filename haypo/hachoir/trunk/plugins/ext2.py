@@ -95,9 +95,9 @@ class Inode(OnDemandFilter):
         else:
             self.read("raw", "Reserved", (FormatChunk, "string[12]"))
 
+    @staticmethod
     def getStaticSize(stream, args):
         return 68 + 15*4
-    getStaticSize = staticmethod(getStaticSize)
 
     def updateParent(self, chunk):
         desc = "Inode %s: " % self.index
@@ -174,9 +174,9 @@ class GroupDescriptor(OnDemandFilter):
         self.read("padding", "Padding", (FormatChunk, "uint16"))
         self.read("reserved", "Reserved", (FormatChunk, "string[12]"))
 
+    @staticmethod
     def getStaticSize(stream, args):
         return 32
-    getStaticSize = staticmethod(getStaticSize)
 
     def updateParent(self, chunk):
         superblock = self.getParent().getParent().superblock
@@ -257,9 +257,9 @@ class SuperBlock(OnDemandFilter):
         blocks_per_group = self["blocks_per_group"]
         self.group_count = (self["blocks_count"] - self["first_data_block"] + (blocks_per_group - 1)) / blocks_per_group
 
+    @staticmethod
     def getStaticSize(stream, args):
         return 433
-    getStaticSize = staticmethod(getStaticSize)
  
     def updateParent(self, chunk):
         if self["feature_compat"] & 4 == 4:

@@ -27,9 +27,9 @@ class Filter_3DS_MapUV(OnDemandFilter):
         self.read("u", "Map U", (FormatChunk, "float"))
         self.read("v", "Map V", (FormatChunk, "float"))
 
+    @staticmethod
     def getStaticSize(stream, args):
         return 4*2
-    getStaticSize = staticmethod(getStaticSize)
  
 class Filter_3DS_Vertex(OnDemandFilter):
     def __init__(self, stream, parent):
@@ -38,9 +38,9 @@ class Filter_3DS_Vertex(OnDemandFilter):
         self.read("y", "Y", (FormatChunk, "float"))
         self.read("z", "Z", (FormatChunk, "float"))
 
+    @staticmethod
     def getStaticSize(stream, args):
         return 4*3
-    getStaticSize = staticmethod(getStaticSize)
 
 class Filter_3DS_Polygon(OnDemandFilter):
     def __init__(self, stream, parent):
@@ -50,9 +50,9 @@ class Filter_3DS_Polygon(OnDemandFilter):
         self.read("c", "Vertex C", (FormatChunk, "uint16"))
         self.read("flags", "Flags", (FormatChunk, "uint16"))
 
+    @staticmethod
     def getStaticSize(stream, args):
         return 4*2
-    getStaticSize = staticmethod(getStaticSize)
     
 def readMapList(filter, stream, last_pos):
     filter.read("count", "Map count", (FormatChunk, "uint16"))

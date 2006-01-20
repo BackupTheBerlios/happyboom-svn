@@ -24,9 +24,9 @@ class BasicFilter(object):
         self._endian = endian
         self.filter_chunk = None
 
+    @staticmethod
     def getStaticSize(stream, args):
         return None
-    getStaticSize = staticmethod(getStaticSize)
 
     def updateParent(self, chunk): pass
     def getId(self): return self._id

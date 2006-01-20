@@ -28,6 +28,7 @@ class ImageData(OnDemandFilter):
             size = (self["width"]-self["x"]) * (self["height"]-self["y"])
             self.read("data", "Image content", (FormatChunk, "string[%u]" % size))
 
+    @staticmethod
     def getStaticSize(stream, args):
         if args[0] == True:
             return 12 
@@ -36,7 +37,6 @@ class ImageData(OnDemandFilter):
         size = 2*4 + (w-x) * (h-y)
         stream.seek(oldpos)
         return size
-    getStaticSize = staticmethod(getStaticSize)
 
     def updateParent(self, chunk):
         desc = "Image data: " 
@@ -171,9 +171,9 @@ class BankItem(OnDemandFilter):
         self.read("offset", "Offset?", (FormatChunk, "uint16"))
         self.read("xxx", "???", (FormatChunk, "uint16"))
 
+    @staticmethod
     def getStaticSize(stream, args):
         return 12 
-    getStaticSize = staticmethod(getStaticSize)
 
     def updateParent(self, chunk):
         desc = "Bank item: " 
@@ -191,9 +191,9 @@ class BankItem2(OnDemandFilter):
         self.read("zero", "Zero", (FormatChunk, "string[6]"))
         assert self["zero"] == "\0" * 6 
 
+    @staticmethod
     def getStaticSize(stream, args):
         return 12 
-    getStaticSize = staticmethod(getStaticSize)
 
     def updateParent(self, chunk):
         chunk.description = "Bank item2: size=%s offset=%s step=%s" % (self["size"], self["offset"], self["step"])
@@ -205,12 +205,12 @@ class BigBank(OnDemandFilter):
         for i in range(0, self.count):
             self.read("item[]", "Item", chunk_info)
 
+    @staticmethod
     def getStaticSize(stream, args):
         size = args[0][0].getStaticSize(stream, [])
         count = args[1]
         assert size != None
         return count * size
-    getStaticSize = staticmethod(getStaticSize)
 
     def updateParent(self, chunk):
         chunk.description = "Big Bank: %s items" % (self.count)
@@ -374,6 +374,7 @@ class Resource(OnDemandFilter):
         if size != 0:
             self.read("padding[]", "Padding", (FormatChunk, "string[%u]" % size))
 
+    @staticmethod
     def getStaticSize(stream, args):
         oldpos = stream.tell()
         tag = stream.getN(3, False)
@@ -387,7 +388,6 @@ class Resource(OnDemandFilter):
             size = stream.getFormat("<uint32")
         stream.seek(oldpos)
         return size
-    getStaticSize = staticmethod(getStaticSize)
 
     def updateParent(self, chunk):            
         if self["tag"] != "DIR":
