@@ -26,7 +26,7 @@ def entropy(stream):
         for i in raw:
             count[i] = count[i] + 1
     length = stream.getSize()
-    for i in range(0,256):
+    for i in range(0, 256):
         i = chr(i)
         if count[i] != 0:
             p.append( float(count[i]) / length )
@@ -231,7 +231,7 @@ class Reverse:
         """
         # Config
         max_header_size = 64 
-        chunk_size_deltas = IntValues((-20,20))
+        chunk_size_deltas = IntValues((-20, 20))
 
         # Find possible header sizes
         range = IntValues((0, max_header_size))

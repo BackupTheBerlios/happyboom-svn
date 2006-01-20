@@ -7,7 +7,7 @@ Because it's written in Python, it would be easy to write new plugins
 Author: Victor Stinner
 """
 
-import sys, os, re, traceback
+import sys, os, re
 import config
 from program import PROGRAM, VERSION, WEBSITE
 from log import log
@@ -15,56 +15,67 @@ from error import error
 from hachoir_class import Hachoir
 import ui.ui as ui
 
-def usage(defval):
+def usage():
     print "%s version %s" % (PROGRAM, VERSION)
     print "%s\n" % WEBSITE
     print "Usage: %s [options] file" % (sys.argv[0])
     print ""
     print "Options:"
-    print "\t--script file.py  : Load python script after loading file (if any specified)"
-    print "\t--no-ui           : Don't load user interface"
-    print "\t--use-profiler    : Use profiler"
-    print "\t--version         : Show the program version"
-    print "\t--verbose         : Activate verbose mode"
-    print "\t--help            : Show this help"
-    print "\t--debug           : Enable debug mode (eg. display backtrace)"
+    options = ( \
+        ("script file.py", (
+            "Load python script after loading file",
+            "(if any specified)")),
+        ("no-ui", "Don't load user interface"),
+        ("use-profiler", "Use profiler"),
+        ("version", "Show the program version"),
+        ("verbose", "Activate verbose mode"),
+        ("help", "Show this help"),
+        ("debug", "Enable debug mode (eg. display backtrace)")
+    )
+    width = max([len(option[0]) for option in options])
+    for opt in options:
+        if isinstance(opt[1], tuple):
+            print "   --%s : %s" % (opt[0].ljust(width), opt[1][0])
+            for line in opt[1][1:]:
+                print "   %s%s" % (" " * (width+5), line)
+        else:
+            print "   --%s : %s" % (opt[0].ljust(width), opt[1])
 
 def parseArgs(val):
     import getopt
-    def_val = val.copy()
-    
     try:
-        short = ""
-        long = ["verbose", "help", "version", "script=", "no-ui", "debug", "use-profiler"]
-        opts, args = getopt.getopt(sys.argv[1:], short, long)
+        allowed = ( \
+            "verbose", "help", "version", "debug",
+            "script=", "no-ui", "use-profiler")
+        opts, args = getopt.getopt(sys.argv[1:], "", allowed)
     except getopt.GetoptError:
-        usage(def_val)
+        usage()
         sys.exit(2)
    
     if 1 < len(args):
-        usage(def_val)
+        usage()
         sys.exit(2)
     if len(args) == 1:
         filename = args[0]
     else:
         filename = None
         
-    for o, a in opts:
-        if o == "--help":
-            usage(def_val)
+    for option, value in opts:
+        if option == "--help":
+            usage()
             sys.exit()
-        elif o == "--version":
+        elif option == "--version":
             print "%s version %s" % (PROGRAM, VERSION)
             sys.exit()
-        elif o == "--no-ui":
+        elif option == "--no-ui":
             val["load_ui"] = False
-        elif o == "--script":
-            val["script"] = a
-        elif o == "--verbose":
+        elif option == "--script":
+            val["script"] = value
+        elif option == "--verbose":
             config.verbose = True
-        elif o == "--debug":
+        elif option == "--debug":
             config.debug = True
-        elif o == "--use-profiler":
+        elif option == "--use-profiler":
             val["use_profiler"] = True
     return (val, filename,)
 
@@ -77,17 +88,16 @@ def main():
             print "Fatal error: you need Python 2.4 or greater!"
             sys.exit(1)
     
-        import imp
         plugins_dir = os.path.join(os.path.dirname(__file__), "plugins")
         plugins_files = os.listdir(plugins_dir)
-        file_py = re.compile("^([a-z0-9_]+)\.py$")
+        match_module_name = re.compile("^([a-z0-9_]+)\.py$")
         modules = []
         for file in plugins_files:
-            m = file_py.match(file)
-            if file != "__init__.py" and m != None:
-                module = "plugins."+m.group(1)
+            module_name = match_module_name.match(file)
+            if file != "__init__.py" and module_name != None:
+                module = "plugins." + module_name.group(1)
                 __import__(module)
-                modules.append(m.group(1))
+                modules.append(module_name.group(1))
         log.info("Loaded: %u plugings (%s)" % (len(modules), ", ".join(modules)))
 
         opt = {
@@ -124,9 +134,14 @@ Mandriva: urpmi pygtk2.0-libglade-2.6.2-1mdk (or pygtk2.0-libglade?)""" % (err))
                 str_filename = "\"%s\"" % filename
             else:
                 str_filename = "None"
-            profile.run('global hachoir; hachoir.run(%s)' % str_filename, stat_filename)
-            #pstats.Stats(stat_filename).sort_stats('cumulative').print_stats()
-            pstats.Stats(stat_filename).sort_stats('time').print_stats()
+            code = 'global hachoir; hachoir.run(%s)' % str_filename
+            profile.run(code, stat_filename)
+            if False:
+                sort_by = 'cumulative'
+            else:
+                sort_by = 'time'
+            stats = pstats.Stats(stat_filename).sort_stats(sort_by)
+            stats.print_stats()
             os.unlink(stat_filename)
         else:
             hachoir.run(filename)
@@ -135,6 +150,7 @@ Mandriva: urpmi pygtk2.0-libglade-2.6.2-1mdk (or pygtk2.0-libglade?)""" % (err))
         pass
     except Exception, err:
         error("Python Exception: %s" % err)
-	sys.exit(1)
+    sys.exit(1)
 
-if __name__=="__main__": main()    
+if __name__ == "__main__":
+    main()

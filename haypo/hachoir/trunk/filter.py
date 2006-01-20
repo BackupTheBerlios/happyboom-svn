@@ -2,19 +2,18 @@
 Base class for all splitter filters.
 """
 
-import struct, re, sys, string, types
+import re
 import config
 import ui.ui as ui
-from chunk import Chunk, FormatChunk, FilterChunk, StringChunk, BitsChunk
+from chunk import FormatChunk, FilterChunk, BitsChunk
 from error import error
-from format import getFormatSize, splitFormat
 from cache import Cache
 
 class BasicFilter(object):
     regex_chunk_uniq_id = re.compile("^(.*?)([0-9]+)$")
 
-    def __init__(self, id, description, stream, parent, addr, endian):
-        self._id = id
+    def __init__(self, identifier, description, stream, parent, addr, endian):
+        self._id = identifier
         self._description = description
         self._stream = stream
         self._parent = parent
@@ -28,23 +27,34 @@ class BasicFilter(object):
     def getStaticSize(stream, args):
         return None
 
-    def updateParent(self, chunk): pass
-    def getId(self): return self._id
-    def setId(self, id):
-        if self._id == id:
+    def updateParent(self, chunk):
+        pass
+    def getId(self):
+        return self._id
+    def setId(self, identifier):
+        if self._id == identifier:
             return
-        self._id = id
+        self._id = identifier
         if self.filter_chunk != None:
-            self.filter_chunk.id = id
-    def getDescription(self): return self._description
-    def setDescription(self, description): self._description = description
-    def getAddr(self): return self._addr
-    def getParent(self): return self._parent
-    def getStream(self): return self._stream
-    def updateChunkId(self, old_id, new_id): pass
-    def updateChunkDescription(self, id, desc): pass
-    def updateChunkDisplay(self, id): pass
-    def __len__(self): return len(self._chunks_dict)
+            self.filter_chunk.id = identifier
+    def getDescription(self):
+        return self._description
+    def setDescription(self, description):
+        self._description = description
+    def getAddr(self):
+        return self._addr
+    def getParent(self):
+        return self._parent
+    def getStream(self):
+        return self._stream
+    def updateChunkId(self, old_id, new_id):
+        pass
+    def updateChunkDescription(self, identifier, desc):
+        pass
+    def updateChunkDisplay(self, identifier):
+        pass
+    def __len__(self):
+        return len(self._chunks_dict)
 
     def getPath(self):
         """
@@ -54,7 +64,8 @@ class BasicFilter(object):
         text = ""
         current = self
         while current != None:
-            if text != "": text = "/" + text
+            if text != "":
+                text = "/" + text
             text = current.getId() + text
             current = current.getParent()
         return "/"+text
@@ -66,24 +77,24 @@ class BasicFilter(object):
             self._chunks_counter[root] = index
         return self._chunks_counter[root]
 
-    def getUniqChunkId(self, id):
+    def getUniqChunkId(self, identifier):
         # No collision
-        if id not in self._chunks_dict and id[-2:] != "[]":
-            return id
+        if identifier not in self._chunks_dict and identifier[-2:] != "[]":
+            return identifier
 
         # Pattern like "block[]"
-        if id[-2:] == "[]":
-            root = id[:-2]
+        if identifier[-2:] == "[]":
+            root = identifier[:-2]
             start = 0
             pattern = "%s[%u]"
         else:
-            # Manage id collision
-            m = BasicFilter.regex_chunk_uniq_id.match(id)
+            # Manage identifier collision
+            m = BasicFilter.regex_chunk_uniq_id.match(identifier)
             if m != None:
                 root = m.group(1)
                 start = int(m.group(2)) + 1
             else:
-                root = id
+                root = identifier
                 start = 2
             pattern = "%s%u"
         if root in self._chunks_counter:
@@ -92,27 +103,34 @@ class BasicFilter(object):
             self._chunks_counter[root] = start 
         return pattern % (root, self._chunks_counter[root])
         
-    def hasChunk(self, id):
-        return id in self._chunks_dict
+    def hasChunk(self, identifier):
+        return identifier in self._chunks_dict
 
-    def _getEndian(self): return self._endian
+    def _getEndian(self):
+        return self._endian
     endian = property(_getEndian)
 
-    def addPadding(self, id="end", description="Raw end"):
+    def addPadding(self, identifier="end", description="Raw end"):
         size = self._stream.getRemainSize()
         if 0 < size:
-            self.read(id, description, (FormatChunk, "string[%u]" % size))
+            self.read(identifier, description, \
+                (FormatChunk, "string[%u]" % size))
 
     # --- Pure virtual methods -----------
-    def getSize(self): todoWriteMethod(self, "getSize") 
-    def __getitem__(self, chunk_id): todoWriteMethod(self, "__getitem__") 
-    def getChunk(self, chunk_id): todoWriteMethod(self, "getChunk")
-    def display(self): todoWriteMethod(self, "display")
+    def getSize(self):
+        todoWriteMethod(self, "getSize") 
+    def __getitem__(self, chunk_id):
+        todoWriteMethod(self, "__getitem__") 
+    def getChunk(self, chunk_id):
+        todoWriteMethod(self, "getChunk")
+    def display(self):
+        todoWriteMethod(self, "display")
 
 class OnDemandFilter(BasicFilter, Cache):
-    def __init__(self, id, description, stream, parent, endian=None):
-        BasicFilter.__init__(self, id, description, stream, parent, stream.tell(), endian)
-        Cache.__init__(self, "Filter %s" % id)
+    def __init__(self, identifier, description, stream, parent, endian=None):
+        BasicFilter.__init__(self, identifier, description, stream, parent, \
+            stream.tell(), endian)
+        Cache.__init__(self, "Filter %s" % identifier)
         self._size = 0
         self._chunks = []
         self._chunks_cache = {}
@@ -141,31 +159,31 @@ class OnDemandFilter(BasicFilter, Cache):
         # Update display
         self.updateChunkDisplay(new_id)
 
-    def updateChunkDisplay(self, id):
+    def updateChunkDisplay(self, identifier):
         if ui.ui == None:
             return
-        pos = self._chunks.index(id)
+        pos = self._chunks.index(identifier)
         assert pos != -1
-        info = self.displayChunkInfo(id)
+        info = self.displayChunkInfo(identifier)
         ui.window.update_table(self, pos, *info)
 
-    def updateChunkDescription(self, id, desc):
-        pos = self._chunks.index(id)
+    def updateChunkDescription(self, identifier, desc):
+        pos = self._chunks.index(identifier)
         assert pos != -1
-        self._chunks_dict[id][1] = desc
-        self.updateChunkDisplay(id)
+        self._chunks_dict[identifier][1] = desc
+        self.updateChunkDisplay(identifier)
 
     def purgeCache(self):
         if len(self._chunks_cache) != 0 and config.verbose:
             print "Purge cache: destroy %s chunks" % len(self._chunks_cache)
         self._chunks_cache = {}
         
-    def read(self, id, description, info, optionnal={}): 
-        self._read(id, description, info, optionnal, False)
+    def read(self, identifier, description, info, optionnal={}): 
+        self._read(identifier, description, info, optionnal, False)
 
-    def _read(self, id, description, info, optionnal, instanciate):
+    def _read(self, identifier, description, info, optionnal, instanciate):
         chunk_class = info[0]
-        id = self.getUniqChunkId(id)
+        identifier = self.getUniqChunkId(identifier)
         addr = self._stream.tell()
         if issubclass(chunk_class, BasicFilter):
             filter_stream = optionnal.get("stream", self._stream)
@@ -177,21 +195,22 @@ class OnDemandFilter(BasicFilter, Cache):
             if instanciate or size == None:
                 filter = chunk_class(filter_stream, self, *args)
                 description = filter.getDescription()
-                filter.setId(id)
-                chunk = FilterChunk(id, filter, self, addr)
+                filter.setId(identifier)
+                chunk = FilterChunk(identifier, filter, self, addr)
                 size = filter.getSize()
                 if config.verbose:
-                    print "%s: Instanciate filter %s" % (self.getPath(), id)
+                    print "%s: Instanciate filter %s" % \
+                        (self.getPath(), identifier)
             else:
                 chunk = None
 
-            chunk_info = [id, description, addr, size, \
+            chunk_info = [identifier, description, addr, size, \
                     (chunk_class, filter_stream, filter_addr, args), None, {}]
-            self._chunks_dict[id] = chunk_info
-            self._chunks.append(id)
+            self._chunks_dict[identifier] = chunk_info
+            self._chunks.append(identifier)
             if chunk != None:
                 filter.updateParent(chunk)
-                self._chunks_cache[id] = chunk
+                self._chunks_cache[identifier] = chunk
             self._size = self._size + size
             self._stream.seek(addr + size)
         else:
@@ -202,7 +221,9 @@ class OnDemandFilter(BasicFilter, Cache):
                 args = info[1:]
             else:
                 args = [ i for i in info[1:] ]
-            instance_info = [info[0], id, description, self._stream]+args+[self]
+            instance_info  = [info[0], identifier, description, self._stream]
+            instance_info += args
+            instance_info += [self]
 
             if not instanciate:
                 size = chunk_class.getStaticSize(self._stream, info[1:])
@@ -215,32 +236,33 @@ class OnDemandFilter(BasicFilter, Cache):
                 seek = False
                 chunk = info[0] (*instance_info[1:], **optionnal)
                 size = chunk.size
-                id = chunk.id
-                self._chunks_cache[id] = chunk
-            chunk_info = [id, description, addr, size, instance_info, post, optionnal]
-            self._chunks_dict[id] = chunk_info
-            self._chunks.append(id)
+                identifier = chunk.id
+                self._chunks_cache[identifier] = chunk
+            chunk_info = [identifier, description, addr, size, \
+                instance_info, post, optionnal]
+            self._chunks_dict[identifier] = chunk_info
+            self._chunks.append(identifier)
             self._size = self._size + size
         if instanciate:
             return chunk
         else:
-            return id
+            return identifier
 
-    def doRead(self, id, description, info, optionnal={}):
-        chunk = self._read(id, description, info, optionnal, True)
+    def doRead(self, identifier, description, info, optionnal={}):
+        chunk = self._read(identifier, description, info, optionnal, True)
         if isinstance(chunk, FilterChunk):
             return chunk.getFilter()
         else:
             return chunk
 
-    def displayChunkInfo(self, id):
-        info = self._chunks_dict[id]
+    def displayChunkInfo(self, identifier):
+        info = self._chunks_dict[identifier]
         chunk_class = info[4][0]
         if issubclass(chunk_class, BasicFilter):
             display = "(...)"
             format = chunk_class.__name__
         else:
-            chunk = self.getChunk(id)
+            chunk = self.getChunk(identifier)
             display = chunk.getDisplayData()
             format = chunk.getSmallFormat()
         addr = info[2]
@@ -250,25 +272,26 @@ class OnDemandFilter(BasicFilter, Cache):
     def display(self):
         ui.window.enableParentButton(self.getParent() != None)
         ui.window.clear_table()
-        for id in self._chunks:
-            info = self.displayChunkInfo(id)
-            if self._chunks_dict[id][4][0] == BitsChunk:
-                self.getChunk(id).uiDisplay(ui.window)
+        for identifier in self._chunks:
+            info = self.displayChunkInfo(identifier)
+            if self._chunks_dict[identifier][4][0] == BitsChunk:
+                self.getChunk(identifier).uiDisplay(ui.window)
             else:
                 ui.window.add_table(*info)
  
     def getSize(self): return self._size
 
-    def _createInstance(self, id):
-        description = self._chunks_dict[id][1]
-        addr = self._chunks_dict[id][2]
-        size = self._chunks_dict[id][3]
-        desc = self._chunks_dict[id][4]
-        post = self._chunks_dict[id][5]
-        chunks_kw = self._chunks_dict[id][6]
+    def _createInstance(self, identifier):
+        description = self._chunks_dict[identifier][1]
+        addr = self._chunks_dict[identifier][2]
+        size = self._chunks_dict[identifier][3]
+        desc = self._chunks_dict[identifier][4]
+        post = self._chunks_dict[identifier][5]
+        chunks_kw = self._chunks_dict[identifier][6]
         oldpos = self._stream.tell()
         if config.verbose:
-            print "%s: Instanciate %s (of type %s)" % (self.getPath(), id, desc[0].__name__)
+            print "%s: Instanciate %s (of type %s)" % \
+                (self.getPath(), identifier, desc[0].__name__)
         if not issubclass(desc[0], BasicFilter):
             # Chunk
             chunk_class = desc[0]
@@ -286,39 +309,40 @@ class OnDemandFilter(BasicFilter, Cache):
                 self._stream.seek(addr)
             try:
                 filter = desc[0] (filter_stream, self, *desc[3])
-                filter.setId(id)
-                chunk = FilterChunk(id, filter, self, addr)
+                filter.setId(identifier)
+                chunk = FilterChunk(identifier, filter, self, addr)
                 if filter.getDescription() != desc[1]:
-                    self.updateChunkDescription(id, filter.getDescription())
+                    self.updateChunkDescription(identifier, filter.getDescription())
                 filter.updateParent(chunk)
             except Exception, msg:
-                error("Error when loading filter %s: %s" % (id, msg))
+                error("Error when loading filter %s: %s" % (identifier, msg))
                 if filter_stream != self._stream:
                     filter_stream.seek(desc[2])
                 else:
                     self._stream.seek(addr)
                 if isinstance(size, int) or isinstance(size, long):
-                    self._chunks_dict[id][4] = (FormatChunk, id, description, filter_stream, "string[%u]" % size, self)
-                    self._chunks_dict[id][5] = None
-                    self._chunks_dict[id][6] = {}
-                    self.updateChunkDisplay(id)
-                    return self._createInstance(id)
+                    self._chunks_dict[identifier][4] = (FormatChunk, identifier, description, \
+                        filter_stream, "string[%u]" % size, self)
+                    self._chunks_dict[identifier][5] = None
+                    self._chunks_dict[identifier][6] = {}
+                    self.updateChunkDisplay(identifier)
+                    return self._createInstance(identifier)
         self._stream.seek(oldpos)
         return chunk
 
-    def getChunk(self, id):
-        if id not in self._chunks_dict:
+    def getChunk(self, identifier):
+        if identifier not in self._chunks_dict:
             return None
-        if id not in self._chunks_cache:
-            chunk = self._createInstance(id) 
+        if identifier not in self._chunks_cache:
+            chunk = self._createInstance(identifier) 
             self._chunks_cache[chunk.id] = chunk 
             return chunk
         else:
-            return self._chunks_cache[id]
+            return self._chunks_cache[identifier]
 
-    def __getitem__(self, id):
-        assert id in self._chunks_dict
-        chunk = self.getChunk(id)
+    def __getitem__(self, identifier):
+        assert identifier in self._chunks_dict
+        chunk = self.getChunk(identifier)
         if isinstance(chunk.__class__, FilterChunk):
             return chunk.getFilter()
         else:
