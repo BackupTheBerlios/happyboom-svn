@@ -72,6 +72,10 @@ def main():
     try:        
         print "%s version %s" % (PROGRAM, VERSION)
         print "%s\n" % WEBSITE
+
+        if sys.hexversion < 0x02040000:
+            print "Fatal error: you need Python 2.4 or greater!"
+            sys.exit(1)
     
         import imp
         plugins_dir = os.path.join(os.path.dirname(__file__), "plugins")

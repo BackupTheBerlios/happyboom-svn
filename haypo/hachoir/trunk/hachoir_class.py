@@ -92,6 +92,11 @@ class Hachoir:
         try:
             print "Load file %s" % filename
             file = open(filename, 'r')
+            file.seek(0,2)
+            if file.tell() == 0:
+                error("Error: file \"%s\" is empty." % filename)
+                return
+            file.seek(0)
             stream = FileStream(file, filename)
         except IOError, err:
             error("Can't load file %s:\n%s" % (filename, err))

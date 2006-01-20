@@ -79,6 +79,8 @@ class FileStream(Stream):
             self._file.seek(0,2) # Seek to end
             self._size = self._file.tell()
             self._file.seek(0,0) # Seel to beginning
+            if self._size == 0:
+                raise Exception("Error: file %s is empty!" % filename)
             self._seed = 0
             if self._size != 0:
                 self._end = self._size-1
