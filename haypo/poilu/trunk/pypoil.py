@@ -83,9 +83,10 @@ class TestBot(SingleServerIRCBot):
         # Commande pour le bot
         regs = re.compile("^"+self.connection.get_nickname()+"[:,>]? *(.*)$", re.IGNORECASE).search(cmd)
         if regs != None:
-            if nick==self.god and self.do_priv_command(regs.group(1)): return
-            self.do_pub_command(nick, regs.group(1))
-            return
+            if nick==self.god and self.do_priv_command(regs.group(1)):
+                return
+            if self.do_pub_command(nick, regs.group(1)):
+                return
 
         # Bot désactivé ? Exit !
         if self.enmarche == 0:
@@ -93,8 +94,8 @@ class TestBot(SingleServerIRCBot):
             
         # Sinon, cherche une rime
         reponse = None
-        if reponse==None and self.reponse_dico: reponse = self.dico.reponse(cmd)
         if reponse==None and self.reponse_motcle: reponse = self.motcle.reponse(cmd)
+        if reponse==None and self.reponse_dico: reponse = self.dico.reponse(cmd)
         if reponse==None: return
         
         if self.taux_reponse <= random.uniform(0,101): return
@@ -133,9 +134,12 @@ class TestBot(SingleServerIRCBot):
         if (re.compile("^ta gueule", re.IGNORECASE).search(cmd) != None):
             if self.enmarche!=0: self.send_privmsg(self.channel, "Ok, je me tais")
             self.enmarche = 0
-        else:
-            if self.enmarche==0: self.send_privmsg(self.channel, "re")
+            return True
+        elif self.enmarche==0:
+            self.send_privmsg(self.channel, "re")
             self.enmarche = 1
+            return True
+        return False
 
     def do_priv_command(self, cmd):
         c = self.connection
@@ -286,7 +290,7 @@ class TestBot(SingleServerIRCBot):
             self.channel = regs.group(1) 
             self.connection.join(self.channel)
             return True
-        return None
+        return False
 
 def main():
     import sys

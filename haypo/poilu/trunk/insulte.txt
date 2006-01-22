@@ -6,3 +6,4 @@ apple:Apple ---> Mangez des pommes !
 clanlib:ClanLib c'est affreux, n'utilisez pas cette bibliothèque !
 troll:Troll detected !!! :)
 windows:Windows çapucpalibre, utilisez Linux ou *BSD !
+tachatte:TA CHATTE TA CHATTE TA CHATTE
