@@ -11,7 +11,7 @@ import sys, os, re
 import config
 from program import PROGRAM, VERSION, WEBSITE
 from log import log
-from error import error
+from error import error, warning
 from hachoir_class import Hachoir
 import ui.ui as ui
 
@@ -81,25 +81,16 @@ def parseArgs(val):
 
 def main():
     try:        
+        # Welcome message
         print "%s version %s" % (PROGRAM, VERSION)
         print "%s\n" % WEBSITE
 
+        # Check Python version (need 2.4 or greater)
         if sys.hexversion < 0x02040000:
             print "Fatal error: you need Python 2.4 or greater!"
             sys.exit(1)
-    
-        plugins_dir = os.path.join(os.path.dirname(__file__), "plugins")
-        plugins_files = os.listdir(plugins_dir)
-        match_module_name = re.compile("^([a-z0-9_]+)\.py$")
-        modules = []
-        for file in plugins_files:
-            module_name = match_module_name.match(file)
-            if file != "__init__.py" and module_name != None:
-                module = "plugins." + module_name.group(1)
-                __import__(module)
-                modules.append(module_name.group(1))
-        log.info("Loaded: %u plugings (%s)" % (len(modules), ", ".join(modules)))
 
+        # Parse command line options
         opt = {
             "verbose": False,
             "script": None,
@@ -107,10 +98,14 @@ def main():
             "use_profiler": False
         }
         opt, filename = parseArgs(opt)
-        global hachoir 
+
+        # Instanciate the Hachoir
+        global hachoir
         hachoir = Hachoir()
         for key in opt:
             setattr(hachoir, key, opt[key])
+
+        # Load user interface (if needed)
         if hachoir.load_ui:
             try:
                 print "Load user interface"
@@ -127,6 +122,24 @@ Debian: apt-get install python2.4-gtk python2.4-magic
 Ubuntu: apt-get install python-gtk2 python-glade2
 Mandriva: urpmi pygtk2.0-libglade-2.6.2-1mdk (or pygtk2.0-libglade?)""" % (err))
                 sys.exit(1)
+    
+        # Load all plugins
+        plugins_dir = os.path.join(os.path.dirname(__file__), "plugins")
+        plugins_files = os.listdir(plugins_dir)
+        match_module_name = re.compile("^([a-z0-9_]+)\.py$")
+        modules = []
+        for file in plugins_files:
+            module_name = match_module_name.match(file)
+            if file != "__init__.py" and module_name != None:
+                module = "plugins." + module_name.group(1)
+                try:
+                    __import__(module)
+                    modules.append(module_name.group(1))
+                except Exception, msg:
+                    warning("Error while loading the plugin \"%s\": %s" % (module, msg))
+        log.info("Loaded: %u plugings (%s)" % (len(modules), ", ".join(modules)))
+
+        # Run the Hachoir
         if opt["use_profiler"]:
             import profile, pstats
             stat_filename = 'hachoir.pystat'
