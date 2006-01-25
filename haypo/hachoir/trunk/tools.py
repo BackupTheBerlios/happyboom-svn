@@ -171,9 +171,13 @@ def convertDataToPrintableString(data, keep_n=False):
 
 def getBacktrace():
     try:
-        bt = traceback.format_exception( \
-            sys.exc_type, sys.exc_value, sys.exc_traceback)
-        return "".join(bt)
+        info = sys.exc_info()
+        bt = traceback.format_exception(*info)
+        sys.exc_clear()
+        if bt[0] != "None\n":
+            return "".join(bt)
+        else:
+            return "Empty backtrace."
     except:
         return "Error while trying to get backtrace"
 
