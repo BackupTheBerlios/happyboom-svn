@@ -141,5 +141,5 @@ class Hachoir:
         if self.script:
             self.loadScript(self.script)
         if self.load_ui:
-            print "Run user interface ..."
+            print "Run user interface."
             self.ui.run()      

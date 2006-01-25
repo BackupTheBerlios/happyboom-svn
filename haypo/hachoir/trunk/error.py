@@ -9,15 +9,15 @@ def warning(message):
     if config.debug:
         message = log_message
     log.warning(log_message)   
-#    if ui.ui.ui != None:
-#        import gtk
-#        dlg = gtk.MessageDialog( \
-#            parent=ui.ui.ui.window.window,
-#            type=gtk.MESSAGE_WARNING,
-#            buttons=gtk.BUTTONS_OK,
-#            message_format=message)
-#        dlg.run()
-#        dlg.destroy()
+    if (config.verbose or config.debug) and ui.ui.ui != None:
+        import gtk
+        dlg = gtk.MessageDialog( \
+            parent=ui.ui.ui.window.window,
+            type=gtk.MESSAGE_WARNING,
+            buttons=gtk.BUTTONS_OK,
+            message_format=message)
+        dlg.run()
+        dlg.destroy()
 
 def error(message, backtrace=None):
     log_message = message + "\n\n" + getBacktrace()

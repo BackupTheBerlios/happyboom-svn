@@ -108,7 +108,7 @@ def main():
         # Load user interface (if needed)
         if hachoir.load_ui:
             try:
-                print "Load user interface"
+                print "Load user interface."
                 ui.loadInterface(hachoir)
             except ImportError, err:
                 error("""Error: a Python module is missing:
@@ -128,6 +128,7 @@ Mandriva: urpmi pygtk2.0-libglade-2.6.2-1mdk (or pygtk2.0-libglade?)""" % (err))
         plugins_files = os.listdir(plugins_dir)
         match_module_name = re.compile("^([a-z0-9_]+)\.py$")
         modules = []
+        print "Load plugins."
         for file in plugins_files:
             module_name = match_module_name.match(file)
             if file != "__init__.py" and module_name != None:
@@ -137,6 +138,7 @@ Mandriva: urpmi pygtk2.0-libglade-2.6.2-1mdk (or pygtk2.0-libglade?)""" % (err))
                     modules.append(module_name.group(1))
                 except Exception, msg:
                     warning("Error while loading the plugin \"%s\": %s" % (module, msg))
+        modules.sort()
         log.info("Loaded: %u plugings (%s)" % (len(modules), ", ".join(modules)))
 
         # Run the Hachoir
