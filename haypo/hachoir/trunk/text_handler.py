@@ -6,13 +6,13 @@ def msdosDatetime(chunk):
     assert chunk.size == 4
     val = chunk.value
     sec = 2 * (val & 31)              # 5 bits: second
-    min = (val >> 5) & 63             # 6 bits: minute
+    minute = (val >> 5) & 63          # 6 bits: minute
     hour = (val >> 11) & 31           # 5 bits: hour
-    day = (val >> 16) & 31            # 5 bits: day
+    day = (val >> 16) & 31            # 5 bits: day of the month
     month = (val >> 21) & 15          # 4 bits: month
     year = 1980 + ((val >> 25) & 127) # 7 bits: year
     try:
-        return str(datetime.datetime(year, month, day, hour, min, sec))
+        return str(datetime.datetime(year, month, day, hour, minute, sec))
     except:
         return "invalid msdos datetime (%s)" % val
     

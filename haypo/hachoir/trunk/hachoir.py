@@ -7,7 +7,7 @@ Because it's written in Python, it would be easy to write new plugins
 Author: Victor Stinner
 """
 
-import sys, os, re
+import getopt, os, re, sys
 import config
 from program import PROGRAM, VERSION, WEBSITE
 from log import log
@@ -16,6 +16,7 @@ from hachoir_class import Hachoir
 import ui.ui as ui
 
 def usage():
+    """ Print Hachoir command line usage to stdout. """
     print "%s version %s" % (PROGRAM, VERSION)
     print "%s\n" % WEBSITE
     print "Usage: %s [options] file" % (sys.argv[0])
@@ -42,7 +43,13 @@ def usage():
             print "   --%s : %s" % (opt[0].ljust(width), opt[1])
 
 def parseArgs(val):
-    import getopt
+    """ Parse command line arguments using getopt module.
+   
+    @parameter val: Default values.
+    @type: C{dict}
+    @return: Final values
+    @rtype: C{dict}
+    """
     try:
         allowed = ( \
             "verbose", "help", "version", "debug",
@@ -80,6 +87,9 @@ def parseArgs(val):
     return (val, filename,)
 
 def main():
+    """ Main function of the program Hachoir: read command line
+    arguments, instanciate the Hachoir class, load user interface,
+    load plugins, and then run the Hachoir. """
     try:        
         # Welcome message
         print "%s version %s" % (PROGRAM, VERSION)
@@ -137,7 +147,8 @@ Mandriva: urpmi pygtk2.0-libglade-2.6.2-1mdk (or pygtk2.0-libglade?)""" % (err))
                     __import__(module)
                     modules.append(module_name.group(1))
                 except Exception, msg:
-                    warning("Error while loading the plugin \"%s\": %s" % (module, msg))
+                    warning("Error while loading the plugin \"%s\": %s" % \
+                        (module, msg))
         modules.sort()
         log.info("Loaded: %u plugings (%s)" % (len(modules), ", ".join(modules)))
 
