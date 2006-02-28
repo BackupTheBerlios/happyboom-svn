@@ -6,6 +6,11 @@ class FieldDoesExist(KeyError):
     pass
 
 class FieldSet(Field):
+    """
+    Ordered list of fields. Use operator [] to access fields using their
+    name (field names are unique in a field set, but not in the whole
+    document).
+    """
     is_field_set = True
 
     def __init__(self, parent, name, stream, description=None):
@@ -18,6 +23,10 @@ class FieldSet(Field):
         self._size = None
         self._total_field_size = 0
         self.endian = "!"
+        if parent != None:
+            self.root = parent.root
+        else:
+            self.root = self
 
     def __str__(self):
         return "(...)" 
