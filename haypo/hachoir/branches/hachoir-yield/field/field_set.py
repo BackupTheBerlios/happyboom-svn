@@ -98,6 +98,9 @@ class FieldSet(Field):
             names = names[1:]
         else:
             field = self
+        # For path like "../" => delete last (useless) "/"
+        if 1 <= len(names) and names[-1] == '':
+            del names[-1]
         for name in names:
             if name=="" or not field.is_field_set:
                 raise FieldDoesExist("Field '%s' doesn't exist in %s" \
@@ -129,14 +132,12 @@ class FieldSet(Field):
             % (name, self.path))
 
     def __contains__(self, name):
-        if "/" in name:
-            names = name.split("/")
-            field = self
-            for name in names:
-                if name=="" or not field.is_field_set:
-                    return False
-                field = field[name]
-            return True
+        if "/" in name or name.startswith(".."):
+            try:
+                field = self.getChunkByPath(name)
+                return True
+            except FieldDoesExist:
+                return False
         else:
             if self._field_generator != None:
                 field = self._feedUntil(name)

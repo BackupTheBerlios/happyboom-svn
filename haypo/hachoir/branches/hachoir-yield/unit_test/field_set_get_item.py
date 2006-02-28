@@ -23,12 +23,19 @@ def test():
     document = Document(None, "document", stream)
     
     # Test path starting with "/"
+    assert "/body" in document
+    assert "/header" in document
     assert id(document["/header"]) == id(document["header"])
     header = document["/header"]
+    body = document["/body"]
+    assert id(document["/header/width"]) == id(header["width"])
 
     # Test path starting with ".."
+    assert ".." in header
+    assert "../" in header
     assert id(header[".."]) == id(document)
     assert id(header["../header"]) == id(header)
+    assert id(body["../header/width"]) == id(header["width"])
 
 def runTests():
     print "Test FieldSet.__getitem__"
