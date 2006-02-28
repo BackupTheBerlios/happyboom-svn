@@ -84,6 +84,28 @@ class FieldSet(Field):
         self.fields.append(field._name, field)
         return field
 
+    def getChunkByPath(self, path):
+        names = path.split("/")
+        if names[0] == '':
+            # Path "/..." => start from root
+            field = self.root
+            names = names[1:]
+        elif names[0] == '..':
+            if self.parent == None:
+                raise FieldDoesExist("Field '%s' has no parent (can't get field %s)!" \
+                    % (path, self.path))
+            field = self.parent
+            names = names[1:]
+        else:
+            field = self
+        for name in names:
+            if name=="" or not field.is_field_set:
+                raise FieldDoesExist("Field '%s' doesn't exist in %s" \
+                    % (path, self.path))
+            field = field[name]
+        return field
+
+    
     def __getitem__(self, name):
         """
         Get an item with it's name or it's path.
@@ -91,16 +113,8 @@ class FieldSet(Field):
         """
         
         # Get item with a path? (eg. "point/x")
-        if "/" in name:
-            path = name
-            names = path.split("/")
-            field = self
-            for name in names:
-                if name=="" or not field.is_field_set:
-                    raise FieldDoesExist("Field '%s' doesn't exist in %s" \
-                        % (path, self.path))
-                field = field[name]
-            return field
+        if "/" in name or name.startswith(".."):
+            return self.getChunkByPath(name)
 
         # Field does exit?
         if name in self.fields:

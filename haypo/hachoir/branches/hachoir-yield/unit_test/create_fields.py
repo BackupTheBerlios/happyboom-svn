@@ -103,9 +103,16 @@ def test3():
     assert test["c"].value == 0
     assert test["d"].value == 2
 
-test1()   
-test2()
-test2_str()
-test2_str2()
-test3()
+def runTests():
+    print "Test FieldSet.createField()"
+    try:
+        test1()   
+        test2()
+        test2_str()
+        test2_str2()
+        test3()
+        print "Test FieldSet.createField(): done"
+    except Exception, msg: 
+        print "Test FieldSet.createField(): error"
+        print msg
 

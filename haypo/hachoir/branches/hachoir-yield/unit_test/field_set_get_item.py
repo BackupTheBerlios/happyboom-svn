@@ -1,0 +1,41 @@
+from StringIO import StringIO
+from field import FieldSet, Integer, String, Bits, Bit
+from stream.file import FileStream
+
+class Header(FieldSet):
+    def createFields(self):
+        yield Integer(self, "width", "int16", "Width") 
+        yield Integer(self, "height", "int16", "Height") 
+
+class Body(FieldSet):
+    def createFields(self):
+        yield Integer(self, "x", "uint8", "Item") 
+        yield Integer(self, "y", "uint8", "Item") 
+
+class Document(FieldSet):
+    def createFields(self):
+        yield Header(self, "header", self.stream)
+        yield Body(self, "body", self.stream)
+
+def test():
+    data = "\x00\x0A\x00\x0B\x05\x07"
+    stream = FileStream(StringIO(data), None)
+    document = Document(None, "document", stream)
+    
+    # Test path starting with "/"
+    assert id(document["/header"]) == id(document["header"])
+    header = document["/header"]
+
+    # Test path starting with ".."
+    assert id(header[".."]) == id(document)
+    assert id(header["../header"]) == id(header)
+
+def runTests():
+    print "Test FieldSet.__getitem__"
+    try:
+        test()
+        print "Test FieldSet.__getitem__: done"
+    except Exception, msg:
+        print "Test FieldSet.__getitem__: error!"
+        print msg
+        raise
