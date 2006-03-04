@@ -3,7 +3,7 @@ from field import Field
 from indexed_dict import IndexedDict
 import config
 
-class FieldDoesExist(KeyError):
+class MissingField(KeyError):
     pass
 
 class ParserError(Exception):
@@ -137,7 +137,7 @@ class FieldSet(Field):
             names = names[1:]
         elif names[0] == '..':
             if self.parent == None:
-                raise FieldDoesExist("Field '%s' has no parent (can't get field %s)!" \
+                raise MissingField("Field '%s' has no parent (can't get field %s)!" \
                     % (path, self.path))
             field = self.parent
             names = names[1:]
@@ -148,7 +148,7 @@ class FieldSet(Field):
             del names[-1]
         for name in names:
             if name=="" or not field.is_field_set:
-                raise FieldDoesExist("Field '%s' doesn't exist in %s" \
+                raise MissingField("Field '%s' doesn't exist in %s" \
                     % (path, self.path))
             field = field[name]
         return field
@@ -172,7 +172,7 @@ class FieldSet(Field):
             field = self._feedUntil(name)
             if field != None:
                 return field
-        raise FieldDoesExist("Field '%s' doesn't exist in %s" \
+        raise MissingField("Field '%s' doesn't exist in %s" \
             % (name, self.path))
 
     def __contains__(self, name):
@@ -180,7 +180,7 @@ class FieldSet(Field):
             try:
                 field = self.getChunkByPath(name)
                 return True
-            except FieldDoesExist:
+            except MissingField:
                 return False
         else:
             if self._field_generator != None:

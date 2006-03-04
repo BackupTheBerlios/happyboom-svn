@@ -10,19 +10,21 @@ class String(Field):
         Field.__init__(self, parent, name, None, size, description=description)
         
     def _getDisplay(self):
-        max = 20*8
+        max = 20
         if self._value == None:
             assert (self.size % 8) == 0
-            if max < self._size:
+            if max < self._size/8:
                 display = self.parent.stream.getBytes( \
-                    self.absolute_address, max / 8)
+                    self.absolute_address, max)
+                display += "(...)"
             else:
-                display = self.parent.stream.getBytes( \
+                self._value = self.parent.stream.getBytes( \
                     self.absolute_address, self._size / 8)
+                display = self._value
         else:
             display = self._value[:max]
-        if max < self._size:
-            display += "(...)"
+            if max < self._size/8:
+                display += "(...)"
         return convertDataToPrintableString(display)
     display = property(_getDisplay)        
     
