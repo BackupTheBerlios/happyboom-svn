@@ -1,4 +1,27 @@
-from field import FieldSet, Integer, String, IntegerHex, Bit, Bits
+from field import FieldSet, Integer, String, IntegerHex, Bit, Bits, ParserError
+from generic.image import RGB
+from bits import str2hex
+from metadata import ImageMetaData
+
+class PngMetaData(ImageMetaData):
+    def __init__(self, png):
+        header = png["/header/content"]
+        color_type = header["color_type"]
+        width, height = header["width"].value, header["height"].value
+        bpp = header["bpp"].value
+        if color_type["palette"].value:
+            nb_colors = png["/palette/content"].nb_colors
+        else:
+            nb_colors = None
+        if color_type["alpha"].value:
+            format = "RGBA"
+        else:
+            format = "RGB"
+#        if header["compression"].value != 0:
+#            compression = "(compressed)"
+#        else:
+#            compression = "No"
+        ImageMetaData.__init__(self, format, width, height, bpp, nb_colors=nb_colors)
 
 class HeaderFlags(FieldSet):
     def createFields(self):
@@ -21,12 +44,26 @@ class Header(FieldSet):
         chunk.description = "Header: %ux%u pixels and %u bits/pixel" \
             % (self["width"], self["height"], self["bpp"])
 
+class Palette(FieldSet):
+    def __init__(self, parent, name, stream, description=None):
+        size = parent["size"].value
+        if (size % 3) != 0:
+            raise ParserError("Palette have invalid size (%s), should be 3*n." % size)
+        self.nb_colors = size / 3
+        if description == None:
+            description = "Palette: %u colors" % self.nb_colors
+        FieldSet.__init__(self, parent, name, stream, description)
+
+    def createFields(self):
+        for i in range(self.nb_colors):
+            yield RGB(self, "color[]", self.stream)
+
 class Chunk(FieldSet):
     handler = {
 #        "tIME": Time,
 #        "pHYs": Physical,
         "IHDR": Header,
-#        "PLTE": Palette,
+        "PLTE": Palette,
 #        "gAMA": Gamma,
 #        "tEXt": Text
     }
@@ -60,16 +97,18 @@ class Chunk(FieldSet):
 #            oldpos = self._stream.tell()
 #            sub = stream.createLimited(size=size)
             cls = self.handler[type]
-            yield cls(self, "data", self.stream)
+            yield cls(self, "content", self.stream)
 #            assert stream.tell() == (oldpos + size) 
         else:
-            yield String(self, "data", "string[%u]" % self["size"].value, "Data")
+            yield String(self, "content", "string[%u]" % self["size"].value, "Data")
         yield IntegerHex(self, "crc32", "uint32", "CRC32")
 
 class PngFile(FieldSet):
     def createFields(self):
         yield String(self, "id", "string[8]", "PNG identifier") 
-        assert self["id"].value == "\x89PNG\r\n\x1A\n"
+        if self["id"].value != "\x89PNG\r\n\x1A\n":
+            raise ParserError("Png parser: file identifier looks wrong (%s instead of %s)" % \
+                (str2hex(self["id"].value), str2hex("\x89PNG\r\n\x1A\n")))
         while True:
             field = Chunk(self, "chunks[]", self.stream)
             yield field

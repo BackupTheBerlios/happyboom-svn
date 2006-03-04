@@ -2,6 +2,7 @@ class Field(object):
     is_field_set = False
     
     def __init__(self, parent, name, value, size=None, address=None, description=None):
+        assert parent == None or issubclass(parent.__class__, Field)
         self.parent = parent
         self._name = name 
         self._value = value

@@ -5,6 +5,9 @@ from indexed_dict import IndexedDict
 class FieldDoesExist(KeyError):
     pass
 
+class ParserError(Exception):
+    pass
+
 class FieldSet(Field):
     """
     Ordered list of fields. Use operator [] to access fields using their
