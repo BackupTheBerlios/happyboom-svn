@@ -10,7 +10,7 @@ def main():
     hachoir_path = "libhachoir"
     sys.path.append(hachoir_path)
 
-    testDoc('doc.txt', "Main document")
+    testDoc('doc/doc.txt', "Main document")
 
 if __name__ == "__main__":
     main()

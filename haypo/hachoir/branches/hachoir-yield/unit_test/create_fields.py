@@ -1,11 +1,9 @@
-from StringIO import StringIO
-from field import FieldSet, Integer, String, Bits, Bit
-from stream.file import FileStream
-from bits import long2raw, str2hex
+from libhachoir.field import FieldSet, Integer, String, Bits, Bit
+from libhachoir.stream import StringInputStream
+from libhachoir.bits import long2raw, str2hex
 
 def test1():
-    data = "\x02\x01abc\x09"
-    stream = FileStream(StringIO(data), None)
+    stream = StringInputStream("\x02\x01abc\x09")
     class TestInteger(FieldSet):
         def __init__(self, a, b, c):
             FieldSet.__init__(self, a, b, c)
@@ -34,8 +32,8 @@ def test1():
     assert field.value == 9
 
 def test2():
-    data = "\x21\x43" # concat(0x01, 0x23, 0x4)
-    stream = FileStream(StringIO(data), None)
+    # data: concat numbers (0x01, 0x23, 0x4)
+    stream = StringInputStream("\x21\x43")
     class TestInteger(FieldSet):
         def createFields(self):
             yield Bits(self, "a", 4)
@@ -48,9 +46,8 @@ def test2():
     assert test["c"].value == 4 
 
 def test2_str():
-    data = "\x19\x46" # concat(0x09, 0x61, 0x4)
-    
-    stream = FileStream(StringIO(data), None)
+    # data: concat numbers (0x09, 0x61, 0x4)
+    stream = StringInputStream("\x19\x46")
     class TestInteger(FieldSet):
         def createFields(self):
             yield Bits(self, "a", 4)
@@ -69,7 +66,7 @@ def test2_str2():
     data  += 3
     data = long2raw(data, big_endian=False)
     
-    stream = FileStream(StringIO(data), None)
+    stream = StringInputStream(data)
     class TestInteger(FieldSet):
         def createFields(self):
             yield Bits(self, "a", 2)
@@ -89,7 +86,7 @@ def test3():
     data += (0 & 0x3) << 4
     data += (2 & 0x3) << 6
     data = chr(data)
-    stream = FileStream(StringIO(data), None)
+    stream = StringInputStream(data)
     class TestInteger(FieldSet):
         def createFields(self):
             yield Bit(self, "a")

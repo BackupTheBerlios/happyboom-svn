@@ -1,6 +1,6 @@
 from field import Field
-from format import getFormatSize
-from text_handler import hexadecimal
+from libhachoir.format import getFormatSize
+from libhachoir.text_handler import hexadecimal
 
 class Bits(Field):
     def __init__(self, parent, name, size, description=None):

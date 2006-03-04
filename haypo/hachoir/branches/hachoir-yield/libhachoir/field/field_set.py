@@ -1,7 +1,7 @@
-from event_handler import EventHandler
 from field import Field
-from indexed_dict import IndexedDict
-import config
+from libhachoir.event_handler import EventHandler
+from libhachoir.indexed_dict import IndexedDict
+import libhachoir.config as config
 
 class MissingField(KeyError):
     pass

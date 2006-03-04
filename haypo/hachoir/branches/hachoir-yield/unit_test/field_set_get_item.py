@@ -1,6 +1,6 @@
 from StringIO import StringIO
-from field import FieldSet, Integer, String, Bits, Bit
-from stream.file import FileStream
+from libhachoir.field import FieldSet, Integer, String, Bits, Bit
+from libhachoir.stream import StringInputStream
 
 class Header(FieldSet):
     def createFields(self):
@@ -18,8 +18,7 @@ class Document(FieldSet):
         yield Body(self, "body", self.stream)
 
 def test():
-    data = "\x00\x0A\x00\x0B\x05\x07"
-    stream = FileStream(StringIO(data), None)
+    stream = StringInputStream("\x00\x0A\x00\x0B\x05\x07")
     document = Document(None, "document", stream)
     
     # Test path starting with "/"

@@ -1,6 +1,6 @@
 from field import Field
-from format import getFormatSize
-from tools import convertDataToPrintableString
+from libhachoir.format import getFormatSize
+from libhachoir.tools import convertDataToPrintableString
 
 class String(Field):
     def __init__(self, parent, name, format, description=None):

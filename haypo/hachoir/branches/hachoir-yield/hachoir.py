@@ -58,7 +58,8 @@ def parseArgs():
 
 def main():
     # Get libhachoir directory
-    libhachoir_path = os.path.join(os.getcwd(), "libhachoir")
+    current_dir = os.path.dirname(__file__)
+    libhachoir_path = os.path.join(current_dir, "libhachoir")
     sys.path.append(libhachoir_path)
     
     # Parser command line arguments

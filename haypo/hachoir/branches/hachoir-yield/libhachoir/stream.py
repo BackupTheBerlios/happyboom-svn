@@ -11,6 +11,10 @@ def getFileSize(stream):
 class InputStreamError(Exception):
     pass
 
+def FileInputStream(input, filename):
+    size = getFileSize(input) * 8
+    return InputStream(input, filename=filename, size=size)
+
 def StringInputStream(content):
     input = StringIO(content)
     return InputStream(input, filename=None, size=len(content)*8)
@@ -18,8 +22,6 @@ def StringInputStream(content):
 class InputStream:
     def __init__(self, input, filename=None, size=None):
         self.filename = filename
-        if size == None:
-            size = getFileSize(input) * 8
         if size == 0:
             raise InputStreamError("Error: input size is nul (filename='%s')!" % filename)
         self._size = size
