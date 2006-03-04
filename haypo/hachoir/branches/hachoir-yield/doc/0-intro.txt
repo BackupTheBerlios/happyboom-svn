@@ -1,0 +1,11 @@
+Introduction
+============
+
+Hachoir is a library written in Python to access binary streams using
+nice API. It aims to be easy to use (hide complex mechanisms) and only read
+or compute data when it's really needed.
+
+Examples of Hachoir use: extract some informations from a file (size of an
+image, author of a music, comment of an archive, etc.), edit some fields of
+a file, convert a format to another one.
+
