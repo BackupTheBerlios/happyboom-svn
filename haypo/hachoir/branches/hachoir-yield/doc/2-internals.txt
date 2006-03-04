@@ -6,9 +6,8 @@ When a field is really created?
 
 A field is created when someone ask to access it, or when another field is
 asked and the field is before it. So if you use a field in your field set
-constructor, one or more fields will be created.
+constructor, one or more fields will be created. Example:
 
-Example:
 >>> from field import FieldSet, Integer, String
 >>> class Point(FieldSet):
 ...     def __init__(self, parent, name, stream, description="Point"):
@@ -27,36 +26,40 @@ Example:
 
 In the constructor, the field "color" is asked. So the field list will
 contains one field (color):
+
 >>> from stream import StringInputStream
 >>> stream = StringInputStream("\x2A\x00\x04\x05")
 >>> p = Point(None, "point", stream)
 >>> len(p.fields)
 1
 
-WARNING: Only access 'fields' attribute if you know what you are doing.
+.. WARNING::
+   Only access 'fields' attribute if you know what you are doing.
 
 If you access another field, the field list will grow up until the requested
 field is reached:
+
 >>> x = p["x"].value
 >>> len(p.fields)
 3
 
 Some field set methods which create new fields:
- * __getitem__(): feed field list until requested field is reached
+ * ``__getitem__()``: feed field list until requested field is reached
    (or raise MissingField exception) ;
- * __len__(): create all fields ;
- * __iter__(): begin to iterate in existing fields, and the iterate in new
+ * ``__len__()``: create all fields ;
+ * ``__iter__()``: begin to iterate in existing fields, and the iterate in new
    fields until all fields are created ;
- * __contains__(): feed field list until requested field is reached, may
+ * ``__contains__()``: feed field list until requested field is reached, may
    create all fields if the field is missing.
 
 The size attribute also interact with field list creation, but it's mechanism
 is little bit more complex. By default, the whole field list have to be built
 before size value can be read. But you can specify field list size:
- * if field list is fixed, use class attribute static_size ;
- * else you can set _size instance attribute in the constructor.
+* if field list is fixed, use class attribute static_size ;
+* else you can set _size instance attribute in the constructor.
 
 Two examples:
+
 >>> class FourBytes(FieldSet):
 ...     static_size = 32
 ...     def createFields(self):
@@ -97,8 +100,9 @@ Endian
 
 The "endian" is the way in which ''bytes'' are stored. There are two important
 orders:
- * « Big endian » in which _big_ numbers are written first (Intel x86 CPU)
- * « Little endian » in which _little_ numbers are written first (PowerPC CPU)
+
+* « Big endian » in which *big* numbers are written first (Intel x86 CPU) ;
+* « Little endian » in which *little* numbers are written first (PowerPC CPU).
 
 The number 0x1020 whill be stored "\x10\x20" in big endian and "\x20\x10" in
 little endian.
@@ -108,28 +112,28 @@ values are "<" (little endian) and ">" (big endian). Default value is the
 international network order: "<", big endian.
 
 Example to set endian:
+
 >>> class UseLittleEndian(FieldSet):
 ...     endian = ">"
-...     # (...)
 ...
 
 Explore a field set using it's path
 -----------------------------------
 
 Fields are stored in a tree. To explore the tree you have differents tools:
- * attribute root of a field which go to tree root ;
- * attribute parent go to field parent (is None for tree root) ;
- * and you can specify a path in __getitem__() argument.
+ * attribute *root* of a field which go to tree root ;
+ * attribute *parent* go to field parent (is None for tree root) ;
+ * and you can specify a path in *__getitem__()* argument.
 
 There are differents valid syntax of a path:
- * path to a child of current node: field["content"] ;
- * path to a child of the parent: field["../brother"] ;
- * path from the root: field["/header/key"].
+ * path to a child of current node: ``field["content"]`` ;
+ * path to a child of the parent: ``field["../brother"]`` ;
+ * path from the root: ``field["/header/key"]``.
 
 Event handling
 --------------
 
 Code is not finished yet, so don't need documentation :-) See:
- * FieldSet.connect(event, handler)
- * FieldSet.raiseEvent(event,  arg1, arg2, ...)
+ * ``FieldSet.connect(event, handler)`` ;
+ * ``FieldSet.raiseEvent(event,  arg1, arg2, ...)``.
 

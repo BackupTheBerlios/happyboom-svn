@@ -5,16 +5,14 @@ Input stream
 ------------
 
 For different reasons (eg. addresses with bit granularity), Hachoir uses it's
-own stream classes. The most interesting class is FileStream. It's constructor
-need a file and a filename (optionnal, can be None).
-
-Here is a small example to create a stream:
+own stream classes: ``InputStream``. But don't use it directly, use
+``FileInputStream`` function (needs a filename) or ``StringInputStream``
+(needs a string). Here is a small example to create a stream:
 
 >>> from stream import StringInputStream
 >>> stream = StringInputStream("\x03abc")
 
-StringIO is a class which works like a file object but using a string as input
-data. Most interesting methods are:
+Most interesting methods are:
 
 >>> stream.size            # get size in bits
 32
@@ -29,10 +27,10 @@ Support your own format using FieldSet
 In the Hachoir, everything is stored in a field. The parent of all classes is
 the class Field, but it can't be used directly. They are four different types
 of fields:
- * Bits: number with a size in bits ;
- * Integer: number with a size in bytes ;
- * String: string of characters with a size in bytes ;
- * FieldSet: a ordered list of fields (contains other fields).
+* Bits: number with a size in bits ;
+* Integer: number with a size in bytes ;
+* String: string of characters with a size in bytes ;
+* FieldSet: a ordered list of fields (contains other fields).
 
 A stream is splitted in several fields which are organised in a tree. So all
 fields have a parent, except of the root. Small example which will be used to
@@ -57,8 +55,9 @@ FieldSet internals in later section).
 
 Prototype of field classes are almost different, but the two first parameters
 are always the same:
- * First one is the parent, of type FieldSet (is None for the root) ;
- * The second is the name of the field.
+
+* First one is the parent, of type FieldSet (is None for the root) ;
+* The second is the name of the field.
 
 Ok, let's play with our new field set:
 
@@ -80,21 +79,22 @@ Details about Field class
 -------------------------
 
 A field contains a lot of informations, attributes are:
- * name: Field name, unique in his parent field set and can't be changed. It
+ * *name*: Field name, unique in his parent field set and can't be changed. It
    is used as key to access to the field from the field set ;
- * size: Size in bits, can't be changed ;
- * address: Address in bits, relative to parent address, can't be changed ;
- * absolute_address: Address in bits from the beginning of the stream ;
- * parent: Parent of the field (is None for root field set) ;
- * root: Root of all field sets ;
- * value: Formatted value (integer, string, boolean, ...) value of the field.
+ * *size*: Size in bits, can't be changed ;
+ * *address*: Address in bits, relative to parent address, can't be changed ;
+ * *absolute_address*: Address in bits from the beginning of the stream ;
+ * *parent*: Parent of the field (is None for root field set) ;
+ * *root*: Root of all field sets ;
+ * *value*: Formatted value (integer, string, boolean, ...) value of the field.
    Don't use this argument with print function, better use display attribute ;
- * display: A string representing field value, has limited size ;
- * path: Full "path" of the field from the root (eg. "/png/header/content") ;
- * is_field_set: If the value is True, the field contains other fields, it's
+ * *display*: A string representing field value, has limited size ;
+ * *path*: Full "path" of the field from the root (eg. "/png/header/content") ;
+ * *is_field_set*: If the value is True, the field contains other fields, it's
    a field set.
 
 Examples:
+
 >>> field = format["text"]
 >>> field.name
 'text'
