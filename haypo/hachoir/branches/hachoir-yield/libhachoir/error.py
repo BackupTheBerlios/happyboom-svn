@@ -5,6 +5,8 @@ from log import log
 from tools import getBacktrace
 
 def warning(message):
+    if config.quiet:
+        return
     if config.verbose or config.debug:
         message += "\n\n" + getBacktrace()
     log.warning(message)   

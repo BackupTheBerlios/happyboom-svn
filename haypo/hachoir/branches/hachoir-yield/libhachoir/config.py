@@ -6,6 +6,7 @@ max_ascii_length = 4096   # Max. length of raw data displayed in ASCII
 # Global options
 debug = False 
 verbose = False
+quiet = False
 
 # Size of file cache (for each opened file)
 file_cache_block_size = 4096  # 4 KB

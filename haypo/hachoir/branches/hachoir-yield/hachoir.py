@@ -7,6 +7,7 @@ import sys, os, getopt
 cmd_line_options = ( \
     ("verbose", "Activate verbose mode"),
     ("help", "Show this help"),
+    ("quiet", "Be quiet (don't display warning)"),
     ("version", "Display version"),
     ("debug", "Enable debug mode (eg. display backtrace)")
 )
@@ -47,6 +48,8 @@ def parseArgs():
         elif option == "--version":
             print "Hachoir version %s" % VERSION
             sys.exit(0)
+        elif option == "--quiet":
+            config.quiet = True
         elif option == "--verbose":
             config.verbose = True
         elif option == "--debug":
@@ -54,31 +57,35 @@ def parseArgs():
     return filename 
 
 def main():
+    # Get libhachoir directory
     libhachoir_path = os.path.join(os.getcwd(), "libhachoir")
     sys.path.append(libhachoir_path)
+    
+    # Parser command line arguments
+    filename = parseArgs()
 
-    import libhachoir
-
+    # Get tools that we need from libhachoir
     from libhachoir.stream import InputStream
-#    from text_ui import displayFieldSet
-    from libhachoir.plugin import loadPlugins, guessPlugin
+    from text_ui import displayFieldSet
+    from libhachoir.plugin import loadParserPlugins, guessParser
     from libhachoir.log import log
     from libhachoir.error import error
     from libhachoir.mime import getStreamMime
     from metadata import createMetaData
+    import libhachoir.config as config
 
     # Create input stream (read filename from command line first argument)
-    filename = parseArgs()
     stream = InputStream(open(filename, 'r'), filename)
 
     # Load all parser plugings from 'file' directory
     root_dir = libhachoir_path
-    modules = loadPlugins(os.path.join(root_dir, "parser"))
-    modules.sort()
-    log.info("Loaded: %u plugings (%s)" % (len(modules), ", ".join(modules)))
+    modules = loadParserPlugins()
+    if config.verbose:
+        modules.sort()
+        log.info("Loaded: %u plugings (%s)" % (len(modules), ", ".join(modules)))
 
     # Look for right plugin
-    plugin = guessPlugin(stream, filename, None)
+    plugin = guessParser(stream, filename, None)
     if plugin == None:
         msg  = "Sorry, can't find plugin for file \"%s\"!" % filename
         mimes = [ mime[0] for mime in getStreamMime(stream) ]

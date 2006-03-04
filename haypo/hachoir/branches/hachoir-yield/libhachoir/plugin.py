@@ -3,9 +3,11 @@ from stat import S_ISDIR, ST_MODE
 from mime import getFileMime, getStreamMime
 from error import warning
 
+hachoir_parsers = {} 
+
 regex_plugin_filename = re.compile(r"^([a-z0-9_]+)\.py$")
 
-def loadPluginFromFile(module_path, loaded):
+def loadParser(module_path, loaded):
     try:
         module = __import__(module_path)
         for get in module_path.split(".")[1:]:
@@ -17,38 +19,42 @@ def loadPluginFromFile(module_path, loaded):
     for attr in module.__dict__:
         item = getattr(module, attr)
         if hasattr(item, "mime_types"):
-            registerPlugin(item, item.mime_types)
+            registerParser(item, item.mime_types)
             loaded.append(module_path)
 
-def loadPlugins(dir, module_path="libhachoir.parser", loaded=[]):
+def loadParserPlugins(dir=None, module_path="libhachoir.parser", loaded=[]):
     """
-    Load all plugings from directory dir.
+    Load all plugings from directory dir. Don't give any argument, they are
+    used internally.
 
-    Do not set module_path or loaded, they are used internally.
+    Returns a list of loaded plugins.
     """
+    if dir == None:
+        rootdir = os.path.dirname(__file__)
+        dir = os.path.join(rootdir, "parser")
     if module_path == None:
         module_path = os.path.basename(dir)
     for file in os.listdir(dir):
         fullpath = os.path.join(dir, file)
         if S_ISDIR(os.stat(fullpath)[ST_MODE]):
-            loadPlugins(fullpath, module_path+"."+file, loaded)
+            loadParserPlugins(fullpath, module_path+"."+file, loaded)
         else:
             m = regex_plugin_filename.match(file)
             if m != None and m.group(1) != "__init__":
                 path = module_path + "." + m.group(1)
-                loadPluginFromFile(path, loaded)
+                loadParser(path, loaded)
     return loaded                    
 
-def guessPlugin(stream, filename, default=None):
-    return getPluginByStream(stream, filename, default)
+def guessParser(stream, filename, default=None):
+    return getParserByStream(stream, filename, default)
 
-def getPluginByMime(mimes, default=None):
-    global hachoir_plugins
+def getParserByMime(mimes, default=None):
+    global hachoir_parsers
     plugins = []
     for mime in mimes:
         mime = mime[0]
-        if mime in hachoir_plugins:
-            for plugin in hachoir_plugins[mime]:
+        if mime in hachoir_parsers:
+            for plugin in hachoir_parsers[mime]:
                 if plugin not in plugins:
                     plugins.append(plugin)
     if len(plugins)==0:
@@ -61,22 +67,21 @@ def getPluginByMime(mimes, default=None):
         warning("More than one plugin have same MIME:\n%s" % plist)
     return plugins[0]
     
-def getPluginByStream(stream, filename, default=None):
+def getParserByStream(stream, filename, default=None):
     mime = getStreamMime(stream)
-    return getPluginByMime(mime, default)
+    return getParserByMime(mime, default)
 
-def getPluginByFile(filename, realname=None, default=None):
+def getParserByFile(filename, realname=None, default=None):
     mime = getFileMime(filename, realname)
-    return getPluginByMime(mime, default)
+    return getParserByMime(mime, default)
     
-def registerPlugin(filter_class, mimes):
-    global hachoir_plugins
+def registerParser(filter_class, mimes):
+    global hachoir_parsers
     if isinstance(mimes, str):
         mimes = [mimes]
     for mime in mimes:
-        if mime in hachoir_plugins:
-            hachoir_plugins[mime].append(filter_class)
+        if mime in hachoir_parsers:
+            hachoir_parsers[mime].append(filter_class)
         else:
-            hachoir_plugins[mime] = [filter_class]
+            hachoir_parsers[mime] = [filter_class]
 
-hachoir_plugins = {} 
