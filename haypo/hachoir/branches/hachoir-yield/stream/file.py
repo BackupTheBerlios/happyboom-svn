@@ -1,7 +1,6 @@
 import os
 from error import StreamError
 from stream import Stream
-from bits import str2long, str2hex # TODO: <== don't need this anymore!
 #from config import config
 
 class FileStream(Stream):
@@ -19,7 +18,7 @@ class FileStream(Stream):
             self._cache = copy._cache
         else:
             self._file.seek(0,2) # Seek to end
-            self._size = self._file.tell()
+            self._size = self._file.tell() * 8
             self._file.seek(0,0) # Seel to beginning
             if self._size == 0:
                 raise Exception("Error: file %s is empty!" % filename)
@@ -68,7 +67,6 @@ class FileStream(Stream):
         return self._seed
 
     def getBits(self, address, nbits, big_endian=False):
-#        print "* Read %s bits at %s.%s" % (nbits, address / 8, address % 8)
         data = self._getRawBits(address, nbits)        
         if (address % 8) != 0 or (nbits % 8) != 0:
             mask = (1 << nbits) - 1
@@ -124,7 +122,6 @@ class FileStream(Stream):
     
     def _getRawBits(self, address, nbits):
         nbytes = (nbits + (address & 7) + 7) / 8
-#        print " * Read %s bytes (%s bits) at %s.%s" % (nbytes, nbits, address / 8, address % 8)
         self.seek(address / 8)
         return self.getN(nbytes)
         
@@ -141,6 +138,7 @@ class FileStream(Stream):
         return data
 
     def getSize(self):
+        """ Size of the stream in bits """
         return self._size
 
     def getLastPos(self):
