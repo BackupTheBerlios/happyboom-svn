@@ -1,6 +1,6 @@
-from file.image.png import PngFile
-from file.image.pcx import PcxFile
-from file.image.bmp import BmpFile
+from libhachoir.parser.image.png import PngFile
+from libhachoir.parser.image.pcx import PcxFile
+from libhachoir.parser.image.bmp import BmpFile
 
 class MetaData:
     def __str__(self):

@@ -20,7 +20,7 @@ def loadPluginFromFile(module_path, loaded):
             registerPlugin(item, item.mime_types)
             loaded.append(module_path)
 
-def loadPlugins(dir, module_path=None, loaded=[]):
+def loadPlugins(dir, module_path="libhachoir.parser", loaded=[]):
     """
     Load all plugings from directory dir.
 

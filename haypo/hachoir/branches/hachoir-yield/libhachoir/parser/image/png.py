@@ -1,5 +1,5 @@
 from field import FieldSet, Integer, String, IntegerHex, Bit, Bits, ParserError
-from generic.image import RGB
+from common import RGB
 from bits import str2hex
 
 class HeaderFlags(FieldSet):

@@ -3,7 +3,7 @@ PCX picture filter.
 """
 
 from field import FieldSet, Integer, String
-from generic.image import Palette
+from common import Palette
 
 class PcxFile(FieldSet):
     endian = "<"
