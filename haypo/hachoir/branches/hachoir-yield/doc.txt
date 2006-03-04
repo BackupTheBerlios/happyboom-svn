@@ -21,14 +21,13 @@ need a file and a filename (optionnal, can be None).
 
 Here is a small example to create a stream:
 
->>> from stream.file import FileStream
->>> from StringIO import StringIO
->>> stream = FileStream(StringIO("\x03abc"), None)
+>>> from stream import StringInputStream
+>>> stream = StringInputStream("\x03abc")
 
 StringIO is a class which works like a file object but using a string as input
 data. Most interesting methods are:
 
->>> stream.getSize()       # get size in bits
+>>> stream.size            # get size in bits
 32
 >>> stream.getBits(0, 8)   # get 8 bits at address 0
 3
@@ -148,7 +147,7 @@ Example:
 
 In the constructor, the field "color" is asked. So the field list will
 contains one field (color):
->>> stream = FileStream(StringIO("\x2A\x00\x04\x05"), None)
+>>> stream = StringInputStream("\x2A\x00\x04\x05")
 >>> p = Point(None, "point", stream)
 >>> len(p.fields)
 1

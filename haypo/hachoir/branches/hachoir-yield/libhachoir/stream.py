@@ -1,3 +1,5 @@
+from cStringIO import StringIO
+
 def getFileSize(stream):
     """ Get file size in bits """
     oldpos = stream.tell()
@@ -9,18 +11,19 @@ def getFileSize(stream):
 class InputStreamError(Exception):
     pass
 
+def StringInputStream(content):
+    input = StringIO(content)
+    return InputStream(input, filename=None, size=len(content)*8)
+
 class InputStream:
-    def __init__(self, input, filename=None, size=None, copy=None):
-        self._input = input 
+    def __init__(self, input, filename=None, size=None):
         self.filename = filename
-        if copy == None:
-            if size == None:
-                size = getFileSize(input)
-            if size == 0:
-                raise InputStreamError("Error: input size is nul (filename='%s')!" % filename)
-            self._size = size
-        else:
-            self._size = copy._size
+        if size == None:
+            size = getFileSize(input) * 8
+        if size == 0:
+            raise InputStreamError("Error: input size is nul (filename='%s')!" % filename)
+        self._size = size
+        self._input = input 
         
     def _getSize(self):
         return self._size
