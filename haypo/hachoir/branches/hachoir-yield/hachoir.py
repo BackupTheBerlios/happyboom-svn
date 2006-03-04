@@ -16,8 +16,8 @@ def main():
     if filename.endswith(".png"):
         png = PngFile(None, "png_file", stream)
         print "[Picture %s]" % filename
+        displayFieldSet(png, 3)
         meta = PngMetaData(png) ; print meta
-#        displayFieldSet(png)
     elif filename.endswith(".pcx"):
         pcx = PcxFile(None, "pcx_file", stream)
         displayFieldSet(pcx, 2)

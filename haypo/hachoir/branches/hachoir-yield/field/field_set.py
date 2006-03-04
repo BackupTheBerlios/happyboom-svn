@@ -169,8 +169,14 @@ class FieldSet(Field):
 
     def __iter__(self):
         if self._field_generator != None:
-            self._feedAll()
-        return iter(self.fields)
+            try:
+                while True:
+                    yield self._feed()
+            except StopIteration:
+                self._stopFeeding()
+        else:
+            for field in self.fields:
+                yield field
 
     def createFields(self):
         raise NotImplementedError

@@ -1,4 +1,4 @@
-def displayFieldSet(field_set, max_depth=None, depth=0):
+def displayFieldSet(field_set, max_depth=2, depth=0):
     indent = " " * (3*depth)
     addr = field_set.absolute_address
     print "%s--- %s --- (addr=%u.%u, size=%s bits)" \
