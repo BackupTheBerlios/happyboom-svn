@@ -6,11 +6,16 @@ Author: Victor Stinner
 Creation: 16 december 2005
 """
 
-from field import FieldSet, Integer, String, ParserError
+from field import FieldSet, Integer, String, ParserError, Enum
 
 class BmpFile(FieldSet):
     mime_types = ["image/x-ms-bmp", "image/x-bmp"]
     endian = "<"
+
+    compression_name = {
+        0: "Uncopressed",
+        1: "RLE"
+    }        
     
     def createFields(self):
         yield String(self, "header", "string[2]", "Header (\"BM\")")
@@ -31,7 +36,7 @@ class BmpFile(FieldSet):
         yield Integer(self, "nb_plan", "uint16", "Number of plan (=1)")
         yield Integer(self, "bpp", "uint16", "Bits per pixel")
         if self["header_size"].value == 40:
-            yield Integer(self, "compression", "uint32", "Compression method")
+            yield Enum(self, "compression", "uint32", BmpFile.compression_name, "Compression method")
             yield Integer(self, "image_size", "uint32", "Image size (bytes)")
             yield Integer(self, "horizontal_dpi", "uint32", "Horizontal DPI")
             yield Integer(self, "vertical_dpi", "uint32", "Vertical DPI")

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-VERSION = "0.2veryalpha"
+VERSION = "0.2 (alpha)"
 
 import sys, os, getopt
 
@@ -66,7 +66,7 @@ def main():
     filename = parseArgs()
 
     # Get tools that we need from libhachoir
-    from libhachoir.stream import InputStream
+    from libhachoir.stream import FileInputStream
     from text_ui import displayFieldSet
     from libhachoir.plugin import loadParserPlugins, guessParser
     from libhachoir.log import log
@@ -76,7 +76,7 @@ def main():
     import libhachoir.config as config
 
     # Create input stream (read filename from command line first argument)
-    stream = InputStream(open(filename, 'r'), filename)
+    stream = FileInputStream(filename)
 
     # Load all parser plugings from 'file' directory
     root_dir = libhachoir_path

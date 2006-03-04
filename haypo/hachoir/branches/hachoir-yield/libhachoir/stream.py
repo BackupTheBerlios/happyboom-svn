@@ -3,16 +3,16 @@ from cStringIO import StringIO
 def getFileSize(stream):
     """ Get file size in bits """
     oldpos = stream.tell()
-    stream.seek(0,2)
-    size = stream.tell() * 8
-    stream.seek(oldpos)
     return size
 
 class InputStreamError(Exception):
     pass
 
-def FileInputStream(input, filename):
-    size = getFileSize(input) * 8
+def FileInputStream(filename):
+    input = open(filename, 'r')
+    input.seek(0, 2)
+    size = input.tell() * 8
+    input.seek(0)
     return InputStream(input, filename=filename, size=size)
 
 def StringInputStream(content):

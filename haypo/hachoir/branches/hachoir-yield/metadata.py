@@ -18,16 +18,16 @@ class ImageMetaData(MetaData):
         self.format = kw.get("format", None)
 
     def __str__(self):
-        text = "Image: "
+        attributes = [""]
         if self.format != None:
-            text += "format=%s, " % self.format 
-        text += "size=%sx%s, bpp=%s" % \
-            (self.width, self.height, self.bits_per_pixel)
+            attributes.append ("format: %s, " % self.format)
+        attributes.append ("size: %sx%s (pixels)" % (self.width, self.height))
+        attributes.append ("bits/pixel: %s" % self.bits_per_pixel)
         if self.nb_colors != None:
-            text += ", nb_colors=%s" % self.nb_colors
+            attributes.append("number of colors: %s" % self.nb_colors)
         if self.compression != None:
-            text += ", compression=%s" % self.compression
-        return text
+            attributes.append("compression: %s" % self.compression)
+        return "Image:"+"\n  - ".join(attributes)
 
 class BmpMetaData(ImageMetaData):
     def __init__(self, bmp):
@@ -37,17 +37,15 @@ class BmpMetaData(ImageMetaData):
             nb_colors = bmp["used_colors"].value 
         else:
             nb_colors = None
-        if bmp["compression"].value != 0:
-            compression = "(compressed)"
-        else:
-            compression = "No"
-        ImageMetaData.__init__(self, width, height, bpp, nb_colors=nb_colors)
+        compression = bmp["compression"].display
+        ImageMetaData.__init__(self, width, height, bpp, nb_colors=nb_colors, compression=compression)
 
 class PcxMetaData(ImageMetaData):
     def __init__(self, pcx):
         width, height = pcx["xmax"].value+1, pcx["ymax"].value+1
         bpp = pcx["bpp"].value
-        ImageMetaData.__init__(self, width, height, bpp)
+        compression = "RLE"
+        ImageMetaData.__init__(self, width, height, bpp, compression=compression)
 
 class PngMetaData(ImageMetaData):
     def __init__(self, png):
