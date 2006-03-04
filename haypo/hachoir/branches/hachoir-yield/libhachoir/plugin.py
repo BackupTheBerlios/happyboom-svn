@@ -62,7 +62,7 @@ def getPluginByMime(mimes, default=None):
     return plugins[0]
     
 def getPluginByStream(stream, filename, default=None):
-    mime = getStreamMime(stream, filename)
+    mime = getStreamMime(stream)
     return getPluginByMime(mime, default)
 
 def getPluginByFile(filename, realname=None, default=None):

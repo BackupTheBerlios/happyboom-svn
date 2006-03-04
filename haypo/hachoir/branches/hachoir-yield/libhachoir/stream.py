@@ -6,17 +6,18 @@ def getFileSize(stream):
     stream.seek(oldpos)
     return size
 
-class StreamError(Exception):
+class InputStreamError(Exception):
     pass
 
-class Stream:
-    def __init__(self, input, size, filename=None, copy=None):
-        Stream.__init__(self, filename)
+class InputStream:
+    def __init__(self, input, filename=None, size=None, copy=None):
         self._input = input 
         self.filename = filename
         if copy == None:
-            if self._size == 0:
-                raise StreamError("Error: input size is nul (filename='%s')!" % filename)
+            if size == None:
+                size = getFileSize(input)
+            if size == 0:
+                raise InputStreamError("Error: input size is nul (filename='%s')!" % filename)
             self._size = size
         else:
             self._size = copy._size
@@ -79,8 +80,13 @@ class Stream:
             data = self._getRawBits(address, nbytes*8)
         return data
     
-    def _getRawBits(self, address, nbits):
-        nbytes = (nbits + (address & 7) + 7) / 8
-        self.seek(address / 8)
-        return self.getN(nbytes)
+    def _getRawBits(self, address, nb_bits):
+        nb_bytes = (nb_bits + (address & 7) + 7) / 8
+        self._input.seek(address / 8)
+        data = self._input.read(nb_bytes)
+        if len(data) != nb_bytes:
+            raise InputStreamError(
+                "Can't read %u bytes at address %u (got %u bytes)!" % \
+                (nb_bytes, address/8, len(data)))
+        return data
 

@@ -59,8 +59,8 @@ def main():
 
     import libhachoir
 
-    from libhachoir.stream.file import FileStream
-    from text_ui import displayFieldSet
+    from libhachoir.stream import InputStream
+#    from text_ui import displayFieldSet
     from libhachoir.plugin import loadPlugins, guessPlugin
     from libhachoir.log import log
     from libhachoir.error import error
@@ -69,7 +69,7 @@ def main():
 
     # Create input stream (read filename from command line first argument)
     filename = parseArgs()
-    stream = FileStream(open(filename, 'r'), filename)
+    stream = InputStream(open(filename, 'r'), filename)
 
     # Load all parser plugings from 'file' directory
     root_dir = libhachoir_path
@@ -81,7 +81,7 @@ def main():
     plugin = guessPlugin(stream, filename, None)
     if plugin == None:
         msg  = "Sorry, can't find plugin for file \"%s\"!" % filename
-        mimes = [ mime[0] for mime in getStreamMime(stream, filename) ]
+        mimes = [ mime[0] for mime in getStreamMime(stream) ]
         msg += "\n\nFile mimes: %s" % ", ".join(mimes)
         error(msg)
         sys.exit(1)

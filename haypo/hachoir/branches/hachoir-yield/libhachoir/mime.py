@@ -69,25 +69,20 @@ def getMimeByExt(ext):
     """
     return _mime_by_ext.get(ext, None)
 
-def getStreamMime(stream, filename):
+def getStreamMime(stream):
     """ Guess MIME type of a stream using first 4 KB
 
     @parameter stream: Stream containing data
-    @type: C{Stream}
-    @parameter filename: Filename of the stream source, can be None
-    @type: C{str}
+    @type: C{InputStream}
     @return: MIME type, or None if fails
     @rtype: C{str}
     """
 
-    oldpos = stream.tell()
-    stream.seek(0)
-    size = stream.getSize()
-    if 4096 < size:
-        size = 4096
-    data = stream.getN(size)
-    stream.seek(oldpos)
-    return getBufferMime(data, filename)
+    nb_bytes = stream.size/8
+    if 4096 < nb_bytes:
+        nb_bytes = 4096
+    data = stream.getBytes(0, nb_bytes)
+    return getBufferMime(data, stream.filename)
 
 def getAnotherBufferMime(content):    
     """ Another method (L{guessMime}) to guess MIME type. This
