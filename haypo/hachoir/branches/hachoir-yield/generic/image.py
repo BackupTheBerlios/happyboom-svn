@@ -6,8 +6,8 @@ class RGB(FieldSet):
         0xFFFFFF: "White"
     }
     
-    def __init__(self, parent, name, stream, description=None):
-        FieldSet.__init__(self, parent, name, stream, description)
+    def __init__(self, parent, name, description=None):
+        FieldSet.__init__(self, parent, name, parent.stream, description)
         if self.description == None:
             self.description = self.getColorName()
         self._size = 3
@@ -24,4 +24,15 @@ class RGB(FieldSet):
         else:
             return "RGB color: #%02X%02X%02X" % \
                 (self["red"].value, self["green"].value, self["blue"].value)
+
+class Palette(FieldSet):
+    def __init__(self, parent, name, nb_colors, description=None):
+        self.nb_colors = nb_colors
+        if description == None:
+            description = "Palette of %u RGB colors" % self.nb_colors
+        FieldSet.__init__(self, parent, name, parent.stream, description=description)
+
+    def createFields(self):
+        for i in range(0, self.nb_colors):
+            yield RGB(self, "color[]")
 

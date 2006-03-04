@@ -15,6 +15,7 @@ class FieldSet(Field):
     document).
     """
     is_field_set = True
+    endian = "!"
 
     def __init__(self, parent, name, stream, description=None):
         Field.__init__(self, parent, name, self, description=description)
@@ -25,7 +26,6 @@ class FieldSet(Field):
         self._field_array_count = {}
         self._size = None
         self._total_field_size = 0
-        self.endian = "!"
         if parent != None:
             self.root = parent.root
         else:
