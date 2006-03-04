@@ -78,15 +78,15 @@ class FieldSet(Field):
         return "(...)" 
     display = property(_getDisplay)
 
-    def raiseEvent(self, event_name, *args):
-        if self._event_handler == None:
-            return
-        self._event_handler.raiseEvent(event_name, *args)
-
     def connect(self, event_name, handler):
         if self._event_handler == None:
             self._event_handler = EventHandler()
         self._event_handler.connect(event_name, handler)
+
+    def raiseEvent(self, event_name, *args):
+        if self._event_handler == None:
+            return
+        self._event_handler.raiseEvent(event_name, *args)
 
     def __len__(self):
         if self._field_generator != None:
@@ -153,7 +153,6 @@ class FieldSet(Field):
             field = field[name]
         return field
 
-    
     def __getitem__(self, name):
         """
         Get an item with it's name or it's path.

@@ -21,7 +21,7 @@ class Field(object):
         return stream.getN(self.size)
 
     def __str__(self):
-        return str(self.display)
+        return self.display
 
     def _getValue(self):
         return self._value
