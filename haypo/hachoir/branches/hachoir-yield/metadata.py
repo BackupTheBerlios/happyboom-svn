@@ -63,10 +63,6 @@ class PngMetaData(ImageMetaData):
             format = "RGBA"
         else:
             format = "RGB"
-#        if header["compression"].value != 0:
-#            compression = "(compressed)"
-#        else:
-#            compression = "No"
         ImageMetaData.__init__(self, width, height, bpp, \
             nb_colors=nb_colors, format=format)
 

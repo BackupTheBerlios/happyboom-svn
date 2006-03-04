@@ -17,8 +17,6 @@ def usage():
     print "Usage: %s filename" % sys.argv[0]
 
 def main():
-    root_dir = os.path.dirname(__file__)
-
     # Create input stream (read filename from command line first argument)
     if len(sys.argv) < 2:
         usage()
@@ -26,7 +24,8 @@ def main():
     filename = sys.argv[1]
     stream = FileStream(open(filename, 'r'), filename)
 
-    # Load plugings
+    # Load all plugings from 'file' directory
+    root_dir = os.path.dirname(__file__)
     modules = loadPlugins(os.path.join(root_dir, "file"))
     modules.sort()
     log.info("Loaded: %u plugings (%s)" % (len(modules), ", ".join(modules)))
@@ -55,3 +54,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
