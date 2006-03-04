@@ -1,28 +1,6 @@
 from field import FieldSet, Integer, String, IntegerHex, Bit, Bits, ParserError
 from generic.image import RGB
 from bits import str2hex
-from metadata import ImageMetaData
-
-class PngMetaData(ImageMetaData):
-    def __init__(self, png):
-        header = png["/header/content"]
-        color_type = header["color_type"]
-        width, height = header["width"].value, header["height"].value
-        bpp = header["bpp"].value
-        if color_type["palette"].value:
-            nb_colors = png["/palette/content"].nb_colors
-        else:
-            nb_colors = None
-        if color_type["alpha"].value:
-            format = "RGBA"
-        else:
-            format = "RGB"
-#        if header["compression"].value != 0:
-#            compression = "(compressed)"
-#        else:
-#            compression = "No"
-        ImageMetaData.__init__(self, width, height, bpp, \
-            nb_colors=nb_colors, format=format)
 
 class HeaderFlags(FieldSet):
     def createFields(self):

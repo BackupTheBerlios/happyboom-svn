@@ -4,13 +4,6 @@ PCX picture filter.
 
 from field import FieldSet, Integer, String
 from generic.image import Palette
-from metadata import ImageMetaData
-
-class PcxMetaData(ImageMetaData):
-    def __init__(self, pcx):
-        width, height = pcx["xmax"].value+1, pcx["ymax"].value+1
-        bpp = pcx["bpp"].value
-        ImageMetaData.__init__(self, width, height, bpp)
 
 class PcxFile(FieldSet):
     endian = "<"

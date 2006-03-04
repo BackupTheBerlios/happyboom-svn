@@ -8,6 +8,7 @@ from plugin import loadPlugins, guessPlugin
 from log import log
 from error import error
 from mime import getStreamMime
+from metadata import createMetaData
 import sys, os
 
 def usage():
@@ -32,18 +33,25 @@ def main():
 
     # Look for right plugin
     plugin = guessPlugin(stream, filename, None)
-    if plugin != None:
-        # Create field set and display it
-        field_set = plugin(None, "file", stream)
-        displayFieldSet(field_set, 1)
-#        meta = PngMetaData(png) ; print meta
-#        meta = PcxMetaData(pcx) ; print meta
-#        meta = BmpMetaData(bmp) ; print meta
-    else:
+    if plugin == None:
         msg  = "Sorry, can't find plugin for file \"%s\"!" % filename
         mimes = [ mime[0] for mime in getStreamMime(stream, filename) ]
         msg += "\n\nFile mimes: %s" % ", ".join(mimes)
         error(msg)
+        sys.exit(1)
+
+    # Create field set and display it
+    field_set = plugin(None, "file", stream)
+
+    # Display the field set 
+#    displayFieldSet(field_set, 1)
+
+    # Metadata
+    metadata = createMetaData(field_set)
+    if metadata != None:
+        print metadata
+    else:
+        warning("Can't create meta datas")
 
 if __name__ == "__main__":
     main()

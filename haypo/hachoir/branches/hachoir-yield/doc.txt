@@ -1,5 +1,5 @@
 Introduction
-------------
+============
 
 Hachoir is a library written in Python to access binary streams using
 nice API. It aims to be easy to use (hide complex mechanisms) and only read
@@ -106,7 +106,7 @@ A field contains a lot of informations, attributes are:
  * is_field_set: If the value is True, the field contains other fields, it's
    a field set.
 
-Example:
+Examples:
 >>> field = format["text"]
 >>> field.name
 'text'
@@ -252,4 +252,10 @@ Event handling
 Code is not finished yet, so don't need documentation :-) See:
  * FieldSet.connect(event, handler)
  * FieldSet.raiseEvent(event,  arg1, arg2, ...)
+
+Get more informations
+=====================
+
+Hachoir website:
+   http://www.haypocalc.com/wiki/Hachoir
 

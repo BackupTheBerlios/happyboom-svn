@@ -7,21 +7,6 @@ Creation: 16 december 2005
 """
 
 from field import FieldSet, Integer, String, ParserError
-from metadata import ImageMetaData
-
-class BmpMetaData(ImageMetaData):
-    def __init__(self, bmp):
-        width, height = bmp["width"].value, bmp["height"].value
-        bpp = bmp["bpp"].value
-        if "used_colors" in bmp:
-            nb_colors = bmp["used_colors"].value 
-        else:
-            nb_colors = None
-        if bmp["compression"].value != 0:
-            compression = "(compressed)"
-        else:
-            compression = "No"
-        ImageMetaData.__init__(self, width, height, bpp, nb_colors=nb_colors)
 
 class BmpFile(FieldSet):
     mime_types = ["image/x-ms-bmp", "image/x-bmp"]
