@@ -2,7 +2,7 @@
 PCX picture filter.
 """
 
-from field import FieldSet, Integer, String
+from field import FieldSet, Integer, RawBytes 
 from common import Palette
 
 class PcxFile(FieldSet):
@@ -29,13 +29,13 @@ class PcxFile(FieldSet):
         yield Integer(self, "nb_color_plan", "uint8", "Number of color plans")
         yield Integer(self, "bytes_per_line", "uint16", "Bytes per line")
         yield Integer(self, "color_mode", "uint16", "Color mode")
-        yield String(self, "reserved2", "string[58]", "Reserved")
+        yield RawBytes(self, "reserved2", 58, "Reserved")
 
         size = self.stream.getSize() - self.stream.tell()
         has_palette = (self["bpp"].value == 8)
         if has_palette:
             size -= 256*3*8            
-        yield String(self, "data", "string[%u]" % size, "Image data")
+        yield RawBytes(self, "data", size, "Image data")
 
         if has_palette:
             yield Palette(self, "palette_8bits", 256, "Palette (8 bit)")

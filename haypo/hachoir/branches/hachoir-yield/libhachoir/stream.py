@@ -1,10 +1,5 @@
 from cStringIO import StringIO
 
-def getFileSize(stream):
-    """ Get file size in bits """
-    oldpos = stream.tell()
-    return size
-
 class InputStreamError(Exception):
     pass
 
@@ -25,6 +20,11 @@ class InputStream:
         if size == 0:
             raise InputStreamError("Error: input size is nul (filename='%s')!" % filename)
         self._size = size
+
+        # TODO: Doesn't support computation of last byte address with bit
+        # address
+        assert (self._size % 8) == 0
+        self._last_byte_address = self._size / 8 - 1
         self._input = input 
         
     def _getSize(self):
@@ -94,4 +94,46 @@ class InputStream:
                 "Can't read %u bytes at address %u (got %u bytes)!" % \
                 (nb_bytes, address/8, len(data)))
         return data
+
+    def searchBytes(self, needle, start_address=0, end_address=None):
+        """
+        Search some bytes between start_address and end_address
+
+        Returns the address of the bytes if founded, None else
+        """
+
+        if end_address == None:
+            end_address = self._last_byte_address * 8
+        if end_address < start_address:
+            return None
+        
+        # TODO: Doesn't suppport bit address yet :-(
+        assert (start_address % 8) == 0
+        assert (end_address % 8) == 0
+
+        size = 2048 
+        if size <= len(needle):
+            raise InputStreamError("Search string too big.")
+        doublesize = size * 2
+
+        address = start_address 
+        max = end_address - start_address + 1
+        if max<doublesize:
+            doublesize = max/8 
+            size = 0 
+        buffer = self.getBytes(address, doublesize)
+
+        new_address = address + size
+        while len(buffer) != 0:
+            found = buffer.find(needle)
+            if found != -1:
+                return address + found*8
+            address = new_address
+            if end_address < address + size:
+                size = end_address - address
+            if size == 0:
+                break
+            buffer = buffer[size:] + self.getBytes(address, size)
+            new_address = address + size 
+        return None
 

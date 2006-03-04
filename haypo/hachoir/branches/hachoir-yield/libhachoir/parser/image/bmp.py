@@ -6,7 +6,7 @@ Author: Victor Stinner
 Creation: 16 december 2005
 """
 
-from field import FieldSet, Integer, String, ParserError, Enum
+from field import FieldSet, Integer, RawBytes, ParserError, Enum
 
 class BmpFile(FieldSet):
     mime_types = ["image/x-ms-bmp", "image/x-bmp"]
@@ -18,7 +18,7 @@ class BmpFile(FieldSet):
     }        
     
     def createFields(self):
-        yield String(self, "header", "string[2]", "Header (\"BM\")")
+        yield RawBytes(self, "header", "string[2]", "Header (\"BM\")")
         if self["header"].value != "BM": 
             raise ParserError(
                 "BMP picture parser error: indentifier is uncorrect")

@@ -1,7 +1,7 @@
 import re, os
 from stat import S_ISDIR, ST_MODE
 from mime import getFileMime, getStreamMime
-from error import warning
+from error import error 
 
 hachoir_parsers = {} 
 
@@ -13,7 +13,7 @@ def loadParser(module_path, loaded):
         for get in module_path.split(".")[1:]:
             module = getattr(module, get)
     except Exception, msg:
-        warning("Error while loading the plugin \"%s\": %s" \
+        error("Error while loading the plugin \"%s\": %s" \
             % (module_path, msg))
         return
     for attr in module.__dict__:

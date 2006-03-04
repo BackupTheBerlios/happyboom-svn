@@ -1,10 +1,12 @@
 from unit_test import create_fields
 from unit_test import field_set_get_item
+from unit_test import stream_search
 import sys, os
 
 def runAllTests():
     create_fields.runTests()
     field_set_get_item.runTests()
+    stream_search.runTests()
 
 def main():
     # Load Hachoir library

@@ -1,4 +1,3 @@
-from StringIO import StringIO
 from libhachoir.field import FieldSet, Integer, String, Bits, Bit
 from libhachoir.stream import StringInputStream
 

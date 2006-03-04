@@ -5,6 +5,8 @@ VERSION = "0.2 (alpha)"
 import sys, os, getopt
 
 cmd_line_options = ( \
+    ("metadata", "Read meta dats"),
+    ("max-depth=", "Maximum depth of displayed tree"),
     ("verbose", "Activate verbose mode"),
     ("help", "Show this help"),
     ("quiet", "Be quiet (don't display warning)"),
@@ -26,8 +28,9 @@ def usage():
         else:
             print "   --%s : %s" % (opt[0].ljust(width), opt[1])
 
-def parseArgs():
+def parseArgs(options):
     import libhachoir.config as config
+    from libhachoir.log import log
 
     try:
         allowed = [ option[0] for option in cmd_line_options ]
@@ -54,6 +57,14 @@ def parseArgs():
             config.verbose = True
         elif option == "--debug":
             config.debug = True
+        elif option == "--metadata":
+            options["metadata"] = value
+        elif option == "--max-depth":   
+            try:
+                options["max-depth"] = int(value)
+            except ValueError:
+                log.warning("Invalid value for maximum depth: \"%s\"!" % value)
+
     return filename 
 
 def main():
@@ -63,7 +74,12 @@ def main():
     sys.path.append(libhachoir_path)
     
     # Parser command line arguments
-    filename = parseArgs()
+    options = {
+        "max-depth": 3,
+        "display": True,
+        "metadata": False 
+    }
+    filename = parseArgs(options)
 
     # Get tools that we need from libhachoir
     from libhachoir.stream import FileInputStream
@@ -98,14 +114,17 @@ def main():
     field_set = plugin(None, "file", stream)
 
     # Display the field set 
-#    displayFieldSet(field_set, 1)
+    if options["display"]:
+        max_depth = options["max-depth"]
+        displayFieldSet(field_set, max_depth) # , options={"parent-details": True})
 
     # Metadata
-    metadata = createMetaData(field_set)
-    if metadata != None:
-        print metadata
-    else:
-        warning("Can't create meta datas")
+    if options["metadata"]:
+        metadata = createMetaData(field_set)
+        if metadata != None:
+            print metadata
+        else:
+            warning("Can't create meta datas")
 
 if __name__ == "__main__":
     main()

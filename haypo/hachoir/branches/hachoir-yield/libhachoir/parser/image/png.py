@@ -1,6 +1,7 @@
-from field import FieldSet, Integer, String, IntegerHex, Bit, Bits, ParserError
+from field import FieldSet, Integer, RawBytes, Bit, Bits, ParserError
 from common import RGB
 from bits import str2hex
+from text_handler import hexadecimal
 
 class HeaderFlags(FieldSet):
     def createFields(self):
@@ -68,7 +69,7 @@ class Chunk(FieldSet):
 
     def createFields(self):
         yield Integer(self, "size", "uint32", "Size")
-        yield String(self, "type", "string[4]", "Type")
+        yield RawBytes(self, "type", 4, "Type")
 
         type = self["type"].value
         if type in self.handler:
@@ -79,14 +80,14 @@ class Chunk(FieldSet):
             yield cls(self, "content", self.stream)
 #            assert stream.tell() == (oldpos + size) 
         else:
-            yield String(self, "content", "string[%u]" % self["size"].value, "Data")
-        yield IntegerHex(self, "crc32", "uint32", "CRC32")
+            yield RawBytes(self, "content", self["size"].value, "Data")
+        yield Integer(self, "crc32", "uint32", "CRC32", text_handler=hexadecimal)
 
 class PngFile(FieldSet):
     mime_types = ["image/png", "image/x-png"]
 
     def createFields(self):
-        yield String(self, "id", "string[8]", "PNG identifier") 
+        yield RawBytes(self, "id", 8, "PNG identifier") 
         if self["id"].value != "\x89PNG\r\n\x1A\n":
             raise ParserError("Png parser: file identifier looks wrong (%s instead of %s)" % \
                 (str2hex(self["id"].value), str2hex("\x89PNG\r\n\x1A\n")))
