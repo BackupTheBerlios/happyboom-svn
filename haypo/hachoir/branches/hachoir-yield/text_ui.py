@@ -1,8 +1,12 @@
 def displayFieldSet(field_set, max_depth=2, depth=0):
+    parent_details = False
     indent = " " * (3*depth)
     addr = field_set.absolute_address
-    print "%s--- %s --- (addr=%u.%u, size=%s bits)" \
-        % (indent, field_set.name, addr/8, addr%8, field_set.size)
+    text = "%s--- %s ---" % (indent, field_set.name) 
+    if parent_details:
+        text += "(addr=%u.%u, size=%s bits)" \
+            % (addr/8, addr%8, field_set.size)
+    print text
     if max_depth == None or depth < max_depth:
         for field in field_set:
             if not field.is_field_set:

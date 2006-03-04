@@ -54,3 +54,13 @@ class IntegerHex(Integer):
         return hexadecimal(self)
     display = property(_getDisplay)
 
+class Enum(Integer):   
+    def __init__(self, parent, name, format, enum, description=None):
+        self.enum = enum
+        Integer.__init__(self, parent, name, format, description)
+    
+    def _getDisplay(self):
+        value = self.value
+        return self.enum.get(value, value)
+    display = property(_getDisplay)
+

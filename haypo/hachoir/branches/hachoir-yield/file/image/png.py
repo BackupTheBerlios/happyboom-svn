@@ -105,6 +105,8 @@ class Chunk(FieldSet):
         yield IntegerHex(self, "crc32", "uint32", "CRC32")
 
 class PngFile(FieldSet):
+    mime_types = ["image/png", "image/x-png"]
+
     def createFields(self):
         yield String(self, "id", "string[8]", "PNG identifier") 
         if self["id"].value != "\x89PNG\r\n\x1A\n":
