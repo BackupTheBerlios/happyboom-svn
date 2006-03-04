@@ -4,6 +4,7 @@ from tools import convertDataToPrintableString
 
 class String(Field):
     def __init__(self, parent, name, format, description=None):
+        assert issubclass(parent.__class__, Field)
         self.format = format
         size = getFormatSize(format)*8
         Field.__init__(self, parent, name, None, size, description=description)

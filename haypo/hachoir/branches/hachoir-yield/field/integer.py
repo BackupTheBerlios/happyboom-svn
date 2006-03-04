@@ -4,6 +4,7 @@ from text_handler import hexadecimal
 
 class Bits(Field):
     def __init__(self, parent, name, size, description=None):
+        assert issubclass(parent.__class__, Field)
         Field.__init__(self, parent, name, None, size, description=description)
 
     def _getValue(self):
@@ -31,6 +32,7 @@ class Bit(Bits):
    
 class Integer(Field):
     def __init__(self, parent, name, format, description=None):
+        assert issubclass(parent.__class__, Field)
         if format[0] not in "!<>":
             self.format = parent.endian + format
         else:

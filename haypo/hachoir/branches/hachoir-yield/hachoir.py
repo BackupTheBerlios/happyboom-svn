@@ -35,7 +35,7 @@ def main():
     if plugin != None:
         # Create field set and display it
         field_set = plugin(None, "file", stream)
-        displayFieldSet(field_set, None)
+        displayFieldSet(field_set, 1)
 #        meta = PngMetaData(png) ; print meta
 #        meta = PcxMetaData(pcx) ; print meta
 #        meta = BmpMetaData(bmp) ; print meta
