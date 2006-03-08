@@ -49,6 +49,7 @@ class FileEntry(OnDemandFilter):
         self.read("padding", "Padding (zero)", (FormatChunk, "string[167]"))
 
         self.name = self["name"].strip("\0")
+        self.link_name = self["lname"].strip("\0")
         self.size = self.octal2int(self["size"])
         if self["type"] in (0, ord("0")) and self.size != 0:
             substream = stream.createSub(stream.tell(), self.size)
@@ -87,7 +88,7 @@ class FileEntry(OnDemandFilter):
         return str(datetime.fromtimestamp(value))
 
     def isEmpty(self):
-        return self.name == ""
+        return (self.name == "" and self.link_name == "")
 
     def octal2int(self, str):
         str = str.strip(" \0")

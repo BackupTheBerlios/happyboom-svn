@@ -111,6 +111,10 @@ class ID3_Parser(OnDemandFilter):
             if chunk["size"] == 0:
                 break
 
+        # Check AlbumWrap
+        if True:
+            self.readAlbumWrap(stream)
+
         # Search first byte of the MPEG file                
         size = stream.searchLength("\xFF", False)
         if size == -1:
@@ -118,3 +122,25 @@ class ID3_Parser(OnDemandFilter):
             size = end - stream.tell()
         if 0 < size:
             self.read("padding", "Padding", (FormatChunk, "string[%u]" % size))
+
+    def readAlbumWrap(self, stream):            
+        ofst = 1325 
+        oldpos = stream.tell()
+        if ofst < ofst:
+            return
+        stream.seek(ofst)
+        count = stream.getN(12)
+        count = count.rstrip(" ")
+        stream.seek(oldpos)
+        if len(count.strip("\0")) == 0:
+            return
+        try:
+            count = int(count)
+        except ValueError:
+            return
+        size = ofst - oldpos
+        self.read("padding", "Padding", (FormatChunk, "string[%u]" % size))
+        self.read("count", "File count", (FormatChunk, "string[12]"))
+        for index in range(count):
+            self.read("filename[]", "Filename %i" % index, (FormatChunk, "string[501]"))
+
