@@ -194,7 +194,9 @@ class FieldSet(Field):
         else:
             if self._field_generator != None:
                 field = self._feedUntil(name)
-            return name in self.fields
+                return (field != None)
+            else:
+                return name in self.fields
 
     def _stopFeeding(self):
         self._field_generator = None
@@ -202,6 +204,9 @@ class FieldSet(Field):
         assert not hasattr(self, "static_size") or (self.static_size == self._size)
 
     def _feedUntil(self, field_name):
+        """
+        Return the field if it was found, None else
+        """
         try:
             while True:
                 field = self._feed()

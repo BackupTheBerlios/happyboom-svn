@@ -24,17 +24,14 @@ class Field(object):
         self._description = description
     description = property(_getDescription, _setDescription)
 
-    def readRawContent(self):
-        stream = self.parent.stream
-        stream.seek(self.absolute_address)
-        return stream.getN(self.size)
-
     def __str__(self):
         return self.display
 
     def _getValue(self):
         return self._value
     def _setValue(self, new_value):
+        if self.value == new_value:
+            return
         self._value = new_value
         self.parent.raiseEvent("field-value-changed", self)
     value = property(_getValue, _setValue)

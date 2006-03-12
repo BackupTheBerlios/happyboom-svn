@@ -3,11 +3,12 @@ from libhachoir.format import getFormatSize
 from libhachoir.tools import convertDataToPrintableString
 
 class RawBytes(Field):
-    def __init__(self, parent, name, length, description="Raw data"):
+    def __init__(self, parent, name, length, description="Raw data", value=None):
         assert issubclass(parent.__class__, Field)
         # arbitrary limit
         assert length < (1 << 64)
-        Field.__init__(self, parent, name, size=length*8, description=description)
+        Field.__init__(self, parent, name, size=length*8, \
+            description=description, value=value)
         
     def _getTruncated(self, address, length, max_bytes=20):
         truncated = False
@@ -43,8 +44,9 @@ class RawBytes(Field):
 
 class String(RawBytes):
     def __init__(self, parent, name, format, description=None, \
-            strip=None, text_handler=None):
-        RawBytes.__init__(self, parent, name, 0, description)
+            strip=None, text_handler=None, value=None):
+        RawBytes.__init__(self, parent, name, 0, description, \
+            value=value)
         self._begin_offset = 0 # in bytes
         self._end_offset = 0 # in bytes
         if format == "C":

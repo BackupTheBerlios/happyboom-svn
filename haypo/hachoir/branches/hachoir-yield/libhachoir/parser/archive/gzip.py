@@ -11,6 +11,27 @@ from field import (FieldSet,
 from error import error
 from text_handler import hexadecimal, humanFilesize, unixTimestamp
 import datetime
+
+def removeField(field_set, delete_field):
+    size = delete_field.size
+    index = field_set.fields.indexOf(delete_field.name)
+    fields = field_set.fields
+    for update_index in xrange(index+1, len(fields)):
+        field = fields.getByIndex(update_index)
+        field.address -= size
+    del field_set.fields[index]
+    
+def insertFieldAfter(field_set, after, new_field):
+    print new_field.path
+    size = new_field.size
+    index = field_set.fields.indexOf(after.name)
+    fields = field_set.fields
+    for update_index in xrange(index+1, len(fields)):
+        field = fields.getByIndex(update_index)
+        field.address += size
+    print "Insert %s after %s" % (new_field.path, after.path)
+    new_field.address = after.address + after.size
+    field_set.fields.insert(index+1, new_field.name, new_field)
    
 class GzipFile(FieldSet):
     mime_types = "application/x-gzip"
@@ -31,7 +52,26 @@ class GzipFile(FieldSet):
         13: "Acorn RISCOS"} 
     endian = "<"
 
+    def fieldValueChanged(self, field):
+        if field.name == "has_comment":
+            if field.value:
+                assert "comment" not in self
+                if self["has_filename"].value:
+                    after = self["filename"]
+                elif self["has_extra"].value:
+                    after = self["extra"]
+                else:
+                    after = self["os"]
+                value = "abc"
+                comment = String(self, "comment", "string[%u]" % len(value), description="Comment", value=value)
+                insertFieldAfter(self, after, comment)
+            else:
+                removeField(self, self["comment"])
+
     def createFields(self):
+        # Install handlers
+        self.connectEvent("field-value-changed", self.fieldValueChanged)
+    
         # Gzip header
         yield RawBytes(self, "id", 2, "GZip identifier")
         assert self["id"].value == "\x1f\x8b" 
