@@ -49,18 +49,18 @@ class DirectoryEntry(FieldSet):
         if size != 0:
             yield String(self, "padding", "string[%u]" % size, "Padding")
 
-#  TODO: Re-enable that, maybe using event 'all fields are read'
-#    def updateParent(self, chunk):        
-#        name = self["name"].strip("\0")
-#        if name != "":
-#            desc = "Directory entry: %s" % name
-#        else:
-#            desc = "Directory entry (empty)"
-#        chunk.description = desc
-#        self.setDescription(desc)
+    def _getDescription(self):
+        if self._description == None:
+            name = self["name"].value.strip("\0")
+            if name != "":
+                self._description = "Directory entry: %s" % name
+            else:
+                self._description = "Directory entry (empty)"
+        return self._description
+    description = property(_getDescription, FieldSet._getDescription)
 
 class Inode(FieldSet):
-    name = {
+    type_name = {
         1: "list of bad blocks",
         2: "Root directory",
         3: "ACL inode",
@@ -73,9 +73,9 @@ class Inode(FieldSet):
     endian = "<"
     static_size = (68 + 15*4)*8
 
-    def __init__(self, parent, name, stream, index, description=None):
+    def __init__(self, parent, name, index, description=None):
         self.index = index
-        FieldSet.__init__(self, parent, name, stream, description)
+        FieldSet.__init__(self, parent, name, parent.stream, description)
         
         if self.description == None:
             desc = "Inode %s: " % self.index
@@ -84,8 +84,8 @@ class Inode(FieldSet):
                 size = humanFilesize(self["size"].value)
                 desc += "file, size=%s, mode=%s" % (size, self["mode"].display)
             else:
-                if self.index in Inode.name:
-                    desc += Inode.name[self.index]
+                if self.index in Inode.type_name:
+                    desc += Inode.type_name[self.index]
                     if self.index == 2:
                         desc += " (%s)" % getUnixRWX(self["mode"].value)
                 else:
@@ -98,17 +98,17 @@ class Inode(FieldSet):
         yield Integer(self, "mode", "uint16", "Mode") # {"post": self.postMode}
         yield Integer(self, "uid", "uint16", "User ID")
         yield Integer(self, "size", "uint32", "File size (in bytes)")
-        yield Integer(self, "atime", "uint32", "Last access time") # {"post": unixTimestamp}
-        yield Integer(self, "ctime", "uint32", "Creation time") # {"post": unixTimestamp}
-        yield Integer(self, "mtime", "uint32", "Last modification time") # {"post": unixTimestamp}
-        yield Integer(self, "dtime", "uint32", "Delete time") #  {"post": unixTimestamp}
+        yield Integer(self, "atime", "uint32", "Last access time", text_handler=unixTimestamp)
+        yield Integer(self, "ctime", "uint32", "Creation time", text_handler=unixTimestamp)
+        yield Integer(self, "mtime", "uint32", "Last modification time", text_handler=unixTimestamp)
+        yield Integer(self, "dtime", "uint32", "Delete time", text_handler=unixTimestamp)
         yield Integer(self, "gid", "uint16", "Group ID")
         yield Integer(self, "links_count", "uint16", "Links count")
         yield Integer(self, "blocks", "uint32", "Number of blocks")
         yield Integer(self, "flags", "uint32", "Flags")
         yield Integer(self, "reserved1", "uint32", "Reserved")
         for i in range(0,15):
-            yield Integer(self, "block[]", "uint32", "Block %i" % i)
+            yield Integer(self, "block[]", "uint32")
         yield Integer(self, "version", "uint32", "Version")
         yield Integer(self, "file_acl", "uint32", "File ACL")
         yield Integer(self, "dir_acl", "uint32", "Directory ACL")
@@ -230,7 +230,7 @@ class SuperBlock(FieldSet):
     static_size = 433*8
     endian = "<"
  
-    def __init__(self, parent, name, stream, description="Super block"):
+    def __init__(self, parent, name, stream=None, description="Super block"):
         FieldSet.__init__(self, parent, name, stream, description)
         if self["feature_compat"].value & 4 == 4:
             type = "ext3"
@@ -256,8 +256,8 @@ class SuperBlock(FieldSet):
         yield Integer(self, "blocks_per_group", "uint32", "Blocks per group")
         yield Integer(self, "frags_per_group", "uint32", "Fragments per group")
         yield Integer(self, "inodes_per_group", "uint32", "Inodes per group")
-        yield Integer(self, "mtime", "uint32", "Mount time") #  {"post": unixTimestamp}
-        yield Integer(self, "wtime", "uint32", "Write time") #  {"post": unixTimestamp}
+        yield Integer(self, "mtime", "uint32", "Mount time", text_handler=unixTimestamp)
+        yield Integer(self, "wtime", "uint32", "Write time", text_handler=unixTimestamp)
         yield Integer(self, "mnt_count", "uint16", "Mount count")
         yield Integer(self, "max_mnt_count", "int16", "Max mount count")
         yield String(self, "magic", "string[2]", "Magic number (0x53EF)")
@@ -341,13 +341,6 @@ class InodeTable(FieldSet):
         index = index - self.start - 1
         return self.getChunk("inode[%u]" % index).getFilter()
 
-def testSuperblock(stream):
-    oldpos = stream.tell()
-    stream.seek(56*8, 1)
-    magic = stream.getN(2)    
-    stream.seek(oldpos)
-    return (magic == "\x53\xEF")
-
 class Group(FieldSetWithSeek):
     def __init__(self, parent, name, stream, index, description=None):
         if description == None:
@@ -368,9 +361,9 @@ class Group(FieldSetWithSeek):
         block_size = self["/"].block_size
     
         # Read block bitmap
-        self.superblock_copy = False
-        if testSuperblock(self.stream):
-            self.superblock_copy = True
+#        addr = self.absolute_address + 56*8
+        self.superblock_copy = False #(self.stream.getBytes(addr, 2) == "\x53\xEF")
+        if self.superblock_copy:
             yield SuperBlock(self, "superblock_copy", self.stream, "Superblock")
         field = self.seekField(group["block_bitmap"].value * block_size * 8)
         if field != None:
@@ -395,8 +388,8 @@ class Group(FieldSetWithSeek):
         yield InodeTable(self, "inode_table[]", self.stream, inode_index, count)
 
         size = (self.index+1) * superblock["blocks_per_group"].value * block_size
-        if self.stream.getSize() < size:
-            size = self.stream.getSize()
+        if self.stream.size < size:
+            size = self.stream.size
         assert (self._total_field_size % 8) == 0
         size = size - self._total_field_size / 8
         yield String(self, "data", "string[%u]" % size, "Data")

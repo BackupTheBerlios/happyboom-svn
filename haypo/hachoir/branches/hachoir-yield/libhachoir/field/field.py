@@ -16,7 +16,13 @@ class Field(object):
                 address = 0
         self.address = address
         self._size = size 
-        self.description = description
+        self._description = description
+
+    def _getDescription(self):
+        return self._description
+    def _setDescription(self, description):
+        self._description = description
+    description = property(_getDescription, _setDescription)
 
     def readRawContent(self):
         stream = self.parent.stream

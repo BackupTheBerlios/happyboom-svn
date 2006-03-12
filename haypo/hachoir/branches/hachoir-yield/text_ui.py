@@ -1,6 +1,7 @@
 def displayFieldSet(field_set, max_depth=2, depth=0, options={}):
     display_parent_addr = options.get("parent-addr", False)
-    display_parent_size = options.get("parent-size", True)
+    display_parent_size = options.get("parent-size", False)
+    display_parent_desc = options.get("parent-desc", True)
     indent = " " * (3*depth)
     addr = field_set.absolute_address
     text = "%s--- %s ---" % (indent, field_set.name) 
@@ -20,6 +21,8 @@ def displayFieldSet(field_set, max_depth=2, depth=0, options={}):
             if display_parent_size:
                 info.append( "size=%s bytes" % (field_set.size/8) )
         text += " (%s)" % (", ".join(info))
+    if display_parent_desc:
+        text += " (%s)" % field_set.description
     print text
     if max_depth == None or max_depth < 0 or depth < max_depth:
         for field in field_set:
@@ -31,13 +34,15 @@ def displayFieldSet(field_set, max_depth=2, depth=0, options={}):
                 else:
                     assert (field.address % 8) == 0
                     text += "%u" % (field.address/8)
-                text += ") %s = %s: %s " % \
-                    (field._name, field.display, field.description)
+                text += ") %s = %s" % \
+                    (field._name, field.display)
+                if field.description != None:
+                    text += ": %s" % field.description
                 if display_bits:
-                    text += "(size=%s bits)" % field.size
+                    text += " (size=%s bits)" % field.size
                 else:
                     assert (field.size % 8) == 0
-                    text += "(size=%s bytes)" % (field.size / 8)
+                    text += " (size=%s bytes)" % (field.size / 8)
                 print text
             else:
                 displayFieldSet(field, max_depth, depth+1, options)

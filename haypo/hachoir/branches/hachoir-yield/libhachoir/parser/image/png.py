@@ -20,9 +20,12 @@ class Header(FieldSet):
         yield Integer(self, "filter", "uint8", "Filter method")
         yield Integer(self, "interlace", "uint8", "Interlace method")
 
-    def updateParent(self, chunk):
-        chunk.description = "Header: %ux%u pixels and %u bits/pixel" \
-            % (self["width"], self["height"], self["bpp"])
+    def _getDescription(self):
+        if self._description == None:
+            self._description = "Header: %ux%u pixels and %u bits/pixel" \
+                % (self["width"].value, self["height"].value, self["bpp"].value)
+        return self._description
+    description = property(_getDescription, FieldSet._getDescription)
 
 class Palette(FieldSet):
     def __init__(self, parent, name, stream, description=None):

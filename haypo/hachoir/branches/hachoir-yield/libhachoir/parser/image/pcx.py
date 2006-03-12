@@ -31,11 +31,12 @@ class PcxFile(FieldSet):
         yield Integer(self, "color_mode", "uint16", "Color mode")
         yield RawBytes(self, "reserved2", 58, "Reserved")
 
-        size = self.stream.getSize() - self.stream.tell()
+        size = self.stream.size - self.newFieldAskAddress()
         has_palette = (self["bpp"].value == 8)
         if has_palette:
             size -= 256*3*8            
-        yield RawBytes(self, "data", size, "Image data")
+        assert (size % 8) == 0
+        yield RawBytes(self, "data", size/8, "Image data")
 
         if has_palette:
             yield Palette(self, "palette_8bits", 256, "Palette (8 bit)")

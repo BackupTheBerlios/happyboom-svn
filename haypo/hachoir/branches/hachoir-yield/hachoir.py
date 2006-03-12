@@ -58,7 +58,7 @@ def parseArgs(options):
         elif option == "--debug":
             config.debug = True
         elif option == "--metadata":
-            options["metadata"] = value
+            options["metadata"] = True 
         elif option == "--max-depth":   
             try:
                 options["max-depth"] = int(value)

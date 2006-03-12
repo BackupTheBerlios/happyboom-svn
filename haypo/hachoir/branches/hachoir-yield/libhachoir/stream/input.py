@@ -67,9 +67,9 @@ class InputStream:
             value = value & mask
         return value
 
-    def getBytes(self, address, nbytes):
+    def getBytes(self, address, nb_bytes):
         if address % 8 != 0:
-            data = self._getRawBits(address, nbytes*8)
+            data = self._getRawBits(address, nb_bytes*8)
             nbits = address % 8
             shift1 = nbits
             shift2 = 8 - nbits
@@ -82,7 +82,7 @@ class InputStream:
                 newdata += new 
             data = newdata
         else:
-            data = self._getRawBits(address, nbytes*8)
+            data = self._getRawBits(address, nb_bytes*8)
         return data
     
     def _getRawBits(self, address, nb_bits):

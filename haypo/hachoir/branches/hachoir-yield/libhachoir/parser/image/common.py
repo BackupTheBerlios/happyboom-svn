@@ -7,23 +7,21 @@ class RGB(FieldSet):
     }
     static_size = 3*8
     
-    def __init__(self, parent, name, stream, description=None):
-        FieldSet.__init__(self, parent, name, stream, description)
-        if self.description == None:
-            self.description = self.getColorName()
+    def _getDescription(self):
+        if self._description == None:
+            value = (self["red"].value << 16) + (self["green"].value << 8) + self["blue"].value
+            if value in RGB.color_name:
+                self._description = "RGB color: "+RGB.color_name[value]
+            else:
+                self._description = "RGB color: #%02X%02X%02X" % \
+                    (self["red"].value, self["green"].value, self["blue"].value)
+        return self._description
+    description = property(_getDescription, FieldSet._getDescription)
 
     def createFields(self):
         yield Integer(self, "red", "uint8", "Red")
         yield Integer(self, "green", "uint8", "Green")
         yield Integer(self, "blue", "uint8", "Blue")
-
-    def getColorName(self):
-        value = (self["red"].value << 16) + (self["green"].value << 8) + self["blue"].value
-        if value in RGB.color_name:
-            return "RGB color: "+RGB.color_name[value]
-        else:
-            return "RGB color: #%02X%02X%02X" % \
-                (self["red"].value, self["green"].value, self["blue"].value)
 
 class Palette(FieldSet):
     def __init__(self, parent, name, nb_colors, description=None):

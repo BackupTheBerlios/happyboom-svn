@@ -19,8 +19,8 @@ def msdosDatetime(chunk):
 def humanFilesize(chunk):
     return doHumanFilesize(chunk.value)
 
-def unixTimestamp(chunk):
-    timestamp = datetime.datetime.fromtimestamp(chunk.value)
+def unixTimestamp(field):
+    timestamp = datetime.datetime.fromtimestamp(field.value)
     return str(timestamp) 
 
 def binary(chunk):

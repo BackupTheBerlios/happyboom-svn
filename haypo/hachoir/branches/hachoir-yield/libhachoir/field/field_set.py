@@ -53,14 +53,18 @@ class FieldSet(Field):
     is_field_set = True
     endian = "!"
 
-    def __init__(self, parent, name, stream, description=None, size=None):
+    def __init__(self, parent, name, stream=None, description=None, size=None):
         if hasattr(self, "static_size"):
             self._size = self.static_size
         else:
             self._size = size 
         assert self.endian in ("!", "<", ">")
         Field.__init__(self, parent, name, self, size=self._size, description=description)
-        self.stream = stream
+        if stream == None:
+            assert parent != None
+            self.stream = parent.stream
+        else:
+            self.stream = stream
         self.fields = IndexedDict()
         self._event_handler = None
         self._field_generator = self.createFields()
