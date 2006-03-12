@@ -1,5 +1,7 @@
-import doctest, sys, os
+import doctest, sys, os, re
 from stat import S_ISREG, ST_MODE
+
+regex_doc_filename = re.compile("^[a-z0-9_-]+\.txt$")
 
 def testDoc(filename, name=None):
     print "--- %s: Run tests" % filename
@@ -16,7 +18,8 @@ def main():
     documents.sort()
     for doc in documents:
         filename = os.path.join(doc_dir, doc)
-        if S_ISREG(os.stat(filename)[ST_MODE]):
+        if S_ISREG(os.stat(filename)[ST_MODE]) \
+        and regex_doc_filename.match(doc) != None:
             testDoc(filename)
 
 if __name__ == "__main__":

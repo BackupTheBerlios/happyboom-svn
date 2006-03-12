@@ -1,12 +1,12 @@
-from unit_test import create_fields
-from unit_test import field_set_get_item
-from unit_test import stream_search
+from unit_test import (create_fields, 
+    field_set_get_item, stream_search, output_stream)
 import sys, os
 
 def runAllTests():
     create_fields.runTests()
     field_set_get_item.runTests()
     stream_search.runTests()
+    output_stream.runTests()
 
 def main():
     # Load Hachoir library
