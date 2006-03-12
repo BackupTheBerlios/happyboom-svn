@@ -3,14 +3,16 @@
 Author: Victor Stinner
 """
 
-from libhachoir.field import FieldSet, Integer, RawBytes, Enum, String
+from libhachoir.field import (FieldSet, ParserError,
+    Integer, RawBytes, Enum, String, Float)
 from libhachoir.parser.image.common import RGB
 
-#def readObject(self, stream, last_pos):
-#    yield String(self, "name", "C", "Object name")
-#    while self._total_field_size < last_pos:
-#        yield Chunk(self)
-#
+def readObject(parent):
+    yield String(parent, "name", "C", "Object name")
+    size = parent["size"].value * 8
+    while parent.newFieldAskAddress() < size:
+        yield Chunk(parent)
+
 def readTextureFilename(parent):
     yield String(parent, "filename", "C", "Texture filename")
 
@@ -20,62 +22,58 @@ def readVersion(parent):
 def readMaterialName(parent):
     yield String(parent, "name", "C", "Material name")
 
-#class Filter_3DS_MapUV(OnDemandFilter):
-#    def __init__(self, stream, parent):
-#        OnDemandFilter.__init__(self, "3ds_map", "3DS UV map", stream, parent, "<")
-#        self.read("u", "Map U", (FormatChunk, "float"))
-#        self.read("v", "Map V", (FormatChunk, "float"))
-#
-#    @staticmethod
-#    def getStaticSize(stream, args):
-#        return 4*2
-# 
-class Filter_3DS_Vertex(FieldSet):
-    static_size = 4*3*8
+class MapUV(FieldSet):
+    endian = "<"
+    def __init__(self, parent, name="map[]", description="Mapping UV"):
+        FieldSet.__init__(self, parent, name, parent.stream, size=64, description=description)
+        
+    def createFields(self):
+        yield Float(self, "u", "float", "Map U")
+        yield Float(self, "v", "float", "Map V")
+
+class Vertex(FieldSet):
+    static_size = 12*8
+    endian = "<"
+
     def __init__(self, parent, name="vertex[]", description="Vertex"):
         FieldSet.__init__(self, parent, name, parent.stream, description=description)
 
     def createFields(self):
-        self.read("x", "X", (FormatChunk, "float"))
-        self.read("y", "Y", (FormatChunk, "float"))
-        self.read("z", "Z", (FormatChunk, "float"))
-#
-#    @staticmethod
-#    def getStaticSize(stream, args):
-#        return 4*3
-#
-#class Filter_3DS_Polygon(OnDemandFilter):
-#    def __init__(self, stream, parent):
-#        OnDemandFilter.__init__(self, "3ds_polygon", "3DS polygon", stream, parent, "<")
-#        self.read("a", "Vertex A", (FormatChunk, "uint16"))
-#        self.read("b", "Vertex B", (FormatChunk, "uint16"))
-#        self.read("c", "Vertex C", (FormatChunk, "uint16"))
-#        self.read("flags", "Flags", (FormatChunk, "uint16"))
-#
-#    @staticmethod
-#    def getStaticSize(stream, args):
-#        return 4*2
-#    
-#def readMapList(filter, stream, last_pos):
-#    filter.read("count", "Map count", (FormatChunk, "uint16"))
-#    for i in range(0, filter["count"]):
-#        filter.read("map[]", "Map UV", (Filter_3DS_MapUV,))
-#
+        yield Float(self, "x", "float", "X")
+        yield Float(self, "y", "float", "Y")
+        yield Float(self, "z", "float", "Z")
+
+class Polygon(FieldSet):
+    static_size = 64
+    endian = "<"
+    def createFields(self):
+        yield Integer(self, "a", "uint16", "Vertex A")
+        yield Integer(self, "b", "uint16", "Vertex B")
+        yield Integer(self, "c", "uint16", "Vertex C")
+        yield Integer(self, "flags", "uint16", "Flags")
+
+def readMapList(parent):
+    yield Integer(parent, "count", "uint16", "Map count")
+    for i in range(0, parent["count"].value):
+        yield MapUV(parent)
+
 def readColor(parent):
     yield RGB(parent, "color", parent.stream)
 
 def readVertexList(parent):
-    count = Integer(parent, "count", "uint16", "Vertex count")
-    for i in range(0, count.value):
+    yield Integer(parent, "count", "uint16", "Vertex count")
+    for i in range(0, parent["count"].value):
         yield Vertex(parent)
     
-#def readPolygonList(filter, stream, last_pos):
-#    filter.read("count", "Vertex count", (FormatChunk, "uint16"))
-#    for i in range(0, filter["count"]):
-#        filter.read("polygon[]", "Polygon", (Filter_3DS_Polygon,))
-#    while stream.tell() < last_pos:
-#        filter.read("chunk[]", "Chunk", (Filter_3DS_Chunk,))
-#
+def readPolygonList(parent):
+    count = Integer(parent, "count", "uint16", "Vertex count")
+    yield count 
+    for i in range(0, count.value):
+        yield Polygon(parent, "polygon[]", parent.stream)
+    size = parent["size"].value * 8
+    while parent.newFieldAskAddress() < size:
+        yield Chunk(parent)
+
 class Chunk(FieldSet):
     # List of chunk type name
     type_name = {
@@ -131,13 +129,13 @@ class Chunk(FieldSet):
     # List of chunk type handlers
     handlers = {
         0xA000: readMaterialName,
-#        0x4000: readObject,
+        0x4000: readObject,
         0xA300: readTextureFilename,
         0x0011: readColor,
         0x0002: readVersion,
         0x4110: readVertexList,
-#        0x4120: readPolygonList,
-#        0x4140: readMapList
+        0x4120: readPolygonList,
+        0x4140: readMapList
     }
 
     endian = "<"
@@ -176,7 +174,10 @@ class Chunk(FieldSet):
                 fields = Chunk.handlers[type] (self)
                 for field in fields:
                     yield field
-                assert self._total_field_size == (chunk_size * 8)
+                if self._total_field_size != (chunk_size * 8):
+                    raise ParserError( \
+                        "Wrong chunk content size (%u bits instead of %u, field %s)"
+                        % (self._total_field_size, chunk_size * 8, self.path))
             else:
                 yield RawBytes(self, "data", content_size)
 

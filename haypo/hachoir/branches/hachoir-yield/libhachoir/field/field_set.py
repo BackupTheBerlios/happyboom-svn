@@ -190,6 +190,7 @@ class FieldSet(Field):
     def _stopFeeding(self):
         self._field_generator = None
         self._size = self._total_field_size
+        assert not hasattr(self, "static_size") or (self.static_size == self._size)
 
     def _feedUntil(self, field_name):
         try:

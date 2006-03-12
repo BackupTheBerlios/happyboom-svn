@@ -9,7 +9,7 @@ class Bits(Field):
     def _getValue(self):
         if self._value == None:
             self._value = self.parent.stream.getBits(
-                self.absolute_address, self.size, self.big_endian) 
+                self.absolute_address, self._size, self.big_endian) 
         return self._value
     value = property(_getValue, Field._setValue)
    
