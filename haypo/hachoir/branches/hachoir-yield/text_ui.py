@@ -8,6 +8,7 @@ def displayFieldSet(field_set, max_depth=2, depth=0, options={}):
     if display_parent_addr or display_parent_size:
         display_bits = (addr % 8) != 0 or (field_set.size % 8) != 0 
         info = []
+        display_bits = (addr % 8) != 0 or (field_set.size % 8) != 0
         if display_bits:
             if display_parent_addr:
                 info.append( "addr=%u.%u" % (addr/8, addr%8) )
@@ -26,6 +27,7 @@ def displayFieldSet(field_set, max_depth=2, depth=0, options={}):
     print text
     if max_depth == None or max_depth < 0 or depth < max_depth:
         for field in field_set:
+            display_bits = (field.address % 8) != 0 or (field.size % 8) != 0
             if not field.is_field_set:
                 display_bits = (field.address % 8) != 0 or (field.size % 8) != 0 
                 text = indent

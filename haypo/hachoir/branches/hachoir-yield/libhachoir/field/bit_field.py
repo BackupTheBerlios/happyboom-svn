@@ -3,6 +3,8 @@ from libhachoir.field.field import Field
 class Bits(Field):
     def __init__(self, parent, name, size, description=None):
         assert issubclass(parent.__class__, Field)
+        # Arbitrary limit (stream supports bigger value)
+        assert size <= 256
         Field.__init__(self, parent, name, size=size, description=description)
         self.big_endian = True
 

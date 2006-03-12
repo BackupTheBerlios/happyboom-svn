@@ -1,9 +1,18 @@
-from field import FieldSet, Integer, RawBytes, Bit, Bits, ParserError
+"""
+PNG picture file parser.
+
+Author: Victor Stinner
+"""
+
+from field import ( \
+    FieldSet, ParserError,
+    Integer, RawBytes, Bit, Bits, Enum)
 from common import RGB
 from bits import str2hex
 from text_handler import hexadecimal
+import datetime
 
-class HeaderFlags(FieldSet):
+class ColorType(FieldSet):
     def createFields(self):
         yield Bit(self, "palette", "Palette used?")
         yield Bit(self, "color", "Color used?")
@@ -15,7 +24,7 @@ class Header(FieldSet):
         yield Integer(self, "width", "uint32", "Width (pixels)")
         yield Integer(self, "height", "uint32", "Height (pixels)")
         yield Integer(self, "bpp", "uint8", "Bits per pixel")
-        yield HeaderFlags(self, "color_type", self.stream, "Color type")
+        yield ColorType(self, "color_type", self.stream, "Color type")
         yield Integer(self, "compression", "uint8", "Compression method")
         yield Integer(self, "filter", "uint8", "Filter method")
         yield Integer(self, "interlace", "uint8", "Interlace method")
@@ -25,7 +34,7 @@ class Header(FieldSet):
             self._description = "Header: %ux%u pixels and %u bits/pixel" \
                 % (self["width"].value, self["height"].value, self["bpp"].value)
         return self._description
-    description = property(_getDescription, FieldSet._getDescription)
+    description = property(_getDescription, FieldSet._setDescription)
 
 class Palette(FieldSet):
     def __init__(self, parent, name, stream, description=None):
@@ -41,14 +50,80 @@ class Palette(FieldSet):
         for i in range(self.nb_colors):
             yield RGB(self, "color[]", self.stream)
 
+class Gamma(FieldSet):
+    static_size = 32
+
+    def createFields(self):
+        yield Integer(self, "gamma", "uint32", "Gamma (x10,000)", \
+            text_handler=self.getGamma)
+
+    def getGamma(self, chunk):
+        return float(chunk.value) / 10000
+
+class Text(FieldSet):
+    def __init__(self, stream, parent):
+        OnDemandFilter.__init__(self, "text", "Text", stream, parent)
+        kw = String(self, "keyword", "C", "Keyword")
+        yield kw
+        lg = self["../size"].value - kw.size/8
+        yield String(self, "text", "string[%u]" % lg, "Text")
+
+    def _getDescription(self):
+        if self._description == None:
+            self._description = 'Text: "%s"' % self["text"].display
+        return self._description
+    description = property(_getDescription, FieldSet._setDescription)
+
+class Time(FieldSet):
+    endian = "!"
+    static_size = 7*8
+
+    def createFields(self):
+        yield Integer(self, "year", "uint16", "Year")
+        yield Integer(self, "month", "uint8", "Month")
+        yield Integer(self, "day", "uint8", "Day")
+        yield Integer(self, "hour", "uint8", "Hour")
+        yield Integer(self, "minute", "uint8", "Minute")
+        yield Integer(self, "second", "uint8", "Second")
+
+    def _getDescription(self):
+        if self._description == None:
+            time = datetime.datetime( \
+                self["year"].value, self["month"].value, self["day"].value, \
+                self["hour"].value, self["minute"].value, self["second"].value)
+            self._description = "Time: %s" % time
+        return self._description
+    description = property(_getDescription, FieldSet._setDescription)
+
+class Physical(FieldSet):
+    unit_name = {
+        0: "Unknow",
+        1: "Meter"
+    }
+
+    def createFields(self):
+        yield Integer(self, "pixel_per_unit_x", "uint32", "Pixel per unit, X axis")
+        yield Integer(self, "pixel_per_unit_y", "uint32", "Pixel per unit, Y axis")
+        yield Enum(self, "unit", "uint8", Physical.unit_name, "Unit type")
+
+    def _getDescription(self):
+        if self._description == None:
+            x = self["pixel_per_unit_x"].value
+            y = self["pixel_per_unit_y"].value
+            self._description = "Physical: %ux%u pixels" % (x,y)
+            if self["unit"].value == 1:
+                self._description += " per meter"
+        return self._description
+    description = property(_getDescription, FieldSet._setDescription)
+
 class Chunk(FieldSet):
     handler = {
-#        "tIME": Time,
-#        "pHYs": Physical,
+        "tIME": Time,
+        "pHYs": Physical,
         "IHDR": Header,
         "PLTE": Palette,
-#        "gAMA": Gamma,
-#        "tEXt": Text
+        "gAMA": Gamma,
+        "tEXt": Text
     }
     name_by_type = {
         "tIME": ("time", "Time"),
@@ -76,12 +151,9 @@ class Chunk(FieldSet):
 
         type = self["type"].value
         if type in self.handler:
-            size = self["size"]
-#            oldpos = self._stream.tell()
-#            sub = stream.createLimited(size=size)
             cls = self.handler[type]
             yield cls(self, "content", self.stream)
-#            assert stream.tell() == (oldpos + size) 
+            assert self["content"].size == self["size"].value*8
         else:
             yield RawBytes(self, "content", self["size"].value, "Data")
         yield Integer(self, "crc32", "uint32", "CRC32", text_handler=hexadecimal)

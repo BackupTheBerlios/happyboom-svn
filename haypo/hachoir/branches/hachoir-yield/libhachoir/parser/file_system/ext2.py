@@ -1,6 +1,8 @@
 """
 EXT2 (Linux) file system parser.
 
+Author: Victor Stinner
+
 Sources:
 - EXT2FS source code
   http://ext2fsd.sourceforge.net/
@@ -9,7 +11,7 @@ Sources:
 """
 
 from text_handler import unixTimestamp
-from field import FieldSet, Integer, Enum, String, ParserError
+from field import FieldSet, Integer, Enum, String, ParserError, RawBytes
 from tools import humanDuration, getUnixRWX, humanFilesize
 from bits import str2hex
 
@@ -19,7 +21,7 @@ class FieldSetWithSeek(FieldSet):
         assert 0 <= size
         if 0 < size:
             assert (size % 8) == 0
-            return String(self, "raw[]", "string[%u]" % (size / 8))
+            return RawBytes(self, "raw[]", size/8)
         else:
             return None
 
@@ -47,7 +49,7 @@ class DirectoryEntry(FieldSet):
         yield String(self, "name", "string[%u]" % name_length, "File name")
         size = self["rec_len"].value-8-name_length 
         if size != 0:
-            yield String(self, "padding", "string[%u]" % size, "Padding")
+            yield RawBytes(self, "padding", size, "Padding")
 
     def _getDescription(self):
         if self._description == None:
@@ -76,12 +78,13 @@ class Inode(FieldSet):
     def __init__(self, parent, name, index, description=None):
         self.index = index
         FieldSet.__init__(self, parent, name, parent.stream, description)
-        
-        if self.description == None:
-            desc = "Inode %s: " % self.index
 
+    def _getDescription(self):
+        if self._description == None:
+            desc = "Inode %s: " % self.index
+            size = self["size"].value
             if 11 <= self.index:
-                size = humanFilesize(self["size"].value)
+                size = humanFilesize(size)
                 desc += "file, size=%s, mode=%s" % (size, self["mode"].display)
             else:
                 if self.index in Inode.type_name:
@@ -90,9 +93,11 @@ class Inode(FieldSet):
                         desc += " (%s)" % getUnixRWX(self["mode"].value)
                 else:
                     desc += "special"
-                if self["size"].value == 0:
+                if size == 0:
                     desc += " (unused)"
-            self.description = desc
+            self._description = desc
+        return self._description
+    description = property(_getDescription, FieldSet._setDescription)
 
     def createFields(self):
         yield Integer(self, "mode", "uint16", "Mode") # {"post": self.postMode}
@@ -130,7 +135,7 @@ class Inode(FieldSet):
             yield Integer(self, "gid_high", "uint16", "High 16 bits of group ID")
             yield Integer(self, "author", "uint32", "Author ID (?)")
         else:
-            yield String(self, "raw", "string[12]", "Reserved")
+            yield RawBytes(self, "raw", 12, "Reserved")
 
     def postMode(self, chunk):
         mode = chunk.value
@@ -157,28 +162,16 @@ class Inode(FieldSet):
 
 class Bitmap(FieldSet):
     def __init__(self, parent, name, stream, count, start, description=None):
+        assert (count % 8) == 0
         if description != None:
             description = "%s: %s items" % (description, count)
         FieldSet.__init__(self, parent, name, stream, description)
-        assert (count % 8) == 0
         self._size = count
         self.start = start
         self.count = count
 
     def createFields(self):
-        yield String(self, "block_bitmap", "string[%u]" % self._size, "Bitmap")
-
-#    def showFree(self, type="Block"):
-#        data = self["block_bitmap"]
-#        cpt = self.start
-#        for octet in data:
-#            octet = ord(octet)
-#            mask = 1
-#            for i in range(0,8):
-#                if octet & mask == 0:
-#                    print "%s %s free." % (type, cpt)
-#                cpt = cpt + 1
-#                mask = mask << 1
+        yield RawBytes(self, "block_bitmap", self._size/8, "Bitmap")
 
 BlockBitmap = Bitmap
 InodeBitmap = Bitmap
@@ -192,8 +185,7 @@ class GroupDescriptor(FieldSet):
         self.index = index
 
         # Set description
-        superblock = self["/superblock"]
-        blocks_per_group = superblock["blocks_per_group"].value
+        blocks_per_group = self["/superblock/blocks_per_group"].value
         start = self.index * blocks_per_group
         end = start + blocks_per_group 
         self.description = "Group descriptor: blocks %s-%s" % (start, end)
@@ -206,7 +198,7 @@ class GroupDescriptor(FieldSet):
         yield Integer(self, "free_inodes_count", "uint16", "Number of free inodes")
         yield Integer(self, "used_dirs_count", "uint16", "Number of inodes allocated to directories")
         yield Integer(self, "padding", "uint16", "Padding")
-        yield String(self, "reserved", "string[12]", "Reserved")
+        yield RawBytes(self, "reserved", 12, "Reserved")
    
 class SuperBlock(FieldSet):
     error_handling = {
@@ -285,9 +277,9 @@ class SuperBlock(FieldSet):
         yield Integer(self, "feature_compat", "uint32", "Compatible feature set")
         yield Integer(self, "feature_incompat", "uint32", "Incompatible feature set")
         yield Integer(self, "feature_ro_compat", "uint32", "Read-only compatible feature set")
-        yield String(self, "uuid", "string[16]", "128-bit uuid for volume")
-        yield String(self, "volume_name", "string[16]", "Volume name")
-        yield String(self, "last_mounted", "string[64]", "Directory where last mounted")
+        yield RawBytes(self, "uuid", 16, "128-bit uuid for volume")
+        yield String(self, "volume_name", "string[16]", "Volume name", strip="\0")
+        yield String(self, "last_mounted", "string[64]", "Directory where last mounted", strip="\0")
         yield Integer(self, "compression", "uint32", "For compression (algorithm usage bitmap)")
         yield Integer(self, "prealloc_blocks", "uint8", "Number of blocks to try to preallocate")
         yield Integer(self, "prealloc_dir_blocks", "uint8", "Number to preallocate for directories")
@@ -296,7 +288,7 @@ class SuperBlock(FieldSet):
         yield Integer(self, "journal_inum", "uint32", "inode number of journal file")
         yield Integer(self, "journal_dev", "uint32", "device number of journal file")
         yield Integer(self, "last_orphan", "uint32", "start of list of inodes to delete")
-        yield String(self, "reserved", "string[197]", "Padding to the end of the block")
+        yield RawBytes(self, "reserved", 197, "Reserved")
 
     def _getGroupCount(self):
         if self._group_count == None:
@@ -392,7 +384,7 @@ class Group(FieldSetWithSeek):
             size = self.stream.size
         assert (self._total_field_size % 8) == 0
         size = size - self._total_field_size / 8
-        yield String(self, "data", "string[%u]" % size, "Data")
+        yield RawBytes(self, "data", size, "Data")
 
 class EXT2_FS(FieldSetWithSeek):
     """
@@ -440,7 +432,7 @@ class EXT2_FS(FieldSetWithSeek):
 #        size = self.stream.getSize()*8 - self._total_field_size
 #        if size != 0:
 #            assert (size % 8) == 0
-#            yield String(self, "end", "string[%u]" % size, "End (raw)")
+#            yield RawBytes(self, "end", "string[%u]" % size, "End (raw)")
 
 #    def readDirectory(self, inode):
 #        stream = self.getStream()

@@ -144,7 +144,7 @@ class Chunk(FieldSet):
         FieldSet.__init__(self, parent, name, parent.stream)
 
         # Set description
-        self.description = "Chunk: %s" % self["type"].display
+        self._description = "Chunk: %s" % self["type"].display
 
         # Set name based on type field
         type = self["type"].value 
