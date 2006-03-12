@@ -36,7 +36,7 @@ class Field(object):
         return self._value
     def _setValue(self, new_value):
         self._value = new_value
-        self.parent.raiseEvent("value-changed", self)
+        self.parent.raiseEvent("field-value-changed", self)
     value = property(_getValue, _setValue)
 
     def _getDisplay(self):

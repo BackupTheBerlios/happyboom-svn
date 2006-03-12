@@ -41,14 +41,14 @@ class FieldSet(Field):
        * size: Size of field set in bits, may need to create field set
 
     Event handling:
-       * connect: Connect an handler to an event
+       * connectEvent: Connect an handler to an event
        * raiseEvent: Raise an event 
    
     To implement a new field set, you need to:
        * create a class which inherite from FieldSet
        * write createFields() method using lines like:
          "yield <field class>(self, <field name>, ...)"
-       * and maybe set endian/static_size class attributes
+       * and maybe set endian and static_size class attributes
     """
 
     is_field_set = True
@@ -65,6 +65,7 @@ class FieldSet(Field):
             assert parent != None
             self.stream = parent.stream
         else:
+            # Disabled because document test doesn't work !?!?
 #            assert isinstance(stream, InputStream)
 #            assert issubclass(stream.__class__, InputStream)
             self.stream = stream
@@ -85,7 +86,8 @@ class FieldSet(Field):
         return "(...)" 
     display = property(_getDisplay)
 
-    def connect(self, event_name, handler):
+    def connectEvent(self, event_name, handler):
+        assert event_name in ("field-value-changed",)
         if self._event_handler == None:
             self._event_handler = EventHandler()
         self._event_handler.connect(event_name, handler)
