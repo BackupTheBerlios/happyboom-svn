@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-import time
+import time, sys
 
 class Log:
     LOG_INFO   = 0
@@ -61,7 +61,7 @@ class Log:
             self.__buffer[level].append(str)
         prefix = self.getLevelPrefix(level)            
         if self.use_print:
-            print "%s %s" % (prefix, str)
+            sys.stderr.write("%s %s\n" % (prefix, str))
         if self.__file:
             self.__file.write(u"%s - %s %s\n" \
                 % (time.strftime("%Y-%M-%d %H:%M:%S"),

@@ -5,6 +5,8 @@ from libhachoir.tools import convertDataToPrintableString
 class RawBytes(Field):
     def __init__(self, parent, name, length, description="Raw data"):
         assert issubclass(parent.__class__, Field)
+        # arbitrary limit
+        assert length < (1 << 64)
         Field.__init__(self, parent, name, size=length*8, description=description)
         
     def _getTruncated(self, address, length, max_bytes=20):

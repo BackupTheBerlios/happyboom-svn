@@ -1,5 +1,6 @@
 from libhachoir.field.field import Field
 from libhachoir.field.bit_field import Bits, Bit
+from libhachoir.field.character import Character
 from libhachoir.field.integer import Integer, Enum 
 from libhachoir.field.float import Float
 from libhachoir.field.string_field import RawBytes, String

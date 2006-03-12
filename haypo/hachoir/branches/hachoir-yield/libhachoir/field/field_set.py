@@ -2,6 +2,7 @@ from field import Field
 from libhachoir.event_handler import EventHandler
 from libhachoir.indexed_dict import IndexedDict
 import libhachoir.config as config
+from libhachoir.stream import InputStream
 
 class MissingField(KeyError):
     pass
@@ -65,6 +66,7 @@ class FieldSet(Field):
             self.stream = parent.stream
         else:
             self.stream = stream
+        assert isinstance(stream, InputStream)
         self.fields = IndexedDict()
         self._event_handler = None
         self._field_generator = self.createFields()

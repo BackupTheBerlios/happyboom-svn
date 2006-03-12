@@ -6,6 +6,11 @@ class RGB(FieldSet):
         0xFFFFFF: "White"
     }
     static_size = 3*8
+
+    def createFields(self):
+        yield Integer(self, "red", "uint8", "Red")
+        yield Integer(self, "green", "uint8", "Green")
+        yield Integer(self, "blue", "uint8", "Blue")
     
     def _getDescription(self):
         if self._description == None:
@@ -18,10 +23,14 @@ class RGB(FieldSet):
         return self._description
     description = property(_getDescription, FieldSet._getDescription)
 
+class RGBA(RGB):
+    static_size = 4*8
+    
     def createFields(self):
         yield Integer(self, "red", "uint8", "Red")
         yield Integer(self, "green", "uint8", "Green")
         yield Integer(self, "blue", "uint8", "Blue")
+        yield Integer(self, "alpha", "uint8", "Alpha")
 
 class Palette(FieldSet):
     def __init__(self, parent, name, nb_colors, description=None):
@@ -34,4 +43,18 @@ class Palette(FieldSet):
     def createFields(self):
         for i in range(0, self.nb_colors):
             yield RGB(self, "color[]", self.stream)
+
+class PaletteRGBA(FieldSet):
+    def __init__(self, parent, name, nb_colors, description=None):
+        self.nb_colors = nb_colors
+        print self.nb_colors
+        print RGBA.static_size
+        size = self.nb_colors * RGBA.static_size
+        if description == None:
+            description = "Palette of %u RGBA colors" % self.nb_colors
+        FieldSet.__init__(self, parent, name, parent.stream, size=size, description=description)
+
+    def createFields(self):
+        for i in range(0, self.nb_colors):
+            yield RGBA(self, "color[]", self.stream)
 

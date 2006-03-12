@@ -1,5 +1,5 @@
 def displayFieldSet(field_set, max_depth=2, depth=0, options={}):
-    display_parent_addr = options.get("parent-addr", False)
+    display_parent_addr = options.get("parent-addr", True)
     display_parent_size = options.get("parent-size", False)
     display_parent_desc = options.get("parent-desc", True)
     indent = " " * (3*depth)
