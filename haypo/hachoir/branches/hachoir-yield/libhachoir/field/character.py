@@ -7,7 +7,7 @@ class Character(Bits):
 
     def _getValue(self):
         if self._value == None:
-            byte = self.parent.stream.getBits(
+            byte = self.parent.stream.readBits(
                 self.absolute_address, 8, True) 
             self._value = chr(byte)
         return self._value

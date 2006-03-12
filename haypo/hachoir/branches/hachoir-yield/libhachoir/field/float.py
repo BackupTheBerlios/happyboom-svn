@@ -15,7 +15,7 @@ class Float(Field):
     def _getValue(self):
         if self._value == None:
             assert (self._size % 8) == 0
-            raw = self.parent.stream.getBytes(
+            raw = self.parent.stream.readBytes(
                 self.absolute_address, self._size/8)
             raw = struct.unpack(self.format, raw)
             assert len(raw) == 1

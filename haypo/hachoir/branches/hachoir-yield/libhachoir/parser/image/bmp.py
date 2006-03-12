@@ -18,7 +18,7 @@ class BmpFile(FieldSet):
     }        
     
     def createFields(self):
-        yield RawBytes(self, "header", "string[2]", "Header (\"BM\")")
+        yield RawBytes(self, "header", 2, "Header (\"BM\")")
         if self["header"].value != "BM": 
             raise ParserError(
                 "BMP picture parser error: indentifier is uncorrect")

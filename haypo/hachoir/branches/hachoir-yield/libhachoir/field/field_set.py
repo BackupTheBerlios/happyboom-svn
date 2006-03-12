@@ -65,8 +65,9 @@ class FieldSet(Field):
             assert parent != None
             self.stream = parent.stream
         else:
+#            assert isinstance(stream, InputStream)
+#            assert issubclass(stream.__class__, InputStream)
             self.stream = stream
-        assert isinstance(stream, InputStream)
         self.fields = IndexedDict()
         self._event_handler = None
         self._field_generator = self.createFields()
@@ -230,4 +231,8 @@ class FieldSet(Field):
 
     def createFields(self):
         raise NotImplementedError
+
+    def writeInto(self, output):
+        for field in self:
+            field.writeInto(output)
 

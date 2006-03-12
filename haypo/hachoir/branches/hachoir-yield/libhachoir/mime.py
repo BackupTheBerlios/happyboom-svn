@@ -81,7 +81,7 @@ def getStreamMime(stream):
     nb_bytes = stream.size/8
     if 4096 < nb_bytes:
         nb_bytes = 4096
-    data = stream.getBytes(0, nb_bytes)
+    data = stream.readBytes(0, nb_bytes)
     return getBufferMime(data, stream.filename)
 
 def getAnotherBufferMime(content):    

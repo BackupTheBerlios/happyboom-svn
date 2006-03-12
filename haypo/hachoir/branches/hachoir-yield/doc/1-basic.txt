@@ -9,16 +9,16 @@ own stream classes: ``InputStream``. But don't use it directly, use
 ``FileInputStream`` function (needs a filename) or ``StringInputStream``
 (needs a string). Here is a small example to create a stream:
 
->>> from stream import StringInputStream
+>>> from libhachoir.stream import StringInputStream
 >>> stream = StringInputStream("\x03abc")
 
 Most interesting methods are:
 
->>> stream.size            # get size in bits
+>>> stream.size                   # get size in bits
 32
->>> stream.getBits(0, 8)   # get 8 bits at address 0
+>>> stream.readBits(0, 8, True)  # get 8 bits at address 0 in big endian
 3
->>> stream.getBytes(8, 3)  # get 3 bytes at address 8
+>>> stream.readBytes(8, 3)        # get 3 bytes at address 8
 'abc'
 
 Support your own format using FieldSet

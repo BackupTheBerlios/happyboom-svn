@@ -10,7 +10,7 @@ class Bits(Field):
 
     def _getValue(self):
         if self._value == None:
-            self._value = self.parent.stream.getBits(
+            self._value = self.parent.stream.readBits(
                 self.absolute_address, self._size, self.big_endian) 
         return self._value
     value = property(_getValue, Field._setValue)
@@ -18,6 +18,9 @@ class Bits(Field):
     def _getDisplay(self):
         return self.value
     display = property(_getDisplay)
+    
+    def writeInto(self, output):
+        output.copyBitsFrom(self.parent.stream, self.absolute_address, self._size, self.big_endian)
 
 class Bit(Bits):
     def __init__(self, parent, name, description=None):
@@ -25,7 +28,7 @@ class Bit(Bits):
 
     def _getValue(self):
         if self._value == None:
-            data = self.parent.stream.getBits(
+            data = self.parent.stream.readBits(
                 self.absolute_address, 1, True) 
             self._value = (data == 1)
         return self._value

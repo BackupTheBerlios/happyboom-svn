@@ -31,7 +31,7 @@ class InputStream:
         return self._size
     size = property(_getSize, doc="Size of the stream in bits")
 
-    def getBits(self, address, nbits, big_endian=False):
+    def readBits(self, address, nbits, big_endian):
         data = self._getRawBits(address, nbits)        
         if (address % 8) != 0 or (nbits % 8) != 0:
             mask = (1 << nbits) - 1
@@ -67,7 +67,7 @@ class InputStream:
             value = value & mask
         return value
 
-    def getBytes(self, address, nb_bytes):
+    def readBytes(self, address, nb_bytes):
         if address % 8 != 0:
             data = self._getRawBits(address, nb_bytes*8)
             nbits = address % 8
@@ -121,7 +121,7 @@ class InputStream:
         if max<doublesize:
             doublesize = max/8 
             size = 0 
-        buffer = self.getBytes(address, doublesize)
+        buffer = self.readBytes(address, doublesize)
 
         new_address = address + size
         while len(buffer) != 0:
@@ -133,7 +133,7 @@ class InputStream:
                 size = end_address - address
             if size == 0:
                 break
-            buffer = buffer[size:] + self.getBytes(address, size)
+            buffer = buffer[size:] + self.readBytes(address, size)
             new_address = address + size 
         return None
 

@@ -68,3 +68,7 @@ class Field(object):
     def _getSize(self):
         return self._size
     size = property(_getSize)
+
+    def writeInto(self, output):
+        raise NotImplementedError()
+

@@ -53,7 +53,7 @@ class OutputStream(object):
                 self._byte = 0
             else:
                 if self._big_endian:
-                    self._byte |= (value << (8-self._bit_pos-count))
+                    self._byte |= (value << (7-self._bit_pos-count))
                 else:
                     self._byte |= (value << self._bit_pos)
                 self._bit_pos += count 
@@ -82,6 +82,38 @@ class OutputStream(object):
         else:
             assert value == 0
             self._byte = 0
+
+    def copyBitsFrom(self, input, address, nb_bits, big_endian):
+        if (nb_bits % 8) == 0 and big_endian:
+            self.copyBytesFrom(input, address, nb_bits/8)
+        else:
+            # Arbitrary limit (because we should use a buffer, like copyBytesFrom(),
+            # but with endianess problem
+            assert nb_bits <= 128
+            buffer = input.readBits(address, nb_bits, big_endian)
+            self.writeBits(nb_bits, buffer)
+    
+    def copyBytesFrom(self, input, address, nb_bytes):
+        buffer_size = 1 << 16 # 64 KB
+        while 0 < nb_bytes:
+            # Compute buffer size
+            if nb_bytes < buffer_size:
+                buffer_size = nb_bytes
+                
+            # Read
+            buffer = input.readBytes(address, buffer_size)
+            
+            # Write
+            self.writeBytes(buffer)
+
+            # Move address
+            address += buffer_size*8
+            nb_bytes -= buffer_size
+
+    def writeBytes(self, bytes):           
+        if self._bit_pos != 0:
+            raise NotImplementedError()
+        self._output.write(bytes)
 
     def paddingToByte(self, bit=False):
         n = 0

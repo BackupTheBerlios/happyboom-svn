@@ -13,10 +13,10 @@ class RawBytes(Field):
         truncated = False
         if self._value == None:
             if max_bytes < length:
-                display = self.parent.stream.getBytes( \
+                display = self.parent.stream.readBytes( \
                     address, max_bytes)
             else:
-                self._value = self.parent.stream.getBytes( \
+                self._value = self.parent.stream.readBytes( \
                     address, length)
                 display = self._value
         else:
@@ -33,10 +33,13 @@ class RawBytes(Field):
     def _getValue(self):
         if self._value == None:
             assert (self._size % 8) == 0
-            self._value = self.parent.stream.getBytes( \
+            self._value = self.parent.stream.readBytes( \
                 self.absolute_address, self._size / 8)
         return self._value
     value = property(_getValue, Field._setValue)        
+
+    def writeInto(self, output):
+        output.copyBytesFrom(self.parent.stream, self.absolute_address, self._size/8)
 
 class String(RawBytes):
     def __init__(self, parent, name, format, description=None, \
@@ -86,7 +89,7 @@ class String(RawBytes):
     def _getValue(self):
         if self._value == None:
             assert (self._size % 8) == 0
-            self._value = self.parent.stream.getBytes( \
+            self._value = self.parent.stream.readBytes( \
                 self.absolute_address + self._begin_offset*8, self._length)
             self._value = self._processData(self._value, False)
         return self._value
