@@ -26,13 +26,12 @@ def entropy(stream):
         for i in raw:
             count[i] = count[i] + 1
     length = stream.getSize()
+    h = 0
     for i in range(0, 256):
         i = chr(i)
         if count[i] != 0:
-            p.append( float(count[i]) / length )
-    h = 0
-    for p_i in p:
-        h -= p_i * math.log(p_i, 2)
+            p_i = float(count[i]) / length
+            h -= p_i * math.log(p_i, 2)
     return h
 
 class Pattern:
