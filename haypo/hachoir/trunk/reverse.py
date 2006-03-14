@@ -31,10 +31,9 @@ def entropy(stream):
         if count[i] != 0:
             p.append( float(count[i]) / length )
     h = 0
-    n = len(p)
     for p_i in p:
-        h += p_i * math.log(p_i, 2)
-    return -h
+        h -= p_i * math.log(p_i, 2)
+    return h
 
 class Pattern:
     def check(self, stream):
