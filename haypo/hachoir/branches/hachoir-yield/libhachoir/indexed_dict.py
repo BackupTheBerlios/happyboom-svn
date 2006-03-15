@@ -10,7 +10,6 @@ class OrderedDict:
     def __init__(self):
         self._dict = {}         # key => value
         self._value_list = []   # index => value
-        self._index = {}        # key => index
 
     def getByIndex(self, index):
         return self._value_list[index]
@@ -18,14 +17,10 @@ class OrderedDict:
     def __getitem__(self, key):
         return self._dict[key]
 
-    def indexOf(self, key):
-        return self._index[key]
-
     def append(self, key, value):
         if key in self._dict:
             raise UniqKeyError("Key '%s' already exists" % key)
         self._dict[key] = value
-        self._index[key] = len(self._value_list)
         self._value_list.append(value)
 
     def __len__(self):
@@ -40,15 +35,21 @@ class OrderedDict:
 class IndexedDict(OrderedDict):
     """
     This class is based on OrderedDict(), but add new methods:
-     * insert(index, key, value) 
-     * __delitem__(index)
+      * indexOf(key)
+      * insert(index, key, value) 
+      * __delitem__(index)
     """
     
     def __init__(self):
         self._key_list = []     # index => key, needed by insert
+        self._index = {}        # key => index
+
+    def indexOf(self, key):
+        return self._index[key]
 
     def append(self, key, value):
         OrderedDict.append(key, value)
+        self._index[key] = len(self._value_list)-1
         self._key_list.append(key)
         
     def __delitem__(self, index):
