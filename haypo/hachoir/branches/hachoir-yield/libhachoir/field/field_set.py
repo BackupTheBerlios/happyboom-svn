@@ -1,6 +1,6 @@
 from field import Field
 from libhachoir.event_handler import EventHandler
-from libhachoir.indexed_dict import IndexedDict
+from libhachoir.indexed_dict import OrderedDict
 import libhachoir.config as config
 from libhachoir.stream import InputStream
 
@@ -69,7 +69,7 @@ class FieldSet(Field):
 #            assert isinstance(stream, InputStream)
 #            assert issubclass(stream.__class__, InputStream)
             self.stream = stream
-        self.fields = IndexedDict()
+        self.fields = OrderedDict()
         self._event_handler = None
         self._field_generator = self.createFields()
         self._field_array_count = {}

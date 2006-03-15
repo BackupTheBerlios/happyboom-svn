@@ -20,7 +20,7 @@ def main():
     print "Set has_comment=True: done"
 
     output = FileOutputStream("/home/haypo/new.gz")
-    gzip.writeInto(output)
-#    displayFieldSet(gzip)
+#    gzip.writeInto(output)
+    displayFieldSet(gzip)
     
 main()

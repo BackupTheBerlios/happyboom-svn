@@ -111,7 +111,7 @@ class GzipFile(FieldSet):
         yield RawBytes(self, "data", size/8, "Compressed data")
 
         # Footer
-        yield Integer(self, "crc32", "uint32", "CRC32", text_handler=hexadecimal)
+        yield Integer(self, "crc32", "uint32", "Uncompressed data content CRC32", text_handler=hexadecimal)
         yield Integer(self, "size", "uint32", "Uncompressed size", text_handler=humanFilesize)
 
     def getCompressionMethod(self, chunk):
