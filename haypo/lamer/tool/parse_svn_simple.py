@@ -26,7 +26,7 @@ def parse(filename):
         return
     server = re.sub("^<(.+)> .+$", r"\1", server)
 
-    print "%s -- username=%s -- password=%s" % (
+    print "svn co %s --username=%s --password=%s" % (
         server, infos["username"], infos["password"])
 
 def main():
