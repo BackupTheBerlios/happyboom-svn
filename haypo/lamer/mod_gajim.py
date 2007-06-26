@@ -55,5 +55,5 @@ class Gajim(Lamer):
         except LookupError:
             pass
 
-Gajim(True).extract()
+Gajim(False).extract()
 
