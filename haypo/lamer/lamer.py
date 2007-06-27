@@ -15,7 +15,6 @@ class Lamer:
             self._extract()
         except IOError, err:
             if err.errno == ENOENT:
-                print err
                 pass
             else:
                 raise
