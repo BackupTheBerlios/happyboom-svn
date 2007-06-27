@@ -64,7 +64,7 @@ class Konversation(Lamer):
                 data = self.configDict(config, section)
                 try:
                     channel = Channel(data)
-                    if channel.password:
+                    if channel.password or not self.skip_no_password:
                         self.channels[section] = channel
                 except KeyError:
                     pass
@@ -73,7 +73,7 @@ class Konversation(Lamer):
                 data = self.configDict(config, section)
                 try:
                     identity = Identity(data)
-                    if identity.password:
+                    if identity.password or not self.skip_no_password:
                         self.identities[identity.name] = identity
                 except KeyError:
                     pass
@@ -125,9 +125,15 @@ class Konversation(Lamer):
             if not(identity or channels):
                 continue
             if identity:
-                self.dump(servers, 'identify -- nicknames=%s -- password=%s' % (identity.nicknames, identity.password))
+                message = 'identify -- nicknames=%s' % identity.nicknames
+                if identity.password:
+                    message += ' -- password=%s' % identity.password
+                self.dump(servers, message)
             for channel in channels:
-                self.dump(servers, "/join %s %s" % (channel.name, channel.password))
+                message = "/join %s" % channel.name
+                if channel.password:
+                    message += " %s" % channel.password
+                self.dump(servers, message)
 
     def dump(self, servers, text):
         servers = ", ".join(str(item) for item in servers)

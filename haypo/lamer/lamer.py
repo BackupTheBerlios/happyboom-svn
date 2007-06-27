@@ -7,6 +7,7 @@ class Lamer:
     def __init__(self, name, verbose):
         self.name = name
         self.verbose = verbose
+        self.skip_no_password = True
         if self.verbose:
             print >>stderr, "[ Module %s ]" % self.name
 

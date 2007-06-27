@@ -22,6 +22,8 @@ class Ncftp(Lamer):
                 password = base64.b64decode(password[9:])
             if password:
                 login = "%s:%s" % (login, password)
+            elif self.skip_no_password:
+                continue
             port = int(data[7])
             self.write("ftp://%s@%s:%s/" % (login, server, port))
 

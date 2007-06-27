@@ -22,10 +22,14 @@ class Gajim(Lamer):
 
     def displayAccount(self, data):
         try:
-            self.write('Account "%s@%s" with password "%s"' % (
-                data["name"], data["hostname"], data["password"]))
+            message = 'Account "%s@%s"' % (data["name"], data["hostname"])
+            if "password" in data:
+                message += ' with password "%s"' % data["password"]
+            elif self.skip_no_password:
+                return
+            self.write(message)
         except LookupError:
-            pass
+            return
 
 Gajim(False).extract()
 

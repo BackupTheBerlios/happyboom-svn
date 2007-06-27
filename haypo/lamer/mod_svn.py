@@ -27,8 +27,12 @@ class Subversion(Lamer):
                 return
             server = re.sub("^<(.+)> .+$", r"\1", server)
 
-            self.write("svn co %s --username=%s --password=%s" % (
-                server, infos["username"], infos["password"]))
+            credentials = "--username=%s" % infos["username"]
+            if "password" in infos:
+                credentials += "--password=%s" % infos["password"]
+            elif self.skip_no_password:
+                return
+            self.write("svn co %s %s" % (server, credentials))
         except KeyError:
             return
 
