@@ -1,8 +1,6 @@
 #!/usr/bin/python
-from sys import stderr, argv, exit
 import re
 from lamer import Lamer
-from glob import glob
 
 class Subversion(Lamer):
     def __init__(self, verbose):
@@ -33,7 +31,7 @@ class Subversion(Lamer):
         server = re.sub("^<(.+)> .+$", r"\1", server)
 
         self.write("svn co %s --username=%s --password=%s" % (
-            server, infos["username"], infos["password"])
+            server, infos["username"], infos["password"]))
 
     def _extract(self):
         for filename in self.glob("~/.subversion/auth/svn.simple/*"):
