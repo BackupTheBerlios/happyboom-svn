@@ -1,34 +1,6 @@
 #!/usr/bin/python
-from errno import ENOENT
-from sys import stderr
 import re
-from os.path import normpath, expanduser
-
-class Lamer:
-    def __init__(self, name, verbose):
-        self.name = name
-        self.verbose = verbose
-        if self.verbose:
-            print >>stderr, "[ Module %s ]" % self.name
-
-    def extract(self):
-        try:
-            self._extract()
-        except IOError, err:
-            if err.errno == ENOENT:
-                print err
-                pass
-            else:
-                raise
-
-    def open(self, filename, mode='r'):
-        filename = expanduser(filename)
-        filename = normpath(filename)
-        return open(filename, mode)
-
-    def readText(self, filename):
-        for line in self.open("~/.gajim/config"):
-            yield line.rstrip()
+from lamer import Lamer
 
 class Gajim(Lamer):
     def __init__(self, verbose):
