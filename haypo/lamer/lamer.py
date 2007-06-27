@@ -32,7 +32,7 @@ class Lamer:
         return open(self.normpath(filename), mode)
 
     def readText(self, filename):
-        for line in self.open("~/.gajim/config"):
+        for line in self.open(filename):
             yield line.rstrip()
 
     def write(self, text):
