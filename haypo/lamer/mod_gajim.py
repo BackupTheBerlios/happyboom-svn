@@ -22,8 +22,8 @@ class Gajim(Lamer):
 
     def displayAccount(self, data):
         try:
-            print "Jabber: login=%s@%s -- password=%s" % (
-                data["name"], data["hostname"], data["password"])
+            self.write('Account "%s@%s" with password "%s"' % (
+                data["name"], data["hostname"], data["password"]))
         except LookupError:
             pass
 
