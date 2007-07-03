@@ -9,7 +9,7 @@ class Gajim(Lamer):
     def _extract(self):
         accounts = {}
         for line in self.readText("~/.gajim/config"):
-            match = re.match("^accounts\.([a-z0-9.-]+)\.([a-z0-9-]+) = (.*)$", line)
+            match = re.match("^accounts\.([a-z0-9.-]+)\.([a-z0-9_-]+) = (.*)$", line)
             if match:
                 account = match.group(1)
                 key = match.group(2)
@@ -23,6 +23,10 @@ class Gajim(Lamer):
     def displayAccount(self, data):
         try:
             message = 'Account "%s@%s"' % (data["name"], data["hostname"])
+            if "custom_port" in data:
+                message += ' port %s' % data["custom_port"]
+            if "usessl" in data:
+                message += ' (SSL)'
             if "password" in data:
                 message += ' with password "%s"' % data["password"]
             elif self.skip_no_password:
