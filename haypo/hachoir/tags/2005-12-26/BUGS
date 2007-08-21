@@ -1,2 +1,0 @@
-- Set format to last chunk in a sub-filter doesn't work
-  (last chunk always converted to "!%ss" % padding)
